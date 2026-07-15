@@ -2218,9 +2218,18 @@ textarea.input-field {
 
   .navbar { padding: 0 var(--space-16); }
   .navbar-inner { height: 64px; }
-  .mobile-menu { top: 64px; left: 0; right: 0; border-radius: 0 0 var(--radius-xl) var(--radius-xl); }
+  .mobile-menu { top: 64px; left: 0; right: 0; border-radius: 0 0 var(--radius-xl) var(--radius-xl); max-height: calc(100vh - 64px); overflow-y: auto; }
   .navbar-nav { display: none; }
+  /* Declutter the top bar — all nav/actions live in the hamburger sheet on mobile */
+  .navbar-actions { display: none; }
   .hamburger { display: flex; }
+
+  /* Wide data tables scroll inside their own container instead of overflowing the page */
+  .data-table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+
+  /* Search bar spans the viewport cleanly */
+  .search-bar { max-width: 100%; }
+  .hero-search { width: 100%; }
 
   .hero { min-height: auto; padding: 120px 0 var(--space-64); }
   .hero-title { letter-spacing: -1px; }
