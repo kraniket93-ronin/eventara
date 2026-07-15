@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Compare Quotes — Eventara</title>
-  <meta name="description" content="Itemised quotes from verified Udaipur suppliers, lined up against a common inclusion list. Totals shown, gaps flagged, PDF ready for your approver." />
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <meta name="description" content="Clear quotes from verified Udaipur venues and planners, lined up side by side so you can compare fairly and choose with confidence." />
+  <link rel="stylesheet" href="styles.css?v=11" />
   <script src="auth.js?v=1"></script>
   <style>
     .compare-header {
@@ -164,12 +164,11 @@
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html" class="navbar-logo">
-        <span class="logo-icon">E</span>
-        Eventara
+        <img src="logo.svg?v=1" alt="Eventara" class="logo-img" />
       </a>
       <div class="navbar-nav">
         <a href="search.html">Find Suppliers</a>
-        <a href="brief.html">Submit Brief</a>
+        <a href="brief.html">Get Quotes</a>
         <a href="compare.html" class="active">Compare Quotes</a>
       </div>
       <div class="navbar-actions">
@@ -187,7 +186,7 @@
   <!-- Mobile Menu -->
   <div class="mobile-menu">
     <a href="search.html">Find Suppliers</a>
-    <a href="brief.html">Submit Brief</a>
+    <a href="brief.html">Get Quotes</a>
     <a href="compare.html">Compare Quotes</a>
     <a href="signin.html">Sign In</a>
   </div>
@@ -196,22 +195,22 @@
   <header class="compare-header container">
     <div class="flex justify-between items-end flex-wrap gap-16">
       <div>
-        <span class="micro text-plum" style="display:block; margin-bottom: var(--space-8);">Brief #EVT-2026-0042 • 3 of 3 quotes received</span>
+        <span class="micro text-plum" style="display:block; margin-bottom: var(--space-8);">Your request • 3 of 3 quotes received</span>
         <h1>Quote Comparison — Annual Offsite, Udaipur</h1>
-        <p class="text-muted body-sm">Itemised quotes lined up against your requested inclusion list. Anything a supplier left out is flagged. All amounts exclude GST unless stated.</p>
+        <p class="text-muted body-sm">Your quotes, lined up side by side against what you asked for. Anything a venue left out is clearly flagged. Prices exclude GST unless noted.</p>
         <div class="brief-chips">
           <span class="brief-chip">Corporate Offsite</span>
           <span class="brief-chip">Sat, 22 Aug 2026</span>
           <span class="brief-chip">140 guests</span>
-          <span class="brief-chip">Budget band ₹5L–₹10L</span>
+          <span class="brief-chip">Budget ₹5L–₹10L</span>
           <span class="brief-chip">Udaipur</span>
-          <span class="brief-chip">Customer: Secure Meters (masked)</span>
+          <span class="brief-chip">For: Secure Meters</span>
         </div>
       </div>
       <div class="compare-actions flex gap-8">
         <button class="btn btn-secondary btn-sm" onclick="window.print()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download PDF for approver
+          Download / Share PDF
         </button>
       </div>
     </div>
@@ -227,7 +226,7 @@
             <th class="col-provider">
               <div class="quote-provider">
                 <div class="thumb" style="background-image:url('https://pandorahotels.co.in/grand-udr/Property-with-lawn-view.webp');"></div>
-                <span class="tag-recommended">Best fit for budget band</span>
+                <span class="tag-recommended">Best value for your budget</span>
                 <span class="name">Paandora Grand Udaipur</span>
                 <span class="meta">★ 4.6 (214) • up to 800 guests • quoted in 9h</span>
               </div>
@@ -292,7 +291,7 @@
             <td>₹70,000</td>
           </tr>
           <tr>
-            <td class="row-label">On-site event manager &amp; SLA</td>
+            <td class="row-label">On-site event manager</td>
             <td><span class="included">✓ Included</span></td>
             <td><span class="included">✓ Included</span></td>
             <td><span class="included">✓ Included</span></td>
@@ -313,36 +312,36 @@
             <td class="row-label">Total payable</td>
             <td>
               ₹10,03,000
-              <span class="band-ok">Within budget band (pre-GST)</span>
+              <span class="band-ok">Within your budget (before GST)</span>
             </td>
             <td>
               ₹12,24,840
-              <span class="band-flag">⚠ Pre-GST subtotal exceeds ₹10L band</span>
+              <span class="band-flag">⚠ Above your ₹10L budget (before GST)</span>
             </td>
             <td>
               ₹15,31,640
-              <span class="band-flag">⚠ Pre-GST subtotal exceeds ₹10L band</span>
+              <span class="band-flag">⚠ Above your ₹10L budget (before GST)</span>
             </td>
           </tr>
           <tr>
-            <td class="row-label">Advance under bank mandate (30%)</td>
-            <td>₹3,00,900 <span class="text-muted">held until delivery</span></td>
-            <td>₹3,67,452 <span class="text-muted">held until delivery</span></td>
-            <td>₹4,59,492 <span class="text-muted">held until delivery</span></td>
+            <td class="row-label">Deposit to confirm (30%)</td>
+            <td>₹3,00,900 <span class="text-muted">held safely until your event</span></td>
+            <td>₹3,67,452 <span class="text-muted">held safely until your event</span></td>
+            <td>₹4,59,492 <span class="text-muted">held safely until your event</span></td>
           </tr>
           <tr class="action-row">
             <td class="row-label"></td>
             <td>
               <a href="booking.html" class="btn btn-primary btn-sm w-full" style="margin-bottom: 8px;">Accept &amp; Book</a>
-              <span class="msg-link">Message supplier (contacts masked)</span>
+              <span class="msg-link">Message this venue (contact stays private)</span>
             </td>
             <td>
               <a href="booking.html" class="btn btn-secondary btn-sm w-full" style="margin-bottom: 8px;">Accept &amp; Book</a>
-              <span class="msg-link">Message supplier (contacts masked)</span>
+              <span class="msg-link">Message this venue (contact stays private)</span>
             </td>
             <td>
               <a href="booking.html" class="btn btn-secondary btn-sm w-full" style="margin-bottom: 8px;">Accept &amp; Book</a>
-              <span class="msg-link">Message supplier (contacts masked)</span>
+              <span class="msg-link">Message this venue (contact stays private)</span>
             </td>
           </tr>
         </tbody>
@@ -353,7 +352,7 @@
     <div class="card-flat" style="margin-top: var(--space-24); display: flex; gap: var(--space-16); align-items: flex-start;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--trust-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       <p class="body-sm text-secondary" style="margin: 0;">
-        <strong>What you keep by booking on Eventara:</strong> the advance is held under a bank mandate and released only after delivery, every message and change stays on the booking record, a GST invoice is generated automatically, and you keep a dispute path with funds held until resolution. Book off-platform and all of this disappears.
+        <strong>Why book on Eventara:</strong> your deposit stays protected and is only released after your event is delivered, every message and change is saved to your booking, a proper GST invoice is created automatically, and if anything goes wrong our support team steps in with your money held safely. Book off Eventara and you lose all of that.
       </p>
     </div>
   </main>
@@ -362,16 +361,16 @@
   <footer class="footer">
     <div class="container">
       <div class="footer-bottom" style="border-top: none; padding-top: 0;">
-        <p>© 2026 Eventara — IIM Udaipur PSM Group 10 prototype. Pilot city: Udaipur.</p>
+        <p>© 2026 Eventara — Udaipur.</p>
         <div class="flex gap-16">
-          <a href="brief.html" class="body-sm">Submit a Brief</a>
-          <a href="booking.html" class="body-sm">Booking &amp; Mandate</a>
-          <a href="invoice.html" class="body-sm">Sample GST Invoice</a>
+          <a href="brief.html" class="body-sm">Get Quotes</a>
+          <a href="booking.html" class="body-sm">How Booking Works</a>
+          <a href="invoice.html" class="body-sm">Sample Invoice</a>
         </div>
       </div>
     </div>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Paandora Grand Udaipur supplier portal on Eventara — enquiry inbox, quote builder with 48-hour SLA, availability calendar, and payout view." />
+  <meta name="description" content="Paandora Grand Udaipur business portal on Eventara — enquiry inbox, quote builder, availability calendar and payouts." />
   <title>Supplier Portal — Paandora Grand Udaipur — Eventara</title>
   <!-- Access gate: Supplier Portal is for signed-in Businesses/Suppliers only.
        Runs before render to avoid any flash of protected content. -->
   <script src="auth.js?v=1"></script>
   <script>Auth.requireRole('supplier', 'signin.html?next=dashboard&role=business');</script>
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="stylesheet" href="styles.css?v=11" />
   <style>
     /* ============================================================
        DASHBOARD PAGE — Scoped Overrides & Additions
@@ -389,9 +389,9 @@
     <aside class="sidebar" id="sidebar">
       <!-- Logo -->
       <div class="sidebar-logo">
-        <div style="width: 32px; height: 32px; background: var(--coral); border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-display); font-weight: 700; font-size: 15px;">E</div>
         <div>
-          <div style="font-family: var(--font-display); font-weight: 700; font-size: var(--text-body-lg); color: var(--ink); line-height: 1.1;">Eventara</div>
+          <img src="logo.svg?v=1" alt="Eventara" class="logo-img" />
+          
           <div style="font-size: 11px; color: var(--ink-on-dark-muted); font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;">Supplier Portal</div>
         </div>
       </div>
@@ -453,7 +453,7 @@
       <div class="dashboard-header">
         <div>
           <h1>Welcome back, Paandora Grand Udaipur</h1>
-          <p>Two briefs are inside their 48-hour quote SLA — reply to keep your reputation score climbing</p>
+          <p>Two enquiries are inside their 48-hour quote window — reply quickly to keep your rating high</p>
         </div>
         <div class="dashboard-header-right">
           <button class="notification-btn" aria-label="Notifications">
@@ -485,16 +485,16 @@
           </div>
           <div class="metric-label">Quotes Awaiting Reply</div>
           <div class="metric-value">3</div>
-          <div class="metric-change negative">1 brief nearing 48h SLA</div>
+          <div class="metric-change negative">1 enquiry nearing 48h</div>
         </div>
         <!-- Confirmed Bookings -->
         <div class="metric-card">
           <div class="metric-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"></path></svg>
           </div>
-          <div class="metric-label">Mandate-Protected Bookings</div>
+          <div class="metric-label">Protected Bookings</div>
           <div class="metric-value">2</div>
-          <div class="metric-change positive">₹6.02L advance held for you</div>
+          <div class="metric-change positive">₹6.02L deposit held for you</div>
         </div>
         <!-- Revenue -->
         <div class="metric-card">
@@ -510,7 +510,7 @@
       <!-- RECENT ENQUIRIES -->
       <div class="card-flat" style="margin-bottom: var(--space-32); padding: var(--space-24) 0 0 0;">
         <h3 style="padding: 0 var(--space-24); margin-bottom: var(--space-8);">Enquiry Inbox — Structured Briefs</h3>
-        <p class="caption" style="padding: 0 var(--space-24); margin-bottom: var(--space-16); color: var(--ink-muted);">Customer contacts stay masked until booking. Quote inside 48 hours to protect your reputation score — reminders go out at 24h and 40h.</p>
+        <p class="caption" style="padding: 0 var(--space-24); margin-bottom: var(--space-16); color: var(--ink-muted);">Customer contact details stay private until a booking is confirmed. Reply within 48 hours to keep your rating high — reminders go out at 24h and 40h.</p>
         <table class="data-table">
           <thead>
             <tr>
@@ -518,8 +518,8 @@
               <th>Event Type</th>
               <th>Date</th>
               <th>Guests</th>
-              <th>Budget Band</th>
-              <th>Status / SLA</th>
+              <th>Budget</th>
+              <th>Status</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -589,7 +589,7 @@
           <div class="pipeline-legend">
             <div class="legend-item">
               <span class="legend-dot" style="background: var(--info);"></span>
-              Brief (9)
+              Enquiry (9)
             </div>
             <div class="legend-item">
               <span class="legend-dot" style="background: var(--gold);"></span>
@@ -612,7 +612,7 @@
 
         <!-- Performance Snapshot — reputation score inputs (PRD T-05) -->
         <div class="card-flat">
-          <h3>Reputation Score Inputs</h3>
+          <h3>Your Performance</h3>
           <div class="perf-row">
             <span class="perf-label">48-hour Quote Response Rate</span>
             <span class="perf-value green">100%</span>
@@ -622,11 +622,11 @@
             <span class="perf-value">11h</span>
           </div>
           <div class="perf-row">
-            <span class="perf-label">Mandate Acceptance</span>
-            <span class="perf-value green">Accepted</span>
+            <span class="perf-label">Deposit Setup</span>
+            <span class="perf-value green">Active</span>
           </div>
           <div class="perf-row">
-            <span class="perf-label">On-Platform Delivery Rate</span>
+            <span class="perf-label">Delivery Rate</span>
             <span class="perf-value green">100%</span>
           </div>
           <div class="perf-row">
@@ -648,8 +648,8 @@
 
       <!-- PAYOUT VIEW (PRD P-05) -->
       <div class="card-flat" style="margin-bottom: var(--space-32); padding: var(--space-24) 0 0 0;">
-        <h3 style="padding: 0 var(--space-24); margin-bottom: var(--space-8);">Payouts &amp; Mandate Ledger</h3>
-        <p class="caption" style="padding: 0 var(--space-24); margin-bottom: var(--space-16); color: var(--ink-muted);">The advance sits in a platform account under the mandate. Your net payout (after commission) releases on confirmed delivery, or auto-releases 72h after the event if no dispute is raised.</p>
+        <h3 style="padding: 0 var(--space-24); margin-bottom: var(--space-8);">Payouts &amp; Ledger</h3>
+        <p class="caption" style="padding: 0 var(--space-24); margin-bottom: var(--space-16); color: var(--ink-muted);">The customer's deposit is held safely by Eventara. Your payout (after commission) is released once the event is confirmed delivered, or automatically 72 hours after the event if nothing is flagged.</p>
         <table class="data-table">
           <thead>
             <tr>
@@ -658,7 +658,7 @@
               <th>Gross</th>
               <th>Commission (7%)</th>
               <th>Net Payout</th>
-              <th>Mandate Status</th>
+              <th>Payment Status</th>
             </tr>
           </thead>
           <tbody>
@@ -668,7 +668,7 @@
               <td>₹8,50,000</td>
               <td>−₹59,500</td>
               <td><strong>₹7,90,500</strong></td>
-              <td><span class="status status-quoted">Advance held • balance pending</span></td>
+              <td><span class="status status-quoted">Deposit held • balance pending</span></td>
             </tr>
             <tr>
               <td><strong>#EVT-2026-0039</strong><br><span class="caption text-muted">Aravalli Fintech — Launch</span></td>
@@ -770,7 +770,7 @@
 
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
   <script>
     function signOut() { Auth.logout('index.html'); }
   </script>

@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Operations Console — Eventara</title>
-  <meta name="description" content="Eventara operations console — verification queue, concierge booking, dispute handling, and the pilot funnel dashboard measured against PoC thresholds." />
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <meta name="description" content="Eventara operations console — verification queue, concierge booking, dispute handling and the performance dashboard." />
+  <link rel="stylesheet" href="styles.css?v=11" />
   <script src="auth.js?v=1"></script>
   <style>
     .ops-tabs {
@@ -91,8 +91,7 @@
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html" class="navbar-logo">
-        <span class="logo-icon">E</span>
-        Eventara
+        <img src="logo.svg?v=1" alt="Eventara" class="logo-img" />
       </a>
       <div class="navbar-nav">
         <a href="search.html">Find Suppliers</a>
@@ -362,7 +361,7 @@
   <footer class="footer">
     <div class="container">
       <div class="footer-bottom" style="border-top: none; padding-top: 0;">
-        <p>© 2026 Eventara — IIM Udaipur PSM Group 10 prototype. Pilot city: Udaipur.</p>
+        <p>© 2026 Eventara — Udaipur. A student project by IIM Udaipur PSM Group 10.</p>
         <div class="flex gap-16">
           <a href="compare.html" class="body-sm">Quote Comparison</a>
           <a href="invoice.html" class="body-sm">Records</a>
@@ -371,7 +370,7 @@
     </div>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2"></script>
   <script>
     document.querySelectorAll('#opsTabs .ops-tab').forEach(function (tab) {
       tab.addEventListener('click', function () {

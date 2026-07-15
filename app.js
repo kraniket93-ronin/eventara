@@ -183,9 +183,9 @@ function initMultiStepForm() {
         <div style="width: 72px; height: 72px; background: var(--trust-green-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--trust-green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
         </div>
-        <h3 class="display-md" style="margin-bottom: 12px;">Brief Submitted!</h3>
-        <p class="body-lg text-secondary" style="max-width: 460px; margin: 0 auto 32px;">Your brief has been sent to Paandora Grand Udaipur, The Ananta Udaipur and Aurika, Udaipur. Itemised quotes arrive within the 48-hour SLA — we'll line them up side by side for you.</p>
-        <a href="compare.html" class="btn btn-primary">Preview Quote Comparison</a>
+        <h3 class="display-md" style="margin-bottom: 12px;">Request Sent!</h3>
+        <p class="body-lg text-secondary" style="max-width: 460px; margin: 0 auto 32px;">Your request has gone to Paandora Grand Udaipur, The Ananta Udaipur and Aurika, Udaipur. Their quotes will arrive within 48 hours — we'll line them up side by side so you can compare easily.</p>
+        <a href="compare.html" class="btn btn-primary">See Your Quotes</a>
         <a href="index.html" class="btn btn-ghost">Back to Home</a>
       </div>
     `;

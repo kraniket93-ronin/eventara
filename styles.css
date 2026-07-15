@@ -409,6 +409,19 @@ ul, ol { list-style: none; }
   font-weight: 700;
 }
 
+/* Brand logo image (gold arc + eventara wordmark) */
+.logo-img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+.footer-brand .navbar-logo .logo-img { height: 44px; }
+.sidebar-logo .logo-img { height: 34px; }
+.auth-logo .logo-img { height: 54px; }
+@media (max-width: 640px) {
+  .navbar-logo .logo-img { height: 34px; }
+}
+
 .navbar-nav {
   display: flex;
   align-items: center;
@@ -1534,6 +1547,15 @@ textarea.input-field {
 .footer-brand .navbar-logo {
   color: var(--coral);
   margin-bottom: var(--space-16);
+}
+
+.footer-brand .footer-tagline {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-body-sm);
+  color: var(--coral);
+  margin: -8px 0 12px;
+  letter-spacing: 0.2px;
 }
 
 .footer-brand p {
