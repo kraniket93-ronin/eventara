@@ -2193,7 +2193,9 @@ textarea.input-field {
   .steps-grid::before { display: none; }
   .footer-grid { grid-template-columns: repeat(2, 1fr); }
   .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-  .dashboard-main { margin-left: 0; }
+  /* min-width:0 lets the flex main shrink below its content's intrinsic width,
+     so wide tables scroll inside their own box instead of stretching the page */
+  .dashboard-main { margin-left: 0; min-width: 0; }
   .sidebar { display: none; }
   .stats-row { gap: var(--space-40); }
 }
@@ -2226,6 +2228,11 @@ textarea.input-field {
 
   /* Wide data tables scroll inside their own container instead of overflowing the page */
   .data-table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+
+  /* Horizontal slide-in animations would push off-screen elements past the right
+     edge (causing a horizontal scroll on load) — slide vertically on mobile instead */
+  .fade-in-left, .fade-in-right { transform: translateY(24px); }
+  .fade-in-left.visible, .fade-in-right.visible { transform: none; }
 
   /* Search bar spans the viewport cleanly */
   .search-bar { max-width: 100%; }

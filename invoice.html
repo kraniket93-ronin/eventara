@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GST Invoice &amp; Booking Record — Eventara</title>
   <meta name="description" content="GST-ready tax invoice and the clean digital booking record a finance team can file — generated for every Eventara booking." />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=5" />
   <style>
     .invoice-page { padding-top: 120px; padding-bottom: var(--space-64); max-width: 900px; }
     .invoice-sheet {
@@ -98,7 +98,11 @@
     }
     @media (max-width: 768px) {
       .parties, .record-grid { grid-template-columns: 1fr; }
-      .invoice-sheet { padding: var(--space-24); }
+      .invoice-sheet { padding: var(--space-24) var(--space-16); }
+      /* Line-items table scrolls within its own box; totals go full-width */
+      table.inv { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+      .totals { width: 100%; }
+      .invoice-head { gap: var(--space-16); }
     }
   </style>
 </head>
