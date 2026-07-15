@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operations Console — Eventara</title>
+  <meta name="description" content="Eventara operations console — verification queue, concierge booking, dispute handling, and the pilot funnel dashboard measured against PoC thresholds." />
+  <link rel="stylesheet" href="styles.css?v=2" />
+  <style>
+    .ops-tabs {
+      display: flex;
+      gap: var(--space-8);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-24);
+    }
+    .ops-tab {
+      padding: 10px 18px;
+      border: 1px solid var(--hairline);
+      background: var(--surface);
+      border-radius: var(--radius-pill);
+      font-size: var(--text-body-sm);
+      font-weight: 500;
+      color: var(--ink-muted);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease-in-out);
+    }
+    .ops-tab:hover { border-color: var(--hairline-strong); color: var(--ink); }
+    .ops-tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .ops-panel { display: none; }
+    .ops-panel.active { display: block; animation: fadeInUp 0.35s var(--ease-out); }
+
+    .funnel-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-16);
+      margin-bottom: var(--space-24);
+    }
+    .funnel-card {
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-xl);
+      padding: var(--space-20);
+    }
+    .funnel-card .fval { font-family: var(--font-display); font-size: 1.75rem; font-weight: 700; color: var(--ink); }
+    .funnel-card .flabel { font-size: var(--text-caption); color: var(--ink-muted); margin-top: 2px; }
+    .funnel-card .fthresh { font-size: var(--text-micro); font-weight: 600; margin-top: var(--space-8); }
+    .pass { color: var(--trust-green); }
+    .fail { color: var(--error); }
+    .meter { height: 6px; background: var(--canvas-alt); border-radius: var(--radius-pill); overflow: hidden; margin-top: var(--space-8); }
+    .meter > span { display: block; height: 100%; border-radius: var(--radius-pill); }
+
+    .queue-card {
+      display: flex;
+      gap: var(--space-16);
+      align-items: flex-start;
+      padding: var(--space-16);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-12);
+      background: var(--surface);
+    }
+    .queue-thumb { width: 72px; height: 72px; border-radius: var(--radius-md); background-size: cover; background-position: center; background-color: var(--surface-dark-card); flex-shrink: 0; }
+    .doc-chip { display: inline-block; padding: 3px 10px; background: var(--canvas-alt); border-radius: var(--radius-pill); font-size: var(--text-micro); font-weight: 600; color: var(--ink-secondary); margin-right: 6px; margin-top: 6px; }
+    .doc-chip.ok { background: var(--trust-green-light); color: var(--trust-green); }
+    .doc-chip.pending { background: var(--gold-light); color: var(--ink); }
+
+    .gate-banner {
+      display: flex; gap: var(--space-16); align-items: center;
+      padding: var(--space-20); border-radius: var(--radius-xl);
+      background: var(--trust-green-light); border: 1px solid #bfe6d4;
+      margin-bottom: var(--space-24);
+    }
+
+    @media (max-width: 900px) { .funnel-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .funnel-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="bg-canvas">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-logo">
+        <span class="logo-icon">E</span>
+        Eventara
+      </a>
+      <div class="navbar-nav">
+        <a href="search.html">Find Suppliers</a>
+        <a href="ops.html" class="active">Ops Console</a>
+        <a href="invoice.html">Records</a>
+      </div>
+      <div class="navbar-actions">
+        <span class="badge badge-plum" style="align-self:center;">Operations • Udaipur pilot</span>
+        <button class="btn-signin" onclick="window.location.href='signin.html'">Sign In</button>
+      </div>
+      <button class="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="mobile-menu">
+    <a href="search.html">Find Suppliers</a>
+    <a href="ops.html">Ops Console</a>
+    <a href="invoice.html">Records</a>
+    <a href="signin.html">Sign In</a>
+  </div>
+
+  <main class="container" style="padding-top: 110px; padding-bottom: var(--space-64);">
+
+    <div style="margin-bottom: var(--space-24);">
+      <h1 class="heading-lg" style="font-weight: 700;">Operations Console</h1>
+      <p class="body-sm text-muted">One front end, two engines — the same product runs a booking by hand or by the system, and the customer cannot tell the difference. This is what lets the pilot launch before the marketplace has enough suppliers.</p>
+    </div>
+
+    <!-- TABS -->
+    <div class="ops-tabs" id="opsTabs">
+      <button class="ops-tab active" data-panel="funnel">Funnel Dashboard</button>
+      <button class="ops-tab" data-panel="verify">Verification Queue</button>
+      <button class="ops-tab" data-panel="concierge">Concierge Booking</button>
+      <button class="ops-tab" data-panel="disputes">Disputes &amp; Leakage</button>
+    </div>
+
+    <!-- ============ PANEL 1 — FUNNEL DASHBOARD (O-04) ============ -->
+    <section class="ops-panel active" id="funnel">
+      <div class="gate-banner">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--trust-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+        <div>
+          <strong>Go/no-go gate:</strong> the pilot proceeds only if the crux metric (advance committed ≥ 25%) <em>and</em> supplier mandate-acceptance (≥ 60%) are both met. Both are currently green.
+        </div>
+      </div>
+
+      <div class="funnel-grid">
+        <div class="funnel-card">
+          <div class="fval">11%</div>
+          <div class="flabel">Qualified brief-submission rate</div>
+          <div class="meter"><span style="width:100%; background: var(--trust-green);"></span></div>
+          <div class="fthresh pass">✓ ≥ 8% threshold</div>
+        </div>
+        <div class="funnel-card">
+          <div class="fval">24</div>
+          <div class="flabel">Qualified briefs collected</div>
+          <div class="meter"><span style="width:100%; background: var(--trust-green);"></span></div>
+          <div class="fthresh pass">✓ ≥ 20 threshold</div>
+        </div>
+        <div class="funnel-card">
+          <div class="fval">67%</div>
+          <div class="flabel">Quote review &amp; response rate</div>
+          <div class="meter"><span style="width:100%; background: var(--trust-green);"></span></div>
+          <div class="fthresh pass">✓ ≥ 60% threshold</div>
+        </div>
+        <div class="funnel-card">
+          <div class="fval">29%</div>
+          <div class="flabel">Advance committed on-platform <em>(crux)</em></div>
+          <div class="meter"><span style="width:100%; background: var(--trust-green);"></span></div>
+          <div class="fthresh pass">✓ ≥ 25% threshold</div>
+        </div>
+        <div class="funnel-card">
+          <div class="fval">2</div>
+          <div class="flabel">Bookings closed end-to-end</div>
+          <div class="meter"><span style="width:100%; background: var(--trust-green);"></span></div>
+          <div class="fthresh pass">✓ ≥ 2 threshold</div>
+        </div>
+        <div class="funnel-card">
+          <div class="fval">76%</div>
+          <div class="flabel">Supplier 48-hour response rate</div>
+          <div class="meter"><span style="width:100%; background: var(--trust-green);"></span></div>
+          <div class="fthresh pass">✓ ≥ 70% threshold</div>
+        </div>
+        <div class="funnel-card">
+          <div class="fval">64%</div>
+          <div class="flabel">Supplier mandate-acceptance rate</div>
+          <div class="meter"><span style="width:100%; background: var(--trust-green);"></span></div>
+          <div class="fthresh pass">✓ ≥ 60% threshold</div>
+        </div>
+        <div class="funnel-card">
+          <div class="fval">14%</div>
+          <div class="flabel">Off-platform leakage</div>
+          <div class="meter"><span style="width:70%; background: var(--trust-green);"></span></div>
+          <div class="fthresh pass">✓ ≤ 20% threshold</div>
+        </div>
+      </div>
+
+      <div class="card-flat">
+        <h3 style="margin-bottom: var(--space-8);">North-star</h3>
+        <p class="body-sm text-secondary">Full-service event bookings completed end-to-end on Eventara, with GMV as the value measure. Pilot to date: <strong>2 bookings</strong>, <strong>₹12.04L GMV</strong>, <strong>₹6.02L advance held under mandate</strong>.</p>
+      </div>
+    </section>
+
+    <!-- ============ PANEL 2 — VERIFICATION QUEUE (O-01) ============ -->
+    <section class="ops-panel" id="verify">
+      <div class="card-flat" style="margin-bottom: var(--space-16);">
+        <p class="body-sm text-secondary" style="margin:0;">Pending suppliers with their documents. Approve to grant the verified badge and take them live, or reject with a reason. Onboarding does not depend on engineering.</p>
+      </div>
+
+      <div class="queue-card">
+        <div class="queue-thumb" style="background-image:url('https://ramadaudaipur.com/banquets/Meridian.jpg');"></div>
+        <div style="flex:1; min-width:0;">
+          <div class="flex justify-between items-start gap-8" style="flex-wrap:wrap;">
+            <div>
+              <strong>Ramada by Wyndham Udaipur Resort &amp; Spa</strong>
+              <div class="caption text-muted">Banquet Hotel • applied 12 Jul 2026</div>
+            </div>
+            <div class="flex gap-8">
+              <button class="btn btn-primary btn-sm">Approve &amp; Grant Badge</button>
+              <button class="btn btn-secondary btn-sm">Reject…</button>
+            </div>
+          </div>
+          <span class="doc-chip ok">GSTIN ✓</span>
+          <span class="doc-chip ok">Trade licence ✓</span>
+          <span class="doc-chip pending">FSSAI — under review</span>
+          <span class="doc-chip ok">3 portfolio items ✓</span>
+          <span class="doc-chip ok">1 package tier ✓</span>
+        </div>
+      </div>
+
+      <div class="queue-card">
+        <div class="queue-thumb" style="background-image:url('https://www.labhgarh.com/images/wedding-venue-in-udaipur.webp');"></div>
+        <div style="flex:1; min-width:0;">
+          <div class="flex justify-between items-start gap-8" style="flex-wrap:wrap;">
+            <div>
+              <strong>Labh Garh Palace Resort &amp; Spa</strong>
+              <div class="caption text-muted">Wedding &amp; Offsite Resort • applied 11 Jul 2026</div>
+            </div>
+            <div class="flex gap-8">
+              <button class="btn btn-primary btn-sm">Approve &amp; Grant Badge</button>
+              <button class="btn btn-secondary btn-sm">Reject…</button>
+            </div>
+          </div>
+          <span class="doc-chip ok">GSTIN ✓</span>
+          <span class="doc-chip ok">Trade licence ✓</span>
+          <span class="doc-chip ok">FSSAI ✓</span>
+          <span class="doc-chip pending">Portfolio — 2 of 3 items</span>
+          <span class="doc-chip ok">1 package tier ✓</span>
+        </div>
+      </div>
+
+      <div class="queue-card">
+        <div class="queue-thumb" style="background-image:url('https://eventgurus.co.in/assets/img/eventguru-slider-img.webp');"></div>
+        <div style="flex:1; min-width:0;">
+          <div class="flex justify-between items-start gap-8" style="flex-wrap:wrap;">
+            <div>
+              <strong>Event Gurus</strong>
+              <div class="caption text-muted">Event Management • applied 10 Jul 2026</div>
+            </div>
+            <div class="flex gap-8">
+              <button class="btn btn-primary btn-sm">Approve &amp; Grant Badge</button>
+              <button class="btn btn-secondary btn-sm">Reject…</button>
+            </div>
+          </div>
+          <span class="doc-chip ok">GSTIN ✓</span>
+          <span class="doc-chip text-muted" style="background:var(--canvas-alt);">Trade licence — n/a (planner)</span>
+          <span class="doc-chip text-muted" style="background:var(--canvas-alt);">FSSAI — n/a (no in-house catering)</span>
+          <span class="doc-chip ok">3 portfolio items ✓</span>
+          <span class="doc-chip ok">2 package tiers ✓</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PANEL 3 — CONCIERGE BOOKING (O-02) ============ -->
+    <section class="ops-panel" id="concierge">
+      <div class="card-flat" style="margin-bottom: var(--space-16);">
+        <p class="body-sm text-secondary" style="margin:0;">Run a booking by hand behind the product front end — create the brief, shortlist suppliers, relay quotes, and record the booking on behalf of an customer. Every step writes to the same audit trail as a self-serve booking.</p>
+      </div>
+
+      <div class="card-flat">
+        <div class="flex justify-between items-center" style="margin-bottom: var(--space-16); flex-wrap: wrap; gap: var(--space-12);">
+          <h3 style="margin:0;">Concierge case — KCC Infra dealer conference</h3>
+          <span class="status status-quoted">Step 3 of 5 · relaying quotes</span>
+        </div>
+        <div class="escrow-timeline" style="padding: var(--space-24) 0;">
+          <div class="escrow-step completed">
+            <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <h5>Create Brief</h5>
+            <p>Logged by phone, entered to platform</p>
+          </div>
+          <div class="escrow-step completed">
+            <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+            <h5>Shortlist</h5>
+            <p>Paandora, Ananta, Aurika matched</p>
+          </div>
+          <div class="escrow-step active">
+            <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <h5>Relay Quotes</h5>
+            <p>2 of 3 quotes in, comparison ready</p>
+          </div>
+          <div class="escrow-step">
+            <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+            <h5>Record Booking</h5>
+            <p>Capture advance under mandate</p>
+          </div>
+          <div class="escrow-step">
+            <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+            <h5>Handover</h5>
+            <p>Customer sees a normal booking</p>
+          </div>
+        </div>
+        <div class="flex gap-8" style="flex-wrap: wrap;">
+          <a href="compare.html" class="btn btn-secondary btn-sm">Open quote comparison</a>
+          <a href="booking.html" class="btn btn-primary btn-sm">Record booking for customer</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PANEL 4 — DISPUTES & LEAKAGE (O-03, T-04) ============ -->
+    <section class="ops-panel" id="disputes">
+      <div class="card-flat" style="margin-bottom: var(--space-16);">
+        <p class="body-sm text-secondary" style="margin:0;">The dispute console shows the booking, the message thread, and the evidence. The decision writes back to the payment ledger — funds stay held until it resolves, then release or refund. Contact-sharing attempts in messages are flagged and feed the leakage rate.</p>
+      </div>
+
+      <table class="data-table" style="margin-bottom: var(--space-24);">
+        <thead>
+          <tr><th>Case</th><th>Booking</th><th>Type</th><th>Funds</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>#D-07</strong></td>
+            <td>#EVT-2026-0031 — Radisson Blu</td>
+            <td>Underdelivery — AV not provided</td>
+            <td>₹2.4L held</td>
+            <td><span class="status status-new">Open</span></td>
+            <td><button class="btn btn-primary btn-sm">Resolve — release / refund</button></td>
+          </tr>
+          <tr>
+            <td><strong>#L-12</strong></td>
+            <td>Brief #EVT-2026-0044</td>
+            <td>Leakage — phone number shared in chat</td>
+            <td>—</td>
+            <td><span class="status status-cancelled">Flagged</span></td>
+            <td><button class="btn btn-secondary btn-sm">Review &amp; warn supplier</button></td>
+          </tr>
+          <tr>
+            <td><strong>#D-05</strong></td>
+            <td>#EVT-2026-0028 — Blossom Events</td>
+            <td>Timeline slip — partial refund agreed</td>
+            <td>Released (net −10%)</td>
+            <td><span class="status status-delivered">Resolved</span></td>
+            <td><button class="btn btn-secondary btn-sm">View outcome</button></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="card-flat">
+        <h3 style="margin-bottom: var(--space-8);">Leakage watch</h3>
+        <p class="body-sm text-secondary" style="margin:0;">Flagged contact-sharing attempts this pilot: <strong>3</strong>. Deals closed off-platform (measured): <strong>14%</strong> — within the ≤ 20% threshold. Repeat leakage feeds suspension.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-bottom" style="border-top: none; padding-top: 0;">
+        <p>© 2026 Eventara — IIM Udaipur PSM Group 10 prototype. Pilot city: Udaipur.</p>
+        <div class="flex gap-16">
+          <a href="compare.html" class="body-sm">Quote Comparison</a>
+          <a href="invoice.html" class="body-sm">Records</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>
+    document.querySelectorAll('#opsTabs .ops-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        document.querySelectorAll('#opsTabs .ops-tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.ops-panel').forEach(function (p) { p.classList.remove('active'); });
+        tab.classList.add('active');
+        document.getElementById(tab.getAttribute('data-panel')).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

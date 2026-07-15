@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sign In or Register for Eventara.">
+  <title>Sign In / Register — Eventara</title>
+  <link rel="stylesheet" href="styles.css?v=2">
+  <style>
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--canvas-alt);
+      padding: var(--space-24);
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+    }
+    .auth-header {
+      text-align: center;
+      padding: var(--space-32) var(--space-32) var(--space-16);
+    }
+    .auth-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-display);
+      font-size: var(--text-heading-md);
+      font-weight: 700;
+      color: var(--ink);
+      text-decoration: none;
+      margin-bottom: var(--space-24);
+    }
+    .auth-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--hairline);
+      margin-bottom: var(--space-24);
+    }
+    .auth-tab {
+      flex: 1;
+      text-align: center;
+      padding: var(--space-16);
+      font-weight: 600;
+      color: var(--ink-muted);
+      cursor: pointer;
+      position: relative;
+      transition: color var(--duration-fast);
+    }
+    .auth-tab:hover {
+      color: var(--ink);
+    }
+    .auth-tab.active {
+      color: var(--plum);
+    }
+    .auth-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--plum);
+      border-radius: 2px 2px 0 0;
+    }
+    .auth-body {
+      padding: 0 var(--space-32) var(--space-32);
+    }
+    .auth-view {
+      display: none;
+    }
+    .auth-view.active {
+      display: block;
+      animation: fadeInUp 0.3s var(--ease-out);
+    }
+    
+    .type-toggle {
+      display: flex;
+      background: var(--canvas-alt);
+      border-radius: var(--radius-pill);
+      padding: 4px;
+      margin-bottom: var(--space-24);
+    }
+    .type-toggle-btn {
+      flex: 1;
+      text-align: center;
+      padding: 8px 16px;
+      font-size: var(--text-body-sm);
+      font-weight: 600;
+      color: var(--ink-muted);
+      cursor: pointer;
+      border-radius: var(--radius-pill);
+      transition: all var(--duration-fast);
+    }
+    .type-toggle-btn.active {
+      background: var(--surface);
+      color: var(--plum);
+      box-shadow: var(--shadow-sm);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auth-container">
+    <div class="auth-card fade-in">
+      
+      <div class="auth-header">
+        <a href="index.html" class="auth-logo">
+          <div class="logo-icon">E</div>
+          Eventara
+        </a>
+      </div>
+
+      <div class="auth-tabs">
+        <div class="auth-tab active" data-target="view-signin">Sign In</div>
+        <div class="auth-tab" data-target="view-register">Register</div>
+      </div>
+
+      <div class="auth-body">
+        
+        <!-- SIGN IN VIEW -->
+        <div id="view-signin" class="auth-view active">
+          <form onsubmit="handleSignIn(event)">
+            <div class="input-group">
+              <label>Email Address</label>
+              <input type="email" id="signin-email" class="input-field" placeholder="you@business.com" required>
+            </div>
+            <div class="input-group">
+              <label>Password</label>
+              <input type="password" id="signin-password" class="input-field" placeholder="Enter your password" required>
+            </div>
+            <p id="signin-error" style="display:none; color: var(--error); font-size: var(--text-body-sm); margin-bottom: var(--space-12);"></p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24);">
+              <label style="display: flex; align-items: center; gap: 8px; font-size: var(--text-caption); color: var(--ink-secondary); cursor: pointer;">
+                <input type="checkbox" style="accent-color: var(--plum);"> Remember me
+              </label>
+              <a href="#" style="font-size: var(--text-caption); color: var(--plum); font-weight: 500; text-decoration: none;">Forgot Password?</a>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Sign In</button>
+          </form>
+
+          <!-- Customer entry — opens the customer account (demo) -->
+          <div style="margin-top: var(--space-20); padding-top: var(--space-20); border-top: 1px solid var(--hairline); text-align: center;">
+            <p style="font-size: var(--text-caption); color: var(--ink-muted); margin-bottom: var(--space-8);">Booking an event as a company or institution?</p>
+            <a href="#" onclick="sessionStorage.setItem('eventara_auth','customer'); window.location.href='customer-dashboard.html'; return false;" class="btn btn-secondary btn-sm">Continue as Customer</a>
+          </div>
+        </div>
+
+        <!-- REGISTER VIEW -->
+        <div id="view-register" class="auth-view">
+          
+          <div class="type-toggle">
+            <div class="type-toggle-btn active" data-type="customer">Customer</div>
+            <div class="type-toggle-btn" data-type="business">Business/Supplier</div>
+          </div>
+
+          <!-- Customer Registration Form -->
+          <form id="form-customer" class="register-form active" onsubmit="event.preventDefault(); sessionStorage.setItem('eventara_auth','customer'); window.location.href='customer-dashboard.html';">
+            <div class="input-group">
+              <label>Organisation / Institution</label>
+              <input type="text" class="input-field" placeholder="e.g. Secure Meters Ltd, IIM Udaipur" required>
+            </div>
+            <div class="input-group">
+              <label>Work Email</label>
+              <input type="email" class="input-field" placeholder="you@company.com" required>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-16);">
+              <div class="input-group">
+                <label>Mobile Number</label>
+                <input type="tel" class="input-field" placeholder="+91" required>
+              </div>
+              <div class="input-group">
+                <label>Event City</label>
+                <select class="input-field" required>
+                  <option value="udaipur" selected>Udaipur (pilot city)</option>
+                </select>
+              </div>
+            </div>
+            <div class="input-group">
+              <label>Password</label>
+              <input type="password" class="input-field" placeholder="Create a strong password" required>
+            </div>
+            <p style="font-size: 11px; color: var(--ink-muted); margin-bottom: var(--space-24);">By registering, you agree to Eventara's Terms of Service and Privacy Policy. Simple consent, basic data care at pilot.</p>
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Create Customer Account</button>
+          </form>
+
+          <!-- Business Registration Form -->
+          <form id="form-business" class="register-form" style="display: none;" onsubmit="event.preventDefault(); sessionStorage.setItem('eventara_auth','supplier'); window.location.href='dashboard.html';">
+            <div class="input-group">
+              <label>Business Name</label>
+              <input type="text" class="input-field" placeholder="e.g. Paandora Grand Udaipur" required>
+            </div>
+            <div class="input-group">
+              <label>Supplier Type</label>
+              <select class="input-field" required>
+                <option value="" disabled selected>Select Type</option>
+                <option>Banquet Hotel / Resort</option>
+                <option>Professional Event Manager</option>
+              </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-16);">
+              <div class="input-group">
+                <label>Contact Person</label>
+                <input type="text" class="input-field" placeholder="Full Name" required>
+              </div>
+              <div class="input-group">
+                <label>Mobile Number</label>
+                <input type="tel" class="input-field" placeholder="+91" required>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-16);">
+              <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" class="input-field" placeholder="business@example.com" required>
+              </div>
+              <div class="input-group">
+                <label>City</label>
+                <select class="input-field" required>
+                  <option value="udaipur" selected>Udaipur (pilot city)</option>
+                </select>
+              </div>
+            </div>
+            <div class="input-group">
+              <label>GSTIN (required to verify &amp; go live)</label>
+              <input type="text" class="input-field" placeholder="08AAAAA0000A1Z5">
+            </div>
+            <div class="input-group">
+              <label>Password</label>
+              <input type="password" class="input-field" placeholder="Create a strong password" required>
+            </div>
+            <p style="font-size: 11px; color: var(--ink-muted); margin-bottom: var(--space-24);">Your GSTIN (and trade licence / FSSAI for in-house catering) is checked by Eventara Operations before your verified badge goes live. By registering you accept the Supplier Terms and the bank-mandate payout terms.</p>
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Apply as Supplier</button>
+          </form>
+
+        </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Tab switching logic (Sign In vs Register)
+    const authTabs = document.querySelectorAll('.auth-tab');
+    const authViews = document.querySelectorAll('.auth-view');
+
+    function switchTab(targetId) {
+      authTabs.forEach(t => t.classList.remove('active'));
+      authViews.forEach(v => v.classList.remove('active'));
+      
+      const targetTab = document.querySelector(`.auth-tab[data-target="${targetId}"]`);
+      if(targetTab) targetTab.classList.add('active');
+      
+      const targetView = document.getElementById(targetId);
+      if(targetView) targetView.classList.add('active');
+    }
+
+    authTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        switchTab(tab.getAttribute('data-target'));
+      });
+    });
+
+    // Registration Type toggle logic (Customer vs Business)
+    const typeBtns = document.querySelectorAll('.type-toggle-btn');
+    const customerForm = document.getElementById('form-customer');
+    const businessForm = document.getElementById('form-business');
+
+    function switchType(type) {
+      typeBtns.forEach(b => b.classList.remove('active'));
+      const targetBtn = document.querySelector(`.type-toggle-btn[data-type="${type}"]`);
+      if(targetBtn) targetBtn.classList.add('active');
+
+      if (type === 'customer') {
+        customerForm.style.display = 'block';
+        businessForm.style.display = 'none';
+      } else {
+        customerForm.style.display = 'none';
+        businessForm.style.display = 'block';
+      }
+    }
+
+    typeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        switchType(btn.getAttribute('data-type'));
+      });
+    });
+
+    // Parse URL parameters for pre-selection
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const mode = urlParams.get('mode');
+      const type = urlParams.get('type');
+
+      if (mode === 'register') {
+        switchTab('view-register');
+      }
+      if (type === 'business') {
+        switchType('business');
+      }
+    });
+
+    // Sign-in — sample demo credentials for each role. On success we set a
+    // session flag that gates that role's dashboard (Supplier Portal / Customer Account).
+    const SUPPLIER_LOGIN = { email: 'hotel@eventara.in',    password: 'udaipur@2026' };
+    const CUSTOMER_LOGIN = { email: 'customer@eventara.in', password: 'udaipur@2026' };
+
+    function handleSignIn(event) {
+      event.preventDefault();
+      const email = document.getElementById('signin-email').value.trim().toLowerCase();
+      const password = document.getElementById('signin-password').value;
+      const err = document.getElementById('signin-error');
+
+      if (email === SUPPLIER_LOGIN.email && password === SUPPLIER_LOGIN.password) {
+        sessionStorage.setItem('eventara_auth', 'supplier');
+        window.location.href = 'dashboard.html';
+      } else if (email === CUSTOMER_LOGIN.email && password === CUSTOMER_LOGIN.password) {
+        sessionStorage.setItem('eventara_auth', 'customer');
+        window.location.href = 'customer-dashboard.html';
+      } else {
+        err.textContent = 'Incorrect email or password. Please try again, or continue as a Customer.';
+        err.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>
+
+

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Eventara customer account — your briefs, quotes, bookings, GST invoices, bank-mandate payments, disputes, and saved suppliers in one place." />
+  <title>My Account — Eventara</title>
+  <!-- Access gate: customer account is for signed-in Customers only. -->
+  <script>
+    if (sessionStorage.getItem('eventara_auth') !== 'customer') {
+      window.location.replace('signin.html?next=customer&role=customer');
+    }
+  </script>
+  <link rel="stylesheet" href="styles.css?v=2" />
+  <style>
+    /* --- Sidebar customer block --- */
+    .sidebar-provider {
+      display: flex; align-items: center; gap: var(--space-12);
+      padding-top: var(--space-24); margin-top: auto;
+      border-top: 1px solid var(--hairline-light);
+    }
+    .sidebar-provider .provider-avatar {
+      width: 40px; height: 40px; border-radius: 50%; background: var(--ink);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: var(--text-body-sm); color: white;
+      flex-shrink: 0; letter-spacing: 0.5px;
+    }
+    .sidebar-provider .provider-info { display: flex; flex-direction: column; min-width: 0; }
+    .sidebar-provider .provider-info .provider-name {
+      font-size: var(--text-body-sm); font-weight: 600; color: var(--ink);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sidebar-nav .nav-badge {
+      margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px;
+      border-radius: var(--radius-pill); background: var(--coral); color: white;
+      font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; line-height: 1;
+    }
+
+    /* --- Header --- */
+    .dashboard-header h1 { font-family: var(--font-display); font-size: var(--text-heading-lg); font-weight: 600; color: var(--ink); margin-bottom: var(--space-4); }
+    .dashboard-header p { font-size: var(--text-body-sm); color: var(--ink-muted); }
+    .dashboard-header-right { display: flex; align-items: center; gap: var(--space-16); flex-shrink: 0; }
+    .dashboard-header-right .header-date { font-size: var(--text-body-sm); color: var(--ink-secondary); font-weight: 500; }
+
+    /* --- Metric cards --- */
+    .metric-icon { width: 40px; height: 40px; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-12); }
+    .metric-icon svg { width: 20px; height: 20px; }
+    .metric-card:nth-child(1) .metric-icon { background: var(--info-light); color: var(--info); }
+    .metric-card:nth-child(2) .metric-icon { background: var(--gold-light); color: var(--gold); }
+    .metric-card:nth-child(3) .metric-icon { background: var(--trust-green-light); color: var(--trust-green); }
+    .metric-card:nth-child(4) .metric-icon { background: var(--plum-50); color: var(--plum); }
+
+    .card-flat h3 { font-size: var(--text-heading-sm); font-weight: 600; margin-bottom: var(--space-20); color: var(--ink); }
+    .card-flat .data-table { border: none; border-radius: 0; }
+
+    /* --- Panels --- */
+    .dash-panel { display: none; }
+    .dash-panel.active { display: block; animation: fadeInUp 0.3s var(--ease-out); }
+
+    /* --- Quick actions --- */
+    .quick-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-16); margin-bottom: var(--space-32); }
+    .quick-action { display: flex; align-items: center; gap: var(--space-12); padding: var(--space-20); background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-xl); text-decoration: none; color: var(--ink); transition: all var(--duration-fast) var(--ease-out); }
+    .quick-action:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); color: var(--ink); }
+    .quick-action .qa-icon { width: 40px; height: 40px; border-radius: var(--radius-lg); background: var(--canvas-alt); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .quick-action .qa-icon svg { width: 20px; height: 20px; }
+    .quick-action b { display: block; font-size: var(--text-body-sm); }
+    .quick-action span { font-size: var(--text-caption); color: var(--ink-muted); }
+
+    /* --- Attention list --- */
+    .attn-item { display: flex; gap: var(--space-12); align-items: flex-start; padding: var(--space-16) 0; border-bottom: 1px solid var(--hairline-light); }
+    .attn-item:last-child { border-bottom: none; }
+    .attn-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+    .attn-item .attn-body { flex: 1; }
+    .attn-item .attn-body b { font-size: var(--text-body-sm); }
+    .attn-item .attn-body p { font-size: var(--text-caption); color: var(--ink-muted); }
+
+    /* --- Two column --- */
+    .two-col-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-24); margin-bottom: var(--space-32); }
+
+    /* --- Timeline --- */
+    .timeline-item { display: flex; gap: var(--space-12); padding: var(--space-12) 0; }
+    .timeline-item .t-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--hairline-strong); margin-top: 5px; flex-shrink: 0; }
+    .timeline-item.done .t-dot { background: var(--trust-green); }
+    .timeline-item .t-body { font-size: var(--text-body-sm); color: var(--ink-secondary); }
+    .timeline-item .t-body time { display: block; font-size: var(--text-caption); color: var(--ink-muted); }
+
+    /* --- Saved supplier cards --- */
+    .saved-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-20); }
+    .saved-card { border: 1px solid var(--hairline); border-radius: var(--radius-xl); overflow: hidden; background: var(--surface); }
+    .saved-card .sc-img { height: 130px; background-size: cover; background-position: center; background-color: var(--surface-dark-card); }
+    .saved-card .sc-body { padding: var(--space-16); }
+    .saved-card .sc-body h4 { font-size: var(--text-body); font-weight: 600; margin-bottom: 2px; }
+    .saved-card .sc-body .sc-meta { font-size: var(--text-caption); color: var(--ink-muted); margin-bottom: var(--space-12); }
+
+    /* --- Mobile toggle --- */
+    .sidebar-toggle { display: none; position: fixed; top: var(--space-16); left: var(--space-16); width: 44px; height: 44px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--hairline); box-shadow: var(--shadow-md); z-index: 301; cursor: pointer; align-items: center; justify-content: center; color: var(--ink); }
+    .sidebar-toggle svg { width: 22px; height: 22px; }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 199; }
+    .sidebar.mobile-open ~ .sidebar-overlay { display: block; }
+
+    @media (max-width: 1024px) {
+      .sidebar-toggle { display: flex; }
+      .sidebar.mobile-open { display: flex; box-shadow: var(--shadow-xl); }
+      .dashboard-main { padding-top: calc(var(--space-32) + 56px); }
+      .two-col-row, .quick-actions, .saved-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .dashboard-header { flex-direction: column; align-items: flex-start; gap: var(--space-16); }
+      .data-table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body style="background: var(--canvas);">
+
+  <!-- Mobile sidebar toggle -->
+  <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+  </button>
+
+  <div class="dashboard-layout">
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div style="width: 32px; height: 32px; background: var(--coral); border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-display); font-weight: 700; font-size: 15px;">E</div>
+        <div>
+          <div style="font-family: var(--font-display); font-weight: 700; font-size: var(--text-body-lg); color: var(--ink); line-height: 1.1;">Eventara</div>
+          <div style="font-size: 11px; color: var(--ink-muted); font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;">Customer Account</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#overview" class="active" data-panel="overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          Overview
+        </a>
+        <a href="#profile" data-panel="profile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          My Profile
+        </a>
+        <a href="#briefs" data-panel="briefs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          Briefs &amp; Quotes
+          <span class="nav-badge">2</span>
+        </a>
+        <a href="#bookings" data-panel="bookings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"></path></svg>
+          My Bookings
+        </a>
+        <a href="#invoices" data-panel="invoices">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
+          Invoices &amp; Records
+        </a>
+        <a href="#payments" data-panel="payments">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+          Payments &amp; Mandate
+        </a>
+        <a href="#disputes" data-panel="disputes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          Disputes
+        </a>
+        <a href="#shortlist" data-panel="shortlist">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          Saved Suppliers
+        </a>
+      </nav>
+
+      <!-- Customer block -->
+      <div class="sidebar-provider">
+        <div class="provider-avatar">SM</div>
+        <div class="provider-info">
+          <span class="provider-name">Secure Meters Ltd</span>
+          <span class="badge badge-plum" style="font-size: 10px; padding: 2px 8px; margin-top: 2px; width: fit-content;">Corporate • Udaipur</span>
+        </div>
+        <button onclick="signOut()" aria-label="Sign out" title="Sign out" style="margin-left: auto; background: none; border: none; color: var(--ink-muted); cursor: pointer; padding: 6px; display: flex; align-items: center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- ============ MAIN ============ -->
+    <main class="dashboard-main">
+
+      <div class="dashboard-header">
+        <div>
+          <h1 id="greeting">Welcome back, Secure Meters</h1>
+          <p id="subhead">You have 3 quotes ready to compare and a balance due before your offsite.</p>
+        </div>
+        <div class="dashboard-header-right">
+          <span class="header-date">July 13, 2026</span>
+          <a href="brief.html" class="btn btn-primary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Brief
+          </a>
+        </div>
+      </div>
+
+      <!-- ============ PANEL: OVERVIEW ============ -->
+      <section class="dash-panel active" id="panel-overview">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div>
+            <div class="metric-label">Active Briefs</div>
+            <div class="metric-value">2</div>
+            <div class="metric-change positive">1 awaiting quotes</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div>
+            <div class="metric-label">Quotes to Review</div>
+            <div class="metric-value">3</div>
+            <div class="metric-change positive">Ready to compare</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"></path></svg></div>
+            <div class="metric-label">Confirmed Bookings</div>
+            <div class="metric-value">1</div>
+            <div class="metric-change positive">Annual Offsite • 22 Aug</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
+            <div class="metric-label">Advance Held Under Mandate</div>
+            <div class="metric-value">₹3.0L</div>
+            <div class="metric-change positive">Released only on delivery</div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="quick-actions">
+          <a href="search.html" class="quick-action">
+            <span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg></span>
+            <span><b>Find Suppliers</b><span>Verified hotels &amp; planners in Udaipur</span></span>
+          </a>
+          <a href="brief.html" class="quick-action">
+            <span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
+            <span><b>Submit a Brief</b><span>One brief → 2–3 matched suppliers</span></span>
+          </a>
+          <a href="compare.html" class="quick-action">
+            <span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
+            <span><b>Compare Quotes</b><span>Itemised, side by side, PDF-ready</span></span>
+          </a>
+        </div>
+
+        <div class="two-col-row">
+          <!-- Needs attention -->
+          <div class="card-flat">
+            <h3>Needs Your Attention</h3>
+            <div class="attn-item">
+              <span class="attn-dot" style="background: var(--gold);"></span>
+              <div class="attn-body">
+                <b>3 quotes ready to compare</b>
+                <p>Leadership Town Hall (#EVT-2026-0051) — quotes from 3 suppliers are in.</p>
+              </div>
+              <a href="compare.html" class="btn btn-primary btn-sm">Compare</a>
+            </div>
+            <div class="attn-item">
+              <span class="attn-dot" style="background: var(--coral);"></span>
+              <div class="attn-body">
+                <b>Balance due before event</b>
+                <p>₹7,02,100 for Annual Offsite (#EVT-2026-0042) collected by 15 Aug.</p>
+              </div>
+              <a href="#payments" data-jump="payments" class="btn btn-secondary btn-sm">Pay</a>
+            </div>
+            <div class="attn-item">
+              <span class="attn-dot" style="background: var(--info);"></span>
+              <div class="attn-body">
+                <b>1 brief awaiting quotes</b>
+                <p>Sales Kickoff (#EVT-2026-0058) — 2 of 3 suppliers have responded.</p>
+              </div>
+              <a href="#briefs" data-jump="briefs" class="btn btn-secondary btn-sm">View</a>
+            </div>
+          </div>
+
+          <!-- Recent activity -->
+          <div class="card-flat">
+            <h3>Recent Activity</h3>
+            <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">Advance of ₹3,00,900 captured under bank mandate for #EVT-2026-0042.<time>13 Jul 2026, 16:05</time></div></div>
+            <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">Paandora Grand quote accepted; booking confirmed with auto-generated scope.<time>13 Jul 2026, 15:58</time></div></div>
+            <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">3 quotes received for Leadership Town Hall (#EVT-2026-0051).<time>12 Jul 2026, 09:20</time></div></div>
+            <div class="timeline-item"><span class="t-dot"></span><div class="t-body">Brief submitted for Sales Kickoff (#EVT-2026-0058) to 3 matched suppliers.<time>11 Jul 2026, 18:40</time></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PANEL: MY PROFILE ============ -->
+      <section class="dash-panel" id="panel-profile">
+        <div class="card-flat" style="margin-bottom: var(--space-24);">
+          <h3>Organisation</h3>
+          <div class="grid grid-2" style="gap: var(--space-20);">
+            <div class="input-group"><label>Organisation / Institution</label><input class="input-field" value="Secure Meters Ltd"></div>
+            <div class="input-group"><label>Buyer Type</label>
+              <select class="input-field"><option selected>Corporate</option><option>Institutional / College</option></select>
+            </div>
+            <div class="input-group"><label>Industry</label><input class="input-field" value="Electronics &amp; Metering"></div>
+            <div class="input-group"><label>City</label><select class="input-field"><option selected>Udaipur</option></select></div>
+          </div>
+        </div>
+
+        <div class="card-flat" style="margin-bottom: var(--space-24);">
+          <h3>Contacts</h3>
+          <div class="grid grid-2" style="gap: var(--space-20);">
+            <div class="input-group"><label>Primary Contact &amp; Role</label><input class="input-field" value="Vishwas Chhabra — Admin Head"></div>
+            <div class="input-group"><label>Work Email</label><input class="input-field" value="admin@securemeters.example"></div>
+            <div class="input-group"><label>Phone</label><input class="input-field" value="+91 294 •••• ••••"></div>
+            <div class="input-group"><label>Finance / Approver Email</label><input class="input-field" value="finance@securemeters.example"></div>
+          </div>
+        </div>
+
+        <div class="card-flat" style="margin-bottom: var(--space-24);">
+          <h3>GST &amp; Billing</h3>
+          <div class="grid grid-2" style="gap: var(--space-20);">
+            <div class="input-group"><label>GSTIN</label><input class="input-field" value="08XXXXX0000X1ZK"></div>
+            <div class="input-group"><label>Default Purchase-Order Reference</label><input class="input-field" value="PO/2026/••••"></div>
+            <div class="input-group" style="grid-column: 1 / -1;"><label>Billing Address</label><input class="input-field" value="E-Class, Pratap Nagar Industrial Area, Udaipur, Rajasthan 313003"></div>
+          </div>
+          <label style="display:flex; gap: var(--space-8); align-items:flex-start; margin-top: var(--space-8); font-size: var(--text-body-sm); color: var(--ink-secondary);">
+            <input type="checkbox" checked style="accent-color: var(--ink); width:18px; height:18px; margin-top:2px;">
+            Attach our GSTIN and PO reference automatically to every booking invoice.
+          </label>
+        </div>
+
+        <button class="btn btn-primary">Save Changes</button>
+      </section>
+
+      <!-- ============ PANEL: BRIEFS & QUOTES ============ -->
+      <section class="dash-panel" id="panel-briefs">
+        <div class="flex justify-between items-center" style="margin-bottom: var(--space-16); flex-wrap: wrap; gap: var(--space-12);">
+          <div>
+            <h3 style="margin:0;">Submitted Briefs &amp; Quotes</h3>
+            <p class="caption text-muted">One structured brief reaches 2–3 matched suppliers. Quotes arrive within a 48-hour SLA and line up against a common inclusion list.</p>
+          </div>
+          <a href="brief.html" class="btn btn-primary btn-sm">Submit a Brief</a>
+        </div>
+        <div class="card-flat" style="padding: var(--space-24) 0 0 0;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Brief</th><th>Event</th><th>Date</th><th>Guests</th><th>Budget Band</th><th>Suppliers</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>#EVT-2026-0051</strong></td>
+                <td>Leadership Town Hall</td>
+                <td>14 Sep 2026</td>
+                <td>60</td>
+                <td>₹3–5L</td>
+                <td>3 matched</td>
+                <td><span class="status status-quoted">3 quotes received</span></td>
+                <td><a href="compare.html" class="btn btn-primary btn-sm">Compare</a></td>
+              </tr>
+              <tr>
+                <td><strong>#EVT-2026-0058</strong></td>
+                <td>Sales Kickoff</td>
+                <td>09 Oct 2026</td>
+                <td>200</td>
+                <td>₹10–15L</td>
+                <td>3 matched</td>
+                <td><span class="status status-new">Awaiting quotes (2/3)</span></td>
+                <td><button class="btn btn-secondary btn-sm">View Brief</button></td>
+              </tr>
+              <tr>
+                <td><strong>#EVT-2026-0042</strong></td>
+                <td>Annual Offsite</td>
+                <td>22 Aug 2026</td>
+                <td>140</td>
+                <td>₹5–10L</td>
+                <td>3 matched</td>
+                <td><span class="status status-confirmed">Booked — Paandora Grand</span></td>
+                <td><a href="invoice.html" class="btn btn-secondary btn-sm">View Booking</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ PANEL: MY BOOKINGS ============ -->
+      <section class="dash-panel" id="panel-bookings">
+        <h3 style="margin-bottom: var(--space-4);">My Bookings</h3>
+        <p class="caption text-muted" style="margin-bottom: var(--space-16);">Every booking carries an auto-generated scope, a bank-mandate advance held until delivery, and a GST invoice. Raise a dispute within the window if an event underdelivers.</p>
+        <div class="card-flat" style="padding: var(--space-24) 0 0 0;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Booking</th><th>Supplier</th><th>Event / Date</th><th>Total (incl. GST)</th><th>Advance (held)</th><th>Balance</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>#EVT-2026-0042</strong></td>
+                <td>Paandora Grand Udaipur</td>
+                <td>Annual Offsite<br><span class="caption text-muted">22 Aug 2026 • 140 guests</span></td>
+                <td>₹10,03,000</td>
+                <td>₹3,00,900</td>
+                <td>₹7,02,100 <span class="caption text-muted">due 15 Aug</span></td>
+                <td><span class="status status-confirmed">Upcoming</span></td>
+                <td><a href="invoice.html" class="btn btn-secondary btn-sm">Invoice</a></td>
+              </tr>
+              <tr>
+                <td><strong>#EVT-2025-0288</strong></td>
+                <td>Blossom Events</td>
+                <td>Annual Day 2025<br><span class="caption text-muted">18 Dec 2025 • 250 guests</span></td>
+                <td>₹4,95,600</td>
+                <td>—</td>
+                <td>Settled</td>
+                <td><span class="status status-delivered">Delivered • Reviewed</span></td>
+                <td><a href="invoice.html" class="btn btn-secondary btn-sm">Invoice</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ PANEL: INVOICES & RECORDS ============ -->
+      <section class="dash-panel" id="panel-invoices">
+        <h3 style="margin-bottom: var(--space-4);">Invoices &amp; Records</h3>
+        <p class="caption text-muted" style="margin-bottom: var(--space-16);">GST-ready invoices and clean digital records — made to be downloaded and read by finance and audit, whether or not they ever open the app.</p>
+        <div class="card-flat" style="padding: var(--space-24) 0 0 0;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Invoice No.</th><th>Booking</th><th>Date</th><th>Type</th><th>Amount</th><th>GST</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>EVT/INV/2026/0042-A</strong></td>
+                <td>#EVT-2026-0042</td>
+                <td>13 Jul 2026</td>
+                <td>Advance (30%)</td>
+                <td>₹3,00,900</td>
+                <td>CGST+SGST 18%</td>
+                <td><a href="invoice.html" class="btn btn-primary btn-sm">Open / Download</a></td>
+              </tr>
+              <tr>
+                <td><span class="text-muted">EVT/INV/2026/0042-B</span></td>
+                <td>#EVT-2026-0042</td>
+                <td>Pending (on balance)</td>
+                <td>₹7,02,100</td>
+                <td>CGST+SGST 18%</td>
+                <td><button class="btn btn-secondary btn-sm" disabled style="opacity:.5; cursor:not-allowed;">Awaiting balance</button></td>
+              </tr>
+              <tr>
+                <td><strong>EVT/INV/2025/0288</strong></td>
+                <td>#EVT-2025-0288</td>
+                <td>19 Dec 2025</td>
+                <td>Full &amp; final</td>
+                <td>₹4,95,600</td>
+                <td>CGST+SGST 18%</td>
+                <td><a href="invoice.html" class="btn btn-primary btn-sm">Open / Download</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ PANEL: PAYMENTS & MANDATE ============ -->
+      <section class="dash-panel" id="panel-payments">
+        <h3 style="margin-bottom: var(--space-4);">Payments &amp; Bank Mandate</h3>
+        <p class="caption text-muted" style="margin-bottom: var(--space-24);">Your advance is held in a platform account under a UPI / bank mandate and released to the supplier only after you confirm delivery. It reads as protection, never a hurdle.</p>
+
+        <div class="card-flat" style="margin-bottom: var(--space-24);">
+          <div class="flex justify-between items-center" style="margin-bottom: var(--space-8); flex-wrap: wrap; gap: var(--space-8);">
+            <h3 style="margin:0;">Annual Offsite — #EVT-2026-0042</h3>
+            <span class="status status-quoted">Advance held • balance pending</span>
+          </div>
+          <div class="grid grid-3" style="gap: var(--space-16); margin-bottom: var(--space-24);">
+            <div><div class="caption text-muted">Advance captured (30%)</div><div style="font-weight:700; font-size: var(--text-heading-md);">₹3,00,900</div></div>
+            <div><div class="caption text-muted">Balance due by 15 Aug</div><div style="font-weight:700; font-size: var(--text-heading-md);">₹7,02,100</div></div>
+            <div><div class="caption text-muted">Mandate ref (UMN)</div><div style="font-weight:600;">EVTR7C2026071301</div></div>
+          </div>
+
+          <div class="escrow-timeline">
+            <div class="escrow-step completed">
+              <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <h5>Advance Captured</h5><p>₹3,00,900 held under the mandate</p>
+            </div>
+            <div class="escrow-step active">
+              <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+              <h5>Balance Before Event</h5><p>₹7,02,100 collected by 15 Aug</p>
+            </div>
+            <div class="escrow-step">
+              <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg></div>
+              <h5>Delivery &amp; Confirmation</h5><p>You confirm; disputes hold the funds</p>
+            </div>
+            <div class="escrow-step">
+              <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></div>
+              <h5>Payout Released</h5><p>Supplier paid net of commission</p>
+            </div>
+          </div>
+
+          <div class="flex gap-8" style="margin-top: var(--space-24); flex-wrap: wrap;">
+            <a href="booking.html" class="btn btn-primary btn-sm">Pay balance now</a>
+            <a href="invoice.html" class="btn btn-secondary btn-sm">View GST invoice</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PANEL: DISPUTES ============ -->
+      <section class="dash-panel" id="panel-disputes">
+        <h3 style="margin-bottom: var(--space-4);">Disputes</h3>
+        <p class="caption text-muted" style="margin-bottom: var(--space-24);">A dispute can be raised within the review window after an event. Funds stay held until the operations team resolves it, then release or refund. This recourse exists only on the platform.</p>
+
+        <div class="card-flat" style="margin-bottom: var(--space-24); text-align: center; padding: var(--space-40) var(--space-24);">
+          <div style="width:56px; height:56px; border-radius:50%; background: var(--trust-green-light); display:flex; align-items:center; justify-content:center; margin: 0 auto var(--space-16);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--trust-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+          </div>
+          <h4 style="margin-bottom: var(--space-8);">No open disputes</h4>
+          <p class="body-sm text-muted" style="max-width: 440px; margin: 0 auto var(--space-20);">All your bookings are on track. If an event underdelivers, raise a dispute against the booking and your advance stays protected until it's resolved.</p>
+          <button class="btn btn-secondary">Raise a dispute</button>
+        </div>
+
+        <div class="card-flat" style="padding: var(--space-24) 0 0 0;">
+          <h3 style="padding: 0 var(--space-24);">Resolved history</h3>
+          <table class="data-table">
+            <thead><tr><th>Case</th><th>Booking</th><th>Issue</th><th>Outcome</th><th>Closed</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>#D-2025-11</strong></td>
+                <td>#EVT-2025-0288</td>
+                <td>Stage AV delayed at start</td>
+                <td><span class="status status-delivered">Resolved — 5% credit</span></td>
+                <td>20 Dec 2025</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ PANEL: SAVED SUPPLIERS ============ -->
+      <section class="dash-panel" id="panel-shortlist">
+        <div class="flex justify-between items-center" style="margin-bottom: var(--space-16); flex-wrap: wrap; gap: var(--space-12);">
+          <div>
+            <h3 style="margin:0;">Saved Suppliers</h3>
+            <p class="caption text-muted">Shortlist up to five suppliers and compare them side by side on price, inclusions, capacity and rating — a view you can download for your approver.</p>
+          </div>
+          <a href="compare.html" class="btn btn-primary btn-sm">Compare shortlist</a>
+        </div>
+        <div class="saved-grid">
+          <div class="saved-card">
+            <div class="sc-img" style="background-image:url('https://pandorahotels.co.in/grand-udr/Property-with-lawn-view.webp');"></div>
+            <div class="sc-body">
+              <h4>Paandora Grand Udaipur</h4>
+              <div class="sc-meta">★ 4.6 (214) • Banquet Hotel • up to 800</div>
+              <a href="provider.html" class="btn btn-secondary btn-sm w-full">View profile</a>
+            </div>
+          </div>
+          <div class="saved-card">
+            <div class="sc-img" style="background-image:url('https://assets.simplotel.com/simplotel/image/upload/w_5000,h_2810/x_2,y_0,w_4996,h_2810,r_0,c_crop,q_80,fl_progressive/w_1650,c_fit,f_auto/ananta-hotels-resorts/The_Ananta_Udaipur_1_niakxc');"></div>
+            <div class="sc-body">
+              <h4>The Ananta Udaipur</h4>
+              <div class="sc-meta">★ 4.7 (1,032) • Resort &amp; Banquets</div>
+              <a href="provider.html" class="btn btn-secondary btn-sm w-full">View profile</a>
+            </div>
+          </div>
+          <div class="saved-card">
+            <div class="sc-img" style="background-image:url('https://www.lemontreehotels.com/uploads/hotelslider/666c22ae59509Ekaara,%20the%20ballroom_Round%20Table%20Set-up.jpg');"></div>
+            <div class="sc-body">
+              <h4>Aurika, Udaipur</h4>
+              <div class="sc-meta">★ 4.8 (892) • Luxury Hotel</div>
+              <a href="provider.html" class="btn btn-secondary btn-sm w-full">View profile</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    function signOut() {
+      sessionStorage.removeItem('eventara_auth');
+      window.location.href = 'signin.html';
+    }
+
+    const navLinks = document.querySelectorAll('.sidebar-nav a[data-panel]');
+    function showPanel(name) {
+      const link = document.querySelector('.sidebar-nav a[data-panel="' + name + '"]');
+      if (!link) return;
+      navLinks.forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+      document.querySelectorAll('.dash-panel').forEach(p => p.classList.remove('active'));
+      const panel = document.getElementById('panel-' + name);
+      if (panel) panel.classList.add('active');
+      document.getElementById('sidebar').classList.remove('mobile-open');
+      window.scrollTo(0, 0);
+    }
+    navLinks.forEach(l => l.addEventListener('click', e => { e.preventDefault(); const n = l.dataset.panel; history.replaceState(null, '', '#' + n); showPanel(n); }));
+    // in-panel jump buttons
+    document.querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); showPanel(b.dataset.jump); }));
+    // deep-link on load
+    const initial = (location.hash || '').replace('#', '');
+    if (initial) showPanel(initial);
+  </script>
+</body>
+</html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Confirm your booking on Eventara. A ~30% advance is captured under a UPI/bank mandate to a platform-held account and released only after confirmed delivery.">
+  <title>Confirm Booking &amp; Bank Mandate — Eventara</title>
+  <link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body class="bg-canvas">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-logo">
+        <div class="logo-icon">E</div>
+        Eventara
+      </a>
+      <div class="navbar-nav">
+        <a href="search.html">Find Suppliers</a>
+        <a href="brief.html">Submit Brief</a>
+        <a href="compare.html">Compare Quotes</a>
+      </div>
+      <div class="navbar-actions">
+        <a href="invoice.html" class="btn btn-secondary btn-sm">View GST Invoice</a>
+        <button class="btn-signin" onclick="window.location.href='signin.html'">Sign In</button>
+      </div>
+      <button class="hamburger" aria-label="Toggle navigation menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu">
+    <a href="search.html">Find Suppliers</a>
+    <a href="brief.html">Submit Brief</a>
+    <a href="compare.html">Compare Quotes</a>
+    <a href="signin.html">Sign In</a>
+  </div>
+
+  <main class="container fade-in" style="padding-top: 120px; padding-bottom: var(--space-80);">
+    
+    <!-- PAGE HEADER -->
+    <div style="text-align: center; margin-bottom: var(--space-48);">
+      <h1 style="font-family: var(--font-display); font-size: var(--text-display-lg); margin-bottom: var(--space-8);">Confirm Booking — Quote #Q-118 Accepted</h1>
+      <p style="color: var(--ink-muted); font-size: var(--text-body-lg); max-width: 640px; margin: 0 auto;">Your advance is captured to a platform-held account under a UPI/bank mandate. It is protection, not a hurdle: the supplier sees it is committed, and it moves only after you confirm delivery.</p>
+    </div>
+
+    <!-- TWO-COLUMN LAYOUT -->
+    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: var(--space-32);">
+      
+      <!-- LEFT COLUMN -->
+      <div style="display: flex; flex-direction: column; gap: var(--space-24);">
+        
+        <!-- BOOKING SUMMARY -->
+        <div class="card-flat">
+          <h3 style="margin-bottom: var(--space-24);">Booking Details</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-20);">
+            <div>
+              <p style="color: var(--ink-muted); font-size: var(--text-caption); margin-bottom: var(--space-4);">Supplier</p>
+              <div style="display: flex; align-items: center; gap: var(--space-8);">
+                <a href="provider.html" style="font-weight: 600; color: var(--ink); text-decoration: none;">Paandora Grand Udaipur</a>
+                <span class="badge-verified" style="font-size: 10px; padding: 2px 6px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 10px; height: 10px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                  Verified
+                </span>
+              </div>
+            </div>
+            <div>
+              <p style="color: var(--ink-muted); font-size: var(--text-caption); margin-bottom: var(--space-4);">Accepted Quote</p>
+              <p style="font-weight: 500;">#Q-118 — Residential Offsite, ₹8,50,000 + GST</p>
+            </div>
+            <div>
+              <p style="color: var(--ink-muted); font-size: var(--text-caption); margin-bottom: var(--space-4);">Event</p>
+              <p style="font-weight: 500;">Annual Offsite — Secure Meters</p>
+            </div>
+            <div>
+              <p style="color: var(--ink-muted); font-size: var(--text-caption); margin-bottom: var(--space-4);">Date</p>
+              <p style="font-weight: 500;">August 22, 2026</p>
+            </div>
+            <div>
+              <p style="color: var(--ink-muted); font-size: var(--text-caption); margin-bottom: var(--space-4);">Guests</p>
+              <p style="font-weight: 500;">140</p>
+            </div>
+            <div>
+              <p style="color: var(--ink-muted); font-size: var(--text-caption); margin-bottom: var(--space-4);">Location &amp; PO</p>
+              <p style="font-weight: 500;">Udaipur • PO/2026/0147</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESCROW TIMELINE -->
+        <div class="card-flat" style="background: var(--plum-50); border: 1px solid var(--plum-200);">
+          <h3 style="margin-bottom: var(--space-8); color: var(--plum);">Bank Mandate — Money Flow</h3>
+          <p style="font-size: var(--text-body-sm); color: var(--ink-muted); margin-bottom: var(--space-24);">The advance is captured through the payment gateway to a platform-held account. Both you and the supplier can see its status at every step. Funds move to the supplier only on confirmed delivery (or auto-confirmation after the dispute window).</p>
+          
+          <div class="escrow-timeline">
+            <!-- Step 1 -->
+            <div class="escrow-step completed">
+              <div class="escrow-dot">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <h5>Advance Captured</h5>
+              <p>30% advance (₹3,00,900) held under the mandate</p>
+            </div>
+            <!-- Step 2 -->
+            <div class="escrow-step active">
+              <div class="escrow-dot">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              </div>
+              <h5>Balance Before Event</h5>
+              <p>Remaining ₹7,02,100 collected by Aug 15 with reminders</p>
+            </div>
+            <!-- Step 3 -->
+            <div class="escrow-step">
+              <div class="escrow-dot">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
+              </div>
+              <h5>Delivery &amp; Confirmation</h5>
+              <p>You confirm delivery; disputes hold the funds until resolved</p>
+            </div>
+            <!-- Step 4 -->
+            <div class="escrow-step">
+              <div class="escrow-dot">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+              </div>
+              <h5>Payout Released</h5>
+              <p>Supplier paid net of commission; ledger reconciles</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCOPE & TERMS -->
+        <div class="card-flat">
+          <h3 style="margin-bottom: var(--space-16);">Auto-Generated Scope &amp; Terms</h3>
+          <ul style="list-style: none; padding: 0; margin-bottom: var(--space-24); display: flex; flex-direction: column; gap: var(--space-12);">
+            <li style="display: flex; align-items: flex-start; gap: var(--space-8); font-size: var(--text-body-sm); color: var(--ink-secondary);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: var(--trust-green); flex-shrink: 0; margin-top: 2px;"><polyline points="20 6 9 17 4 12"/></svg>
+              <strong>Service Scope (from Quote #Q-118):</strong> Conference hall &amp; venue (2 days), all meals for 140 guests, 70-room block for 1 night, AV &amp; stage, Sunset Deck gala dinner, décor &amp; branding, single accountable on-site event manager. Guest transport excluded.
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: var(--space-8); font-size: var(--text-body-sm); color: var(--ink-secondary);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: var(--trust-green); flex-shrink: 0; margin-top: 2px;"><polyline points="20 6 9 17 4 12"/></svg>
+              <strong>SLA:</strong> Setup complete 2 hours before start; dedicated manager reachable throughout; delivery confirmation within 72 hours of the event, after which payout auto-releases if no dispute is raised.
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: var(--space-8); font-size: var(--text-body-sm); color: var(--ink-secondary);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: var(--trust-green); flex-shrink: 0; margin-top: 2px;"><polyline points="20 6 9 17 4 12"/></svg>
+              <strong>Cancellation:</strong> Full advance refund 30+ days prior. 50% refund 15–30 days prior. Under 15 days, the advance is forfeited; the balance is never collected.
+            </li>
+          </ul>
+
+          <label style="display: flex; align-items: center; gap: var(--space-12); cursor: pointer; padding: 12px; background: var(--canvas-alt); border-radius: var(--radius-lg);">
+            <input type="checkbox" style="width: 20px; height: 20px; accent-color: var(--plum);">
+            <span style="font-size: var(--text-body-sm); font-weight: 500;">I agree to this scope and to Eventara's bank-mandate terms: the advance is held in a platform account and released to the supplier only after confirmed delivery.</span>
+          </label>
+        </div>
+
+        <!-- PAYMENT METHOD -->
+        <div class="card-flat">
+          <h3 style="margin-bottom: var(--space-16);">Select Payment Method</h3>
+          
+          <div class="payment-option selected" style="display: flex; align-items: center; gap: 16px; padding: 16px 20px; border: 2px solid var(--plum); background: var(--plum-50); border-radius: var(--radius-xl); cursor: pointer; margin-bottom: 12px; transition: all 0.2s;">
+            <input type="radio" name="payment" checked style="width: 20px; height: 20px; accent-color: var(--plum);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px; color: var(--plum);"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <div style="flex: 1;">
+              <div style="font-weight: 600; color: var(--ink);">UPI Mandate (recommended)</div>
+              <div style="font-size: var(--text-caption); color: var(--ink-muted);">One-time mandate via GPay, PhonePe, BHIM — amount blocked, not transferred, until delivery</div>
+            </div>
+          </div>
+
+          <div class="payment-option" style="display: flex; align-items: center; gap: 16px; padding: 16px 20px; border: 2px solid var(--hairline); border-radius: var(--radius-xl); cursor: pointer; margin-bottom: 12px; transition: all 0.2s;">
+            <input type="radio" name="payment" style="width: 20px; height: 20px; accent-color: var(--plum);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px; color: var(--ink-muted);"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <div style="flex: 1;">
+              <div style="font-weight: 600; color: var(--ink);">Credit / Debit Card</div>
+              <div style="font-size: var(--text-caption); color: var(--ink-muted);">Visa, Mastercard, RuPay</div>
+            </div>
+          </div>
+
+          <div class="payment-option" style="display: flex; align-items: center; gap: 16px; padding: 16px 20px; border: 2px solid var(--hairline); border-radius: var(--radius-xl); cursor: pointer; margin-bottom: var(--space-24); transition: all 0.2s;">
+            <input type="radio" name="payment" style="width: 20px; height: 20px; accent-color: var(--plum);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px; color: var(--ink-muted);"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v3"/><path d="M12 14v3"/><path d="M16 14v3"/></svg>
+            <div style="flex: 1;">
+              <div style="font-weight: 600; color: var(--ink);">Net Banking / NEFT e-Mandate</div>
+              <div style="font-size: var(--text-caption); color: var(--ink-muted);">All major banks — suits company finance teams paying from a current account</div>
+            </div>
+          </div>
+
+          <a href="invoice.html" class="btn btn-primary btn-lg" style="width: 100%;">Authorise Mandate &amp; Pay ₹3,00,900 Advance</a>
+          <p class="caption text-center" style="margin-top: var(--space-12);">A GST-ready invoice and the booking record are generated the moment the advance is captured.</p>
+        </div>
+
+      </div>
+      
+      <!-- RIGHT SIDEBAR -->
+      <div>
+        <div style="position: sticky; top: 100px; display: flex; flex-direction: column; gap: var(--space-24);">
+          
+          <!-- PRICE BREAKDOWN -->
+          <div class="card-flat">
+            <h3 style="margin-bottom: var(--space-16);">Price Breakdown</h3>
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-12); font-size: var(--text-body-sm);">
+              <span style="color: var(--ink-secondary);">Quote #Q-118 (itemised, pre-GST)</span>
+              <span style="font-weight: 500;">₹8,50,000</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-12); font-size: var(--text-body-sm);">
+              <span style="color: var(--ink-secondary);">GST @ 18% (CGST 9% + SGST 9%)</span>
+              <span style="font-weight: 500;">₹1,53,000</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-20); font-size: var(--text-body-sm);">
+              <span style="color: var(--ink-secondary);">Customer platform fee</span>
+              <span style="font-weight: 500;">₹0 — commission is supplier-side</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-20); padding-bottom: var(--space-20); border-bottom: 1px solid var(--hairline);">
+              <span style="font-weight: 600; color: var(--ink);">Total</span>
+              <span style="font-weight: 700;">₹10,03,000</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-12);">
+              <span style="font-weight: 600; color: var(--ink);">Due Now (30% advance)</span>
+              <span style="font-family: var(--font-display); font-size: var(--text-heading-lg); font-weight: 700; color: var(--plum);">₹3,00,900</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: var(--text-body-sm);">
+              <span style="color: var(--ink-muted);">Balance due (by Aug 15)</span>
+              <span style="font-weight: 500; color: var(--ink-muted);">₹7,02,100</span>
+            </div>
+          </div>
+
+          <!-- TRUST INDICATORS -->
+          <div class="card-flat" style="display: flex; flex-direction: column; gap: var(--space-16);">
+            <div style="display: flex; align-items: center; gap: var(--space-12);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px; color: var(--trust-green);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <div>
+                <div style="font-weight: 600; font-size: var(--text-body-sm);">Bank-Mandate Protected</div>
+                <div style="font-size: var(--text-caption); color: var(--ink-muted);">Advance held in a platform account until you confirm delivery</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: var(--space-12);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px; color: var(--trust-green);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <div>
+                <div style="font-weight: 600; font-size: var(--text-body-sm);">SSL Encrypted & Secure</div>
+                <div style="font-size: var(--text-caption); color: var(--ink-muted);">Your data is safe and protected</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: var(--space-12);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px; color: var(--trust-green);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <div>
+                <div style="font-weight: 600; font-size: var(--text-body-sm);"><a href="invoice.html" style="color: inherit;">GST Invoice &amp; Booking Record</a></div>
+                <div style="font-size: var(--text-caption); color: var(--ink-muted);">Generated on payment — download for your finance team</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NEED HELP -->
+          <div class="card-flat" style="background: var(--canvas-alt); text-align: center;">
+            <h4 style="margin-bottom: var(--space-8);">Questions about your booking?</h4>
+            <p style="font-size: var(--text-body-sm); color: var(--ink-secondary); margin-bottom: var(--space-4);">Email: <a href="mailto:support@eventara.in" style="color: var(--plum); text-decoration: none; font-weight: 500;">support@eventara.in</a></p>
+            <p style="font-size: var(--text-body-sm); color: var(--ink-secondary);">Call: <a href="tel:+918045678900" style="color: var(--plum); text-decoration: none; font-weight: 500;">+91 80 4567 8900</a></p>
+          </div>
+
+        </div>
+      </div>
+      
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="index.html" class="navbar-logo" style="margin-bottom: var(--space-16);">
+            <div class="logo-icon">E</div>
+            Eventara
+          </a>
+          <p style="color: var(--ink-on-dark-muted); font-size: var(--text-body-sm); margin-bottom: var(--space-24);">India's premium marketplace for verified event professionals and venues. Celebrate without the stress.</p>
+        </div>
+        <div>
+          <h4 style="margin-bottom: var(--space-16);">Platform</h4>
+          <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--space-12);">
+            <li><a href="search.html" style="color: var(--ink-on-dark-muted); text-decoration: none;">Browse Suppliers</a></li>
+            <li><a href="index.html#how-it-works" style="color: var(--ink-on-dark-muted); text-decoration: none;">How It Works</a></li>
+            <li><a href="#" style="color: var(--ink-on-dark-muted); text-decoration: none;">Bank Mandate Protection</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="margin-bottom: var(--space-16);">Company</h4>
+          <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--space-12);">
+            <li><a href="#" style="color: var(--ink-on-dark-muted); text-decoration: none;">About Us</a></li>
+            <li><a href="#" style="color: var(--ink-on-dark-muted); text-decoration: none;">Careers</a></li>
+            <li><a href="#" style="color: var(--ink-on-dark-muted); text-decoration: none;">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="margin-bottom: var(--space-16);">For Professionals</h4>
+          <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--space-12);">
+            <li><a href="search.html" style="color: var(--ink-on-dark-muted); text-decoration: none;">List Your Business</a></li>
+            <li><a href="#" style="color: var(--ink-on-dark-muted); text-decoration: none;">Success Stories</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p style="color: var(--ink-on-dark-muted); font-size: var(--text-body-sm);">&copy; 2026 Eventara. All rights reserved.</p>
+        <div class="footer-social" style="display: flex; gap: var(--space-16);">
+          <a href="#" aria-label="LinkedIn" style="color: var(--ink-on-dark-muted);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
+          <a href="#" aria-label="Instagram" style="color: var(--ink-on-dark-muted);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+          <a href="#" aria-label="Twitter" style="color: var(--ink-on-dark-muted);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>
+    // Payment option interaction
+    document.addEventListener('DOMContentLoaded', () => {
+      const paymentOptions = document.querySelectorAll('.payment-option');
+      paymentOptions.forEach(option => {
+        option.addEventListener('click', () => {
+          paymentOptions.forEach(opt => {
+            opt.classList.remove('selected');
+            opt.style.borderColor = 'var(--hairline)';
+            opt.style.background = 'transparent';
+            opt.querySelector('input').checked = false;
+            opt.querySelector('svg').style.color = 'var(--ink-muted)';
+          });
+          option.classList.add('selected');
+          option.style.borderColor = 'var(--plum)';
+          option.style.background = 'var(--plum-50)';
+          option.querySelector('input').checked = true;
+          option.querySelector('svg').style.color = 'var(--plum)';
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+
+
+

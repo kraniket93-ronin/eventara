@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compare Quotes — Eventara</title>
+  <meta name="description" content="Itemised quotes from verified Udaipur suppliers, lined up against a common inclusion list. Totals shown, gaps flagged, PDF ready for your approver." />
+  <link rel="stylesheet" href="styles.css?v=2" />
+  <style>
+    .compare-header {
+      padding-top: 120px;
+      padding-bottom: var(--space-24);
+    }
+    .compare-header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: var(--space-8);
+    }
+    .brief-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-8);
+      margin-top: var(--space-16);
+    }
+    .brief-chip {
+      padding: 6px 14px;
+      background: var(--canvas-alt);
+      border-radius: var(--radius-pill);
+      font-size: var(--text-caption);
+      font-weight: 500;
+      color: var(--ink-secondary);
+    }
+
+    /* Comparison table */
+    .compare-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-xl);
+      background: var(--surface);
+    }
+    .compare-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 860px;
+    }
+    .compare-table th, .compare-table td {
+      padding: 14px 20px;
+      text-align: left;
+      font-size: var(--text-body-sm);
+      border-bottom: 1px solid var(--hairline-light);
+      vertical-align: top;
+    }
+    .compare-table thead th {
+      background: var(--canvas-alt);
+      border-bottom: 1px solid var(--hairline);
+      vertical-align: bottom;
+    }
+    .compare-table tbody tr:last-child td { border-bottom: none; }
+    .compare-table .row-label {
+      font-weight: 500;
+      color: var(--ink-secondary);
+      width: 220px;
+      position: sticky;
+      left: 0;
+      background: var(--surface);
+    }
+    .compare-table thead .row-label { background: var(--canvas-alt); }
+    .col-provider { min-width: 200px; }
+
+    .quote-provider {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-8);
+    }
+    .quote-provider .thumb {
+      width: 100%;
+      height: 96px;
+      border-radius: var(--radius-md);
+      background-size: cover;
+      background-position: center;
+      background-color: var(--surface-dark-card);
+    }
+    .quote-provider .name {
+      font-weight: 600;
+      font-size: var(--text-body);
+      color: var(--ink);
+    }
+    .quote-provider .meta {
+      font-size: var(--text-caption);
+      color: var(--ink-muted);
+    }
+    .tag-recommended {
+      display: inline-block;
+      padding: 3px 10px;
+      background: var(--ink);
+      color: #fff;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 600;
+      width: fit-content;
+    }
+    .missing {
+      color: var(--error);
+      font-weight: 500;
+    }
+    .included {
+      color: var(--trust-green);
+      font-weight: 500;
+    }
+    .total-row td {
+      background: var(--canvas-alt);
+      font-weight: 600;
+      color: var(--ink);
+      border-top: 1px solid var(--hairline);
+    }
+    .grand-row td {
+      font-size: var(--text-body);
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .band-flag {
+      display: block;
+      font-size: var(--text-micro);
+      font-weight: 600;
+      color: var(--error);
+      margin-top: 4px;
+    }
+    .band-ok {
+      display: block;
+      font-size: var(--text-micro);
+      font-weight: 600;
+      color: var(--trust-green);
+      margin-top: 4px;
+    }
+    .action-row td { border-bottom: none; }
+
+    .msg-link {
+      font-size: var(--text-caption);
+      color: var(--ink-muted);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    /* Print — "design for the approver" */
+    @media print {
+      .navbar, .mobile-menu, .compare-actions, .footer, .action-row { display: none !important; }
+      .compare-header { padding-top: 0; }
+      .compare-wrap { border: 1px solid #ccc; }
+      body { background: #fff; }
+    }
+
+    @media (max-width: 768px) {
+      .compare-header { padding-top: 96px; }
+    }
+  </style>
+</head>
+<body class="bg-canvas">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-logo">
+        <span class="logo-icon">E</span>
+        Eventara
+      </a>
+      <div class="navbar-nav">
+        <a href="search.html">Find Suppliers</a>
+        <a href="brief.html">Submit Brief</a>
+        <a href="compare.html" class="active">Compare Quotes</a>
+      </div>
+      <div class="navbar-actions">
+        <button class="btn-signin" onclick="window.location.href='signin.html'">Sign In</button>
+        <a href="booking.html" class="btn btn-primary btn-sm">Book Selected</a>
+      </div>
+      <button class="hamburger" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu">
+    <a href="search.html">Find Suppliers</a>
+    <a href="brief.html">Submit Brief</a>
+    <a href="compare.html">Compare Quotes</a>
+    <a href="signin.html">Sign In</a>
+  </div>
+
+  <!-- HEADER -->
+  <header class="compare-header container">
+    <div class="flex justify-between items-end flex-wrap gap-16">
+      <div>
+        <span class="micro text-plum" style="display:block; margin-bottom: var(--space-8);">Brief #EVT-2026-0042 • 3 of 3 quotes received</span>
+        <h1>Quote Comparison — Annual Offsite, Udaipur</h1>
+        <p class="text-muted body-sm">Itemised quotes lined up against your requested inclusion list. Anything a supplier left out is flagged. All amounts exclude GST unless stated.</p>
+        <div class="brief-chips">
+          <span class="brief-chip">Corporate Offsite</span>
+          <span class="brief-chip">Sat, 22 Aug 2026</span>
+          <span class="brief-chip">140 guests</span>
+          <span class="brief-chip">Budget band ₹5L–₹10L</span>
+          <span class="brief-chip">Udaipur</span>
+          <span class="brief-chip">Customer: Secure Meters (masked)</span>
+        </div>
+      </div>
+      <div class="compare-actions flex gap-8">
+        <button class="btn btn-secondary btn-sm" onclick="window.print()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download PDF for approver
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- COMPARISON TABLE -->
+  <main class="container" style="padding-bottom: var(--space-64);">
+    <div class="compare-wrap fade-in">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th class="row-label">Common inclusion list</th>
+            <th class="col-provider">
+              <div class="quote-provider">
+                <div class="thumb" style="background-image:url('https://pandorahotels.co.in/grand-udr/Property-with-lawn-view.webp');"></div>
+                <span class="tag-recommended">Best fit for budget band</span>
+                <span class="name">Paandora Grand Udaipur</span>
+                <span class="meta">★ 4.6 (214) • up to 800 guests • quoted in 9h</span>
+              </div>
+            </th>
+            <th class="col-provider">
+              <div class="quote-provider">
+                <div class="thumb" style="background-image:url('https://assets.simplotel.com/simplotel/image/upload/w_5000,h_2810/x_2,y_0,w_4996,h_2810,r_0,c_crop,q_80,fl_progressive/w_1650,c_fit,f_auto/ananta-hotels-resorts/The_Ananta_Udaipur_1_niakxc');"></div>
+                <span class="name">The Ananta Udaipur</span>
+                <span class="meta">★ 4.7 (1,032) • up to 1,500 guests • quoted in 26h</span>
+              </div>
+            </th>
+            <th class="col-provider">
+              <div class="quote-provider">
+                <div class="thumb" style="background-image:url('https://www.lemontreehotels.com/uploads/hotelslider/666c22ae59509Ekaara,%20the%20ballroom_Round%20Table%20Set-up.jpg');"></div>
+                <span class="name">Aurika, Udaipur</span>
+                <span class="meta">★ 4.8 (892) • up to 600 guests • quoted in 31h</span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="row-label">Venue &amp; conference hall (2 days)</td>
+            <td>₹1,25,000</td>
+            <td>₹1,80,000</td>
+            <td>₹2,40,000</td>
+          </tr>
+          <tr>
+            <td class="row-label">F&amp;B — all meals × 140 guests</td>
+            <td>₹2,94,000 <span class="text-muted">(₹700/plate)</span></td>
+            <td>₹3,36,000 <span class="text-muted">(₹800/plate)</span></td>
+            <td>₹4,20,000 <span class="text-muted">(₹1,000/plate)</span></td>
+          </tr>
+          <tr>
+            <td class="row-label">Accommodation block — 70 rooms, 1 night</td>
+            <td>₹2,52,000</td>
+            <td>₹3,15,000</td>
+            <td>₹3,85,000</td>
+          </tr>
+          <tr>
+            <td class="row-label">AV, stage &amp; projection</td>
+            <td>₹68,000</td>
+            <td><span class="included">Included in venue</span></td>
+            <td>₹95,000</td>
+          </tr>
+          <tr>
+            <td class="row-label">Gala dinner setup</td>
+            <td>₹55,000 <span class="text-muted">(Sunset Deck)</span></td>
+            <td>₹75,000 <span class="text-muted">(poolside)</span></td>
+            <td><span class="included">Included (Ekaara pre-function)</span></td>
+          </tr>
+          <tr>
+            <td class="row-label">Décor &amp; branding</td>
+            <td>₹56,000</td>
+            <td>₹72,000</td>
+            <td>₹88,000</td>
+          </tr>
+          <tr>
+            <td class="row-label">Guest transport (airport shuttles)</td>
+            <td><span class="missing">⚠ Not included</span></td>
+            <td>₹60,000</td>
+            <td>₹70,000</td>
+          </tr>
+          <tr>
+            <td class="row-label">On-site event manager &amp; SLA</td>
+            <td><span class="included">✓ Included</span></td>
+            <td><span class="included">✓ Included</span></td>
+            <td><span class="included">✓ Included</span></td>
+          </tr>
+          <tr class="total-row">
+            <td class="row-label">Subtotal (pre-GST)</td>
+            <td>₹8,50,000</td>
+            <td>₹10,38,000</td>
+            <td>₹12,98,000</td>
+          </tr>
+          <tr>
+            <td class="row-label">GST @ 18%</td>
+            <td>₹1,53,000</td>
+            <td>₹1,86,840</td>
+            <td>₹2,33,640</td>
+          </tr>
+          <tr class="total-row grand-row">
+            <td class="row-label">Total payable</td>
+            <td>
+              ₹10,03,000
+              <span class="band-ok">Within budget band (pre-GST)</span>
+            </td>
+            <td>
+              ₹12,24,840
+              <span class="band-flag">⚠ Pre-GST subtotal exceeds ₹10L band</span>
+            </td>
+            <td>
+              ₹15,31,640
+              <span class="band-flag">⚠ Pre-GST subtotal exceeds ₹10L band</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="row-label">Advance under bank mandate (30%)</td>
+            <td>₹3,00,900 <span class="text-muted">held until delivery</span></td>
+            <td>₹3,67,452 <span class="text-muted">held until delivery</span></td>
+            <td>₹4,59,492 <span class="text-muted">held until delivery</span></td>
+          </tr>
+          <tr class="action-row">
+            <td class="row-label"></td>
+            <td>
+              <a href="booking.html" class="btn btn-primary btn-sm w-full" style="margin-bottom: 8px;">Accept &amp; Book</a>
+              <span class="msg-link">Message supplier (contacts masked)</span>
+            </td>
+            <td>
+              <a href="booking.html" class="btn btn-secondary btn-sm w-full" style="margin-bottom: 8px;">Accept &amp; Book</a>
+              <span class="msg-link">Message supplier (contacts masked)</span>
+            </td>
+            <td>
+              <a href="booking.html" class="btn btn-secondary btn-sm w-full" style="margin-bottom: 8px;">Accept &amp; Book</a>
+              <span class="msg-link">Message supplier (contacts masked)</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Why stay on platform -->
+    <div class="card-flat" style="margin-top: var(--space-24); display: flex; gap: var(--space-16); align-items: flex-start;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--trust-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <p class="body-sm text-secondary" style="margin: 0;">
+        <strong>What you keep by booking on Eventara:</strong> the advance is held under a bank mandate and released only after delivery, every message and change stays on the booking record, a GST invoice is generated automatically, and you keep a dispute path with funds held until resolution. Book off-platform and all of this disappears.
+      </p>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-bottom" style="border-top: none; padding-top: 0;">
+        <p>© 2026 Eventara — IIM Udaipur PSM Group 10 prototype. Pilot city: Udaipur.</p>
+        <div class="flex gap-16">
+          <a href="brief.html" class="body-sm">Submit a Brief</a>
+          <a href="booking.html" class="body-sm">Booking &amp; Mandate</a>
+          <a href="invoice.html" class="body-sm">Sample GST Invoice</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
