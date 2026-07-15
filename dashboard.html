@@ -6,13 +6,10 @@
   <meta name="description" content="Paandora Grand Udaipur supplier portal on Eventara — enquiry inbox, quote builder with 48-hour SLA, availability calendar, and payout view." />
   <title>Supplier Portal — Paandora Grand Udaipur — Eventara</title>
   <!-- Access gate: Supplier Portal is for signed-in Businesses/Suppliers only.
-       Runs before render to avoid any flash of dashboard content. -->
-  <script>
-    if (sessionStorage.getItem('eventara_auth') !== 'supplier') {
-      window.location.replace('signin.html?next=dashboard&role=business');
-    }
-  </script>
-  <link rel="stylesheet" href="styles.css?v=5" />
+       Runs before render to avoid any flash of protected content. -->
+  <script src="auth.js?v=1"></script>
+  <script>Auth.requireRole('supplier', 'signin.html?next=dashboard&role=business');</script>
+  <link rel="stylesheet" href="styles.css?v=7" />
   <style>
     /* ============================================================
        DASHBOARD PAGE — Scoped Overrides & Additions
@@ -775,10 +772,7 @@
 
   <script src="app.js"></script>
   <script>
-    function signOut() {
-      sessionStorage.removeItem('eventara_auth');
-      window.location.href = 'signin.html';
-    }
+    function signOut() { Auth.logout('index.html'); }
   </script>
 </body>
 </html>

@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Sign In or Register for Eventara.">
   <title>Sign In / Register — Eventara</title>
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=7">
+  <script src="auth.js?v=1"></script>
   <style>
     .auth-container {
       min-height: 100vh;
@@ -155,7 +156,7 @@
           <!-- Customer entry — opens the customer account (demo) -->
           <div style="margin-top: var(--space-20); padding-top: var(--space-20); border-top: 1px solid var(--hairline); text-align: center;">
             <p style="font-size: var(--text-caption); color: var(--ink-muted); margin-bottom: var(--space-8);">Booking an event as a company or institution?</p>
-            <a href="#" onclick="sessionStorage.setItem('eventara_auth','customer'); window.location.href='customer-dashboard.html'; return false;" class="btn btn-secondary btn-sm">Continue as Customer</a>
+            <a href="#" onclick="Auth.login('customer', {name:'Secure Meters Ltd'}); window.location.href='customer-dashboard.html'; return false;" class="btn btn-secondary btn-sm">Continue as Customer</a>
           </div>
         </div>
 
@@ -168,7 +169,7 @@
           </div>
 
           <!-- Customer Registration Form -->
-          <form id="form-customer" class="register-form active" onsubmit="event.preventDefault(); sessionStorage.setItem('eventara_auth','customer'); window.location.href='customer-dashboard.html';">
+          <form id="form-customer" class="register-form active" onsubmit="event.preventDefault(); Auth.login('customer', {name: this.querySelector('input[type=text]').value || 'Your Organisation', email: (this.querySelector('input[type=email]')||{}).value}); window.location.href='customer-dashboard.html';">
             <div class="input-group">
               <label>Organisation / Institution</label>
               <input type="text" class="input-field" placeholder="e.g. Secure Meters Ltd, IIM Udaipur" required>
@@ -198,7 +199,7 @@
           </form>
 
           <!-- Business Registration Form -->
-          <form id="form-business" class="register-form" style="display: none;" onsubmit="event.preventDefault(); sessionStorage.setItem('eventara_auth','supplier'); window.location.href='dashboard.html';">
+          <form id="form-business" class="register-form" style="display: none;" onsubmit="event.preventDefault(); Auth.login('supplier', {name: this.querySelector('input[type=text]').value || 'Your Business', email: (this.querySelector('input[type=email]')||{}).value}); window.location.href='dashboard.html';">
             <div class="input-group">
               <label>Business Name</label>
               <input type="text" class="input-field" placeholder="e.g. Paandora Grand Udaipur" required>
@@ -325,10 +326,10 @@
       const err = document.getElementById('signin-error');
 
       if (email === SUPPLIER_LOGIN.email && password === SUPPLIER_LOGIN.password) {
-        sessionStorage.setItem('eventara_auth', 'supplier');
+        Auth.login('supplier', { name: 'Paandora Grand Udaipur', email: email });
         window.location.href = 'dashboard.html';
       } else if (email === CUSTOMER_LOGIN.email && password === CUSTOMER_LOGIN.password) {
-        sessionStorage.setItem('eventara_auth', 'customer');
+        Auth.login('customer', { name: 'Secure Meters Ltd', email: email });
         window.location.href = 'customer-dashboard.html';
       } else {
         err.textContent = 'Incorrect email or password. Please try again, or continue as a Customer.';
