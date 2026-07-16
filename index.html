@@ -3,10 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Eventara — Udaipur's trusted marketplace for weddings, birthdays, corporate events and celebrations. Discover verified venues, hotels and planners, compare quotes, and book with your payment protected until your event.">
+  <meta name="description" content="Eventara — Udaipur's trusted marketplace for corporate and institutional events: offsites, conferences, college fests and convocations. Discover verified venues, hotels and organisers, compare quotes, and book with your payment protected. Weddings coming soon.">
   <title>Eventara — Every Occasion, One Platform | Udaipur</title>
   <link rel="stylesheet" href="styles.css?v=11">
   <script src="auth.js?v=1"></script>
+  <style>
+    /* Phase 1 — Coming Soon category card */
+    .category-card.is-soon { cursor: default; }
+    .category-card.is-soon:hover { transform: none !important; }
+    .cat-badge { display: inline-block; margin-bottom: var(--space-8); padding: 3px 12px; border-radius: var(--radius-pill); background: var(--gold-light); color: var(--gold-deep); font-size: var(--text-micro); font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; }
+    .cat-soon-label { display: inline-block; margin-top: var(--space-16); font-weight: 600; color: var(--ink-muted); font-size: var(--text-body-sm); }
+  </style>
 </head>
 <body>
 
@@ -58,7 +65,7 @@
         <!-- Eyebrow Badge -->
         <div class="hero-eyebrow">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          Udaipur &nbsp;•&nbsp; Trusted by families &amp; businesses across the city
+          Udaipur &nbsp;•&nbsp; Trusted by companies &amp; institutions across the city
         </div>
 
         <!-- Title -->
@@ -69,7 +76,7 @@
 
         <!-- Subtitle -->
         <p class="hero-subtitle">
-          Eventara is Udaipur's trusted marketplace for events of every kind — weddings, birthdays, corporate days and celebrations. Discover verified venues, hotels and planners, compare quotes side by side, and book with confidence: your payment stays protected until your event is beautifully done.
+          Eventara is Udaipur's trusted marketplace for corporate and institutional events — offsites, conferences, college fests and convocations. Discover verified venues, hotels and organisers, compare quotes side by side, and book with confidence: your payment stays protected until your event is beautifully done.
         </p>
 
         <!-- Search Bar -->
@@ -77,12 +84,12 @@
           <form class="search-bar" action="search.html" method="get">
             <select class="search-field" aria-label="Event Type">
               <option value="" disabled selected>Event Type</option>
-              <option value="wedding">Wedding</option>
-              <option value="birthday">Birthday / Anniversary</option>
               <option value="corporate">Corporate Event</option>
               <option value="conference">Conference</option>
-              <option value="festival">Festival / Public Event</option>
-              <option value="private">Private Celebration</option>
+              <option value="institutional">College / University Fest</option>
+              <option value="convocation">Convocation / Annual Day</option>
+              <option value="launch">Product Launch / Award Night</option>
+              <option value="wedding" disabled>Weddings — coming soon</option>
             </select>
             <div class="search-divider"></div>
             <select class="search-field" aria-label="City">
@@ -124,42 +131,43 @@
   <section class="section bg-white fade-in" id="categories">
     <div class="container">
       <div class="section-header">
-        <span class="section-eyebrow">Browse by Occasion</span>
-        <h2>One Trusted Partner for Every Celebration</h2>
-        <p>Whether it's a grand wedding, a milestone birthday, or a company day out, find verified venues, hotels and planners across Udaipur — with clear prices and payments you can trust.</p>
+        <span class="section-eyebrow">What We Cover</span>
+        <h2>Built for Corporate &amp; Institutional Events</h2>
+        <p>Eventara launches in Udaipur with corporate and institutional events — offsites, conferences, college fests and convocations. Find verified venues, hotels and organisers with clear prices and payments you can trust. Weddings and celebrations are coming soon.</p>
       </div>
 
       <div class="grid grid-3 stagger-children">
 
-        <!-- Weddings -->
-        <a href="search.html" class="category-card fade-in">
-          <div class="category-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </div>
-          <h3>Weddings</h3>
-          <p>From intimate ceremonies to grand destination weddings, find palace venues, resorts and planners who take care of every last detail.</p>
-          <span class="body-sm text-plum" style="display:inline-block; margin-top: var(--space-16); font-weight: 600;">Typically from ₹15 lakh &nbsp;·&nbsp; Explore →</span>
-        </a>
-
-        <!-- Birthdays & Celebrations -->
-        <a href="search.html" class="category-card fade-in">
-          <div class="category-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 1 4 1 2.5-1 4-1 2.5 1 4 1 2-1 2-1"/><path d="M2 21h20"/><path d="M12 8a2 2 0 0 0 2-2c0-1-2-4-2-4S10 5 10 6a2 2 0 0 0 2 2z"/></svg>
-          </div>
-          <h3>Birthdays &amp; Celebrations</h3>
-          <p>Birthdays, anniversaries, engagements and family get-togethers — beautiful venues and planners for every style and budget.</p>
-          <span class="body-sm text-plum" style="display:inline-block; margin-top: var(--space-16); font-weight: 600;">Typically from ₹50,000 &nbsp;·&nbsp; Explore →</span>
-        </a>
-
-        <!-- Corporate & Conferences -->
+        <!-- Corporate Events & Conferences (Phase 1 — primary) -->
         <a href="search.html" class="category-card fade-in">
           <div class="category-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
           </div>
-          <h3>Corporate &amp; Conferences</h3>
+          <h3>Corporate Events &amp; Conferences</h3>
           <p>Offsites, conferences, product launches and award nights — professional venues and organisers who handle it end to end, with proper invoices.</p>
-          <span class="body-sm text-plum" style="display:inline-block; margin-top: var(--space-16); font-weight: 600;">Typically from ₹3 lakh &nbsp;·&nbsp; Explore →</span>
+          <span class="body-sm text-plum" style="display:inline-block; margin-top: var(--space-16); font-weight: 600;">Typically from ₹5 lakh &nbsp;·&nbsp; Explore →</span>
         </a>
+
+        <!-- Institutional Events & Fests (Phase 1 — primary) -->
+        <a href="search.html" class="category-card fade-in">
+          <div class="category-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/><line x1="22" y1="10" x2="22" y2="15.5"/></svg>
+          </div>
+          <h3>Institutional Events &amp; Fests</h3>
+          <p>College fests, convocations, school annual days and university events — trusted venues and organisers for schools, colleges and universities, with clear quotes and proper invoices.</p>
+          <span class="body-sm text-plum" style="display:inline-block; margin-top: var(--space-16); font-weight: 600;">Typically from ₹2.5 lakh &nbsp;·&nbsp; Explore →</span>
+        </a>
+
+        <!-- Weddings & Related Celebrations (Coming Soon — next phase, not bookable) -->
+        <div class="category-card is-soon fade-in" aria-disabled="true">
+          <div class="category-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <span class="cat-badge">Coming Soon</span>
+          <h3>Weddings &amp; Related Celebrations</h3>
+          <p>From intimate ceremonies to grand destination weddings — palace venues, resorts and planners. Launching in our next phase.</p>
+          <span class="cat-soon-label">Launching soon</span>
+        </div>
 
       </div>
     </div>
@@ -173,7 +181,7 @@
       <div class="section-header">
         <span class="section-eyebrow">Simple &amp; Stress-Free</span>
         <h2>How Eventara Works</h2>
-        <p>Three easy steps from idea to celebration — with your payment protected the whole way.</p>
+        <p>Three easy steps from idea to event — with your payment protected the whole way.</p>
       </div>
 
       <div class="steps-grid stagger-children">
@@ -398,8 +406,8 @@
     <div class="container">
       <div class="section-header">
         <span class="section-eyebrow">What People Say</span>
-        <h2>Loved by Families &amp; Businesses</h2>
-        <p>Early users across Udaipur — from families planning weddings to companies planning offsites — trust Eventara to make their events easy.</p>
+        <h2>Loved by Companies &amp; Institutions</h2>
+        <p>Early users across Udaipur — from companies planning offsites to institutions planning conferences and fests — trust Eventara to make their events easy.</p>
       </div>
 
       <div class="grid grid-3 stagger-children">
@@ -472,7 +480,7 @@
     <div class="container">
       <div class="cta-band">
         <h2>Run a Venue or Event Business in Udaipur?</h2>
-        <p>List your venue or services on Eventara and reach customers planning weddings, parties and corporate events across the city. Get genuine enquiries, quote in minutes, and get paid on time — every time.</p>
+        <p>List your venue or services on Eventara and reach companies and institutions planning offsites, conferences and fests across the city. Get genuine enquiries, quote in minutes, and get paid on time — every time.</p>
         <a href="signin.html?mode=register&type=business" class="btn btn-primary btn-lg">List Your Business</a>
       </div>
     </div>
@@ -491,7 +499,7 @@
             <img src="logo.svg?v=1" alt="Eventara" class="logo-img" />
           </a>
           <p class="footer-tagline">Every Occasion, One Platform</p>
-          <p>Udaipur's trusted marketplace for events — weddings, birthdays, corporate days and celebrations. Discover verified venues and planners, compare quotes, and book with your payment protected until the big day.</p>
+          <p>Udaipur's trusted marketplace for corporate and institutional events — offsites, conferences, college fests and convocations. Discover verified venues and organisers, compare quotes, and book with your payment protected. Weddings coming soon.</p>
         </div>
 
         <!-- Plan an Event -->
@@ -550,5 +558,6 @@
   </footer>
 
   <script src="app.js?v=3"></script>
+  <script src="chatbot.js?v=2"></script>
 </body>
 </html>
