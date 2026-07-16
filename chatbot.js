@@ -511,8 +511,12 @@
       signal: ctrl ? ctrl.signal : undefined
     }).then(function (r) {
       if (timer) clearTimeout(timer);
-      // Endpoint missing or no API key configured -> stop trying this session.
-      if (r.status === 404 || r.status === 503) { apiState = 'off'; return null; }
+      // No working endpoint here (static host, or no API key configured)
+      // -> stop probing for the rest of the session.
+      if (r.status === 404 || r.status === 405 || r.status === 501 || r.status === 503) {
+        apiState = 'off';
+        return null;
+      }
       if (!r.ok) return null;                    // transient: fall back just this once
       apiState = 'on';
       return r.json();
@@ -643,13 +647,28 @@
     el.input.value = '';
     typing(true);
     var ctx = getContext();
-    setTimeout(function () {
-      typing(false);
-      var r = respond(text, ctx);
-      addMsg('bot', r.text);
-      setChips(r.chips && r.chips.length ? r.chips : ctx.chips);
-      save();
-    }, 480 + Math.random() * 420);
+    var t0 = Date.now();
+
+    function deliver(r) {
+      // keep a minimum "thinking" beat so replies never snap in jarringly
+      var wait = Math.max(0, 420 - (Date.now() - t0));
+      setTimeout(function () {
+        typing(false);
+        addMsg('bot', r.text);
+        setChips(r.chips && r.chips.length ? r.chips : ctx.chips);
+        save();
+      }, wait);
+    }
+
+    // Deterministic multi-turn flows stay local (instant + predictable).
+    if (convo.pending) { deliver(respond(text, ctx)); return; }
+
+    // No endpoint available (static hosting / no key) -> offline engine.
+    if (apiState === 'off' || typeof fetch !== 'function') { deliver(respond(text, ctx)); return; }
+
+    respondRemote(ctx).then(function (remote) {
+      deliver(remote || respond(text, ctx));
+    });
   }
 
   function greet() {
