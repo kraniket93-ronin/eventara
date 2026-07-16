@@ -76,6 +76,11 @@
   alias('delete', ['remove', 'close', 'deactivate', 'deletion']);
   alias('update', ['edit', 'change', 'modify', 'amend']);
   alias('negotiate', ['negotiation', 'bargain', 'discount', 'haggle']);
+  // NB: deliberately NOT aliasing 'udaipur' here — it appears in many
+  // supplier-search queries and would fight the 'find' intent.
+  alias('city', ['cities', 'delhi', 'mumbai', 'jaipur', 'bengaluru', 'bangalore', 'pune',
+                 'hyderabad', 'chennai', 'kolkata', 'goa', 'ahmedabad', 'gurgaon', 'noida',
+                 'location', 'locations', 'region', 'regions', 'elsewhere']);
 
   function normalize(s) {
     return (' ' + String(s || '').toLowerCase() + ' ')
@@ -168,6 +173,13 @@
     { id: 'free', aud: 'both', k: ['free'], p: ['is eventara free', 'does it cost', 'any fees', 'do you charge'],
       a: "Eventara is <b>free for customers</b> — browsing, requesting quotes and comparing costs you nothing.<br><br>Businesses list for free too. We earn a small commission only on confirmed bookings — no listing or subscription fees.",
       chips: ['How are commissions handled?', 'List your business'] },
+
+    { id: 'cities', aud: 'both', k: ['city'],
+      p: ['which cities', 'what cities', 'other cities', 'outside udaipur', 'services in',
+          'service in', 'operate in', 'available in', 'do you serve', 'do you cover',
+          'only in udaipur', 'apart from udaipur', 'besides udaipur'],
+      a: "Right now Eventara operates in <b>Udaipur only</b>. Every venue and planner on the platform is a verified Udaipur business, and bookings are for events held in Udaipur — we're not live in other cities yet.<br><br>If you're planning an event in Udaipur, start with " + L.brief + ".",
+      chips: ['What events are supported?', 'Find suppliers', 'Contact support'] },
 
     { id: 'who', aud: 'both', k: [], p: ['who can use', 'who is it for'],
       a: "Both sides of an event. <b>Customers</b> — companies and institutions planning events — find and book trusted suppliers. <b>Businesses</b> — hotels, venues and event planners — reach genuine customers and win bookings.",
