@@ -184,7 +184,7 @@ function initMultiStepForm() {
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--trust-green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
         </div>
         <h3 class="display-md" style="margin-bottom: 12px;">Request Sent!</h3>
-        <p class="body-lg text-secondary" style="max-width: 460px; margin: 0 auto 32px;">Your request has gone to Paandora Grand Udaipur, The Ananta Udaipur and Aurika, Udaipur. Their quotes will arrive within 48 hours — we'll line them up side by side so you can compare easily.</p>
+        <p class="body-lg text-secondary" style="max-width: 460px; margin: 0 auto 32px;">Your request has gone to Paandora Grand Udaipur, Sterling Balicha and Blossom Events. Their quotes will arrive within 48 hours — we'll line them up side by side so you can compare easily.</p>
         <a href="compare.html" class="btn btn-primary">See Your Quotes</a>
         <a href="index.html" class="btn btn-ghost">Back to Home</a>
       </div>

@@ -151,12 +151,6 @@
             </div>
             <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Sign In</button>
           </form>
-
-          <!-- Customer entry — opens the customer account (demo) -->
-          <div style="margin-top: var(--space-20); padding-top: var(--space-20); border-top: 1px solid var(--hairline); text-align: center;">
-            <p style="font-size: var(--text-caption); color: var(--ink-muted); margin-bottom: var(--space-8);">Booking an event as a company or institution?</p>
-            <a href="#" onclick="Auth.login('customer', {name:'Secure Meters Ltd'}); window.location.href='customer-dashboard.html'; return false;" class="btn btn-secondary btn-sm">Continue as Customer</a>
-          </div>
         </div>
 
         <!-- REGISTER VIEW -->
@@ -251,7 +245,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
   <script>
     // Tab switching logic (Sign In vs Register)
     const authTabs = document.querySelectorAll('.auth-tab');
@@ -331,7 +325,7 @@
         Auth.login('customer', { name: 'Secure Meters Ltd', email: email });
         window.location.href = 'customer-dashboard.html';
       } else {
-        err.textContent = 'Incorrect email or password. Please try again, or continue as a Customer.';
+        err.textContent = 'Incorrect email or password. Please try again.';
         err.style.display = 'block';
       }
     }
