@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Eventara Help Centre and FAQ — answers for customers planning events and for businesses (hotels, venues and event planners) in Udaipur. Booking, payments, deposits, refunds, verification, accounts and support.">
+  <title>Help Centre &amp; FAQ — Eventara</title>
+  <link rel="stylesheet" href="styles.css?v=11">
+  <script src="auth.js?v=1"></script>
+  <style>
+    body { padding-top: 80px; }
+    @media (max-width: 768px) { body { padding-top: 64px; } }
+
+    /* Breadcrumb */
+    .breadcrumb { padding: var(--space-20) 0 0; }
+    .breadcrumb ol { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); margin: 0; padding: 0; font-size: var(--text-body-sm); color: var(--ink-muted); }
+    .breadcrumb a { color: var(--ink-muted); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--coral); text-decoration: underline; }
+    .breadcrumb li[aria-current] { color: var(--ink); font-weight: 600; }
+    .breadcrumb .sep { color: var(--ink-faint); }
+
+    /* Hero */
+    .faq-hero { text-align: center; padding: var(--space-32) 0 var(--space-40); }
+    .faq-hero h1 { font-family: var(--font-display); font-size: clamp(1.75rem, 4vw, 2.25rem); font-weight: 700; letter-spacing: -0.5px; color: var(--ink); margin-bottom: var(--space-12); }
+    .faq-hero p { font-size: var(--text-body-lg); color: var(--ink-secondary); max-width: 560px; margin: 0 auto var(--space-24); line-height: 1.6; }
+    .faq-searchbox { position: relative; max-width: 560px; margin: 0 auto; }
+    .faq-searchbox svg { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: var(--ink-muted); pointer-events: none; }
+    .faq-searchbox input { width: 100%; height: 56px; padding: 0 48px 0 50px; border: 1px solid var(--hairline-strong); border-radius: var(--radius-pill); font-family: var(--font-body); font-size: var(--text-body); color: var(--ink); background: var(--surface); box-shadow: var(--shadow-sm); }
+    .faq-searchbox input:focus { outline: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink), var(--shadow-sm); }
+    .faq-search-clear { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border: none; background: var(--canvas-alt); border-radius: 50%; cursor: pointer; display: none; align-items: center; justify-content: center; color: var(--ink-muted); }
+    .faq-search-clear svg { position: static; transform: none; width: 16px; height: 16px; }
+    .faq-searchbox.has-value .faq-search-clear { display: flex; }
+
+    /* Layout */
+    .faq-layout { display: grid; grid-template-columns: 260px 1fr; gap: var(--space-40); align-items: start; padding-bottom: var(--space-80); }
+
+    /* Sidebar */
+    .faq-sidebar { position: sticky; top: 96px; }
+    .faq-sidebar h2 { font-size: var(--text-caption); text-transform: uppercase; letter-spacing: 0.6px; color: var(--ink-muted); font-weight: 700; margin-bottom: var(--space-12); }
+    .faq-sidebar ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+    .faq-navlink { display: flex; align-items: center; gap: var(--space-12); padding: 10px 12px; border-radius: var(--radius-md); color: var(--ink-secondary); text-decoration: none; font-size: var(--text-body-sm); font-weight: 500; transition: background var(--duration-fast), color var(--duration-fast); }
+    .faq-navlink:hover { background: var(--canvas-alt); color: var(--ink); }
+    .faq-navlink.active { background: var(--coral-light); color: var(--coral); font-weight: 600; }
+    .faq-navicon { display: inline-flex; width: 18px; height: 18px; flex-shrink: 0; color: currentColor; }
+    .faq-navicon svg { width: 18px; height: 18px; }
+    .faq-navcount { margin-left: auto; font-size: var(--text-micro); color: var(--ink-faint); font-weight: 600; }
+    .faq-navlink.active .faq-navcount { color: var(--coral); }
+
+    /* Sections */
+    .faq-content { min-width: 0; }
+    .faq-section { scroll-margin-top: 96px; margin-bottom: var(--space-48); }
+    .faq-cat-title { display: flex; align-items: center; gap: var(--space-12); font-family: var(--font-display); font-size: var(--text-heading-lg); font-weight: 700; color: var(--ink); margin-bottom: var(--space-20); }
+    .faq-cat-icon { display: inline-flex; width: 26px; height: 26px; color: var(--coral); }
+    .faq-cat-icon svg { width: 26px; height: 26px; }
+
+    /* Accordion */
+    .faq-item { border: 1px solid var(--hairline); border-radius: var(--radius-xl); margin-bottom: var(--space-12); background: var(--surface); overflow: hidden; transition: box-shadow var(--duration-fast), border-color var(--duration-fast); }
+    .faq-item:hover { border-color: var(--hairline-strong); }
+    .faq-item.open { box-shadow: var(--shadow-sm); border-color: var(--hairline-strong); }
+    .faq-q-h { margin: 0; font-size: inherit; font-weight: inherit; }
+    .faq-q { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); padding: var(--space-20) var(--space-24); background: none; border: none; cursor: pointer; text-align: left; font-family: var(--font-display); font-size: var(--text-body-lg); font-weight: 600; color: var(--ink); }
+    .faq-q:focus-visible { outline: 2px solid var(--coral); outline-offset: -2px; border-radius: var(--radius-xl); }
+    .faq-chevron { width: 22px; height: 22px; flex-shrink: 0; color: var(--ink-muted); transition: transform var(--duration-base, 0.25s) var(--ease-out, ease); }
+    .faq-q[aria-expanded="true"] .faq-chevron { transform: rotate(180deg); color: var(--coral); }
+    .faq-a { max-height: 0; overflow: hidden; transition: max-height 0.3s var(--ease-out, ease); }
+    .faq-a-inner { padding: 0 var(--space-24) var(--space-24); }
+    .faq-a-inner p { color: var(--ink-secondary); line-height: 1.7; font-size: var(--text-body); margin: 0; }
+
+    /* Empty state */
+    .faq-empty { display: none; text-align: center; padding: var(--space-64) var(--space-16); }
+    .faq-empty h3 { font-family: var(--font-display); font-size: var(--text-heading-md); color: var(--ink); margin-bottom: var(--space-8); }
+    .faq-empty p { color: var(--ink-muted); }
+    .faq-empty .q { font-weight: 600; color: var(--ink); }
+
+    /* Still need help */
+    .faq-help { background: var(--canvas-alt); border-radius: var(--radius-3xl); padding: var(--space-48) var(--space-32); text-align: center; margin: 0 auto var(--space-80); max-width: 760px; }
+    .faq-help h2 { font-family: var(--font-display); font-size: var(--text-heading-lg); font-weight: 700; color: var(--ink); margin-bottom: var(--space-8); }
+    .faq-help p { color: var(--ink-secondary); max-width: 460px; margin: 0 auto var(--space-24); line-height: 1.6; }
+    .faq-help-actions { display: flex; gap: var(--space-12); justify-content: center; flex-wrap: wrap; }
+    .faq-help-meta { margin-top: var(--space-20); font-size: var(--text-body-sm); color: var(--ink-muted); }
+    .faq-help-meta a { color: var(--coral); text-decoration: none; font-weight: 600; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .faq-layout { grid-template-columns: 1fr; gap: var(--space-24); }
+      .faq-sidebar { position: sticky; top: 64px; z-index: 20; background: var(--surface); margin: 0 calc(-1 * var(--space-16)); padding: var(--space-8) var(--space-16); border-bottom: 1px solid var(--hairline); }
+      .faq-sidebar h2 { display: none; }
+      .faq-sidebar ul { flex-direction: row; overflow-x: auto; gap: var(--space-8); padding-bottom: var(--space-4); -webkit-overflow-scrolling: touch; }
+      .faq-navlink { white-space: nowrap; border: 1px solid var(--hairline); padding: 8px 14px; }
+      .faq-navcount { display: none; }
+    }
+    @media (max-width: 480px) {
+      .faq-q { padding: var(--space-16); font-size: var(--text-body); }
+      .faq-a-inner { padding: 0 var(--space-16) var(--space-16); }
+      .faq-help { padding: var(--space-32) var(--space-20); border-radius: var(--radius-xl); }
+    }
+  </style>
+</head>
+<body class="bg-canvas">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-logo">
+        <img src="logo.svg?v=1" alt="Eventara" class="logo-img" />
+      </a>
+      <div class="navbar-nav">
+        <a href="search.html">Find Suppliers</a>
+        <a href="index.html#how-it-works">How It Works</a>
+        <a href="compare.html">Compare Quotes</a>
+      </div>
+      <div class="navbar-actions">
+        <a href="signin.html?mode=register&type=business" class="btn btn-secondary btn-sm">List Your Business</a>
+        <button class="btn-signin" onclick="window.location.href='signin.html'">Sign In</button>
+      </div>
+      <button class="hamburger" aria-label="Toggle navigation menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu">
+    <a href="search.html">Find Suppliers</a>
+    <a href="index.html#how-it-works">How It Works</a>
+    <a href="compare.html">Compare Quotes</a>
+    <a href="faq.html">FAQ</a>
+    <a href="signin.html">Sign In</a>
+  </div>
+
+
+  <main>
+    <div class="container">
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="index.html">Home</a></li>
+          <li class="sep" aria-hidden="true">/</li>
+          <li>Support</li>
+          <li class="sep" aria-hidden="true">/</li>
+          <li aria-current="page">FAQ</li>
+        </ol>
+      </nav>
+
+      <!-- Hero + search -->
+      <header class="faq-hero">
+        <h1>How can we help?</h1>
+        <p>Answers for everyone on Eventara — whether you're planning an event or growing your venue or planning business. Search below or browse by topic.</p>
+        <div class="faq-searchbox" id="faqSearchBox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="search" id="faqSearch" placeholder="Search for a question, e.g. deposit, refund, verification…" aria-label="Search frequently asked questions" autocomplete="off">
+          <button class="faq-search-clear" id="faqSearchClear" type="button" aria-label="Clear search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Layout -->
+      <div class="faq-layout">
+        <!-- Sidebar -->
+        <aside class="faq-sidebar" aria-label="FAQ categories">
+          <h2>Browse topics</h2>
+          <ul>
+            <li><a href="#cat-general" class="faq-navlink" data-target="cat-general"><span class="faq-navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>General <span class="faq-navcount">4</span></a></li>
+            <li><a href="#cat-booking" class="faq-navlink" data-target="cat-booking"><span class="faq-navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Booking &amp; Events <span class="faq-navcount">8</span></a></li>
+            <li><a href="#cat-payments" class="faq-navlink" data-target="cat-payments"><span class="faq-navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span>Payments <span class="faq-navcount">6</span></a></li>
+            <li><a href="#cat-account" class="faq-navlink" data-target="cat-account"><span class="faq-navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>Account &amp; Profile <span class="faq-navcount">5</span></a></li>
+            <li><a href="#cat-vendors" class="faq-navlink" data-target="cat-vendors"><span class="faq-navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>Vendors &amp; Event Planners <span class="faq-navcount">9</span></a></li>
+            <li><a href="#cat-hotels" class="faq-navlink" data-target="cat-hotels"><span class="faq-navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg></span>Hotels &amp; Venues <span class="faq-navcount">6</span></a></li>
+            <li><a href="#cat-trust" class="faq-navlink" data-target="cat-trust"><span class="faq-navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>Trust &amp; Safety <span class="faq-navcount">6</span></a></li>
+            <li><a href="#cat-support" class="faq-navlink" data-target="cat-support"><span class="faq-navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>Support <span class="faq-navcount">6</span></a></li>
+          </ul>
+        </aside>
+
+        <!-- Content -->
+        <div class="faq-content">
+        <section class="faq-section" id="cat-general" aria-labelledby="h-general">
+          <h2 id="h-general" class="faq-cat-title"><span class="faq-cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>General</h2>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-1" aria-expanded="false" aria-controls="faq-panel-1">
+                <span class="faq-q-text">What is Eventara?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-1" role="region" aria-labelledby="faq-btn-1">
+              <div class="faq-a-inner"><p>Eventara is Udaipur's trusted online marketplace for planning events of every kind — weddings, birthdays, corporate days, conferences and celebrations. We connect people planning events with verified venues, hotels and event planners, so you can discover options, compare clear quotes, and book with your payment protected until your event is done.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-2" aria-expanded="false" aria-controls="faq-panel-2">
+                <span class="faq-q-text">How does Eventara work?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-2" role="region" aria-labelledby="faq-btn-2">
+              <div class="faq-a-inner"><p>Tell us about your event in a short form, and we match your request to a few verified venues or planners. Their quotes arrive within 48 hours, lined up side by side so you can compare fairly. Pick the one you like, pay a small deposit to confirm, and your payment stays safe with us until the event is delivered.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-3" aria-expanded="false" aria-controls="faq-panel-3">
+                <span class="faq-q-text">Who can use Eventara?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-3" role="region" aria-labelledby="faq-btn-3">
+              <div class="faq-a-inner"><p>Both sides of an event. Customers — families, companies and institutions planning any occasion — use Eventara to find and book trusted suppliers. Businesses — hotels, banquet venues and event planners — use it to reach genuine customers and grow their bookings.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-4" aria-expanded="false" aria-controls="faq-panel-4">
+                <span class="faq-q-text">Is Eventara free to use?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-4" role="region" aria-labelledby="faq-btn-4">
+              <div class="faq-a-inner"><p>Yes. It's completely free for customers to browse, request quotes and compare. Businesses can list for free too — Eventara earns only a small commission on confirmed bookings, with no listing or sign-up fees.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="faq-section" id="cat-booking" aria-labelledby="h-booking">
+          <h2 id="h-booking" class="faq-cat-title"><span class="faq-cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Booking &amp; Events</h2>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-5" aria-expanded="false" aria-controls="faq-panel-5">
+                <span class="faq-q-text">How do I book a venue or planner?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-5" role="region" aria-labelledby="faq-btn-5">
+              <div class="faq-a-inner"><p>Browse listings or submit a quote request. Once quotes arrive, compare them, choose the one that fits, and pay a small deposit to confirm. Your booking, invoice and all details are then saved to your account.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-6" aria-expanded="false" aria-controls="faq-panel-6">
+                <span class="faq-q-text">How do I request quotations?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-6" role="region" aria-labelledby="faq-btn-6">
+              <div class="faq-a-inner"><p>Use the “Get Free Quotes” form and tell us your event type, date, guest count and budget. Your request goes straight to a few matched venues and planners who reply with clear, itemised quotes.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-7" aria-expanded="false" aria-controls="faq-panel-7">
+                <span class="faq-q-text">How are prices determined?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-7" role="region" aria-labelledby="faq-btn-7">
+              <div class="faq-a-inner"><p>Each business sets its own pricing based on your requirements — guest count, date, inclusions and services. You receive itemised quotes so you can see exactly what's included and compare fairly.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-8" aria-expanded="false" aria-controls="faq-panel-8">
+                <span class="faq-q-text">Can I negotiate pricing?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-8" role="region" aria-labelledby="faq-btn-8">
+              <div class="faq-a-inner"><p>Yes. You can message a business through Eventara to discuss inclusions, tweak a package or ask about pricing. Your contact details stay private until you decide to book.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-9" aria-expanded="false" aria-controls="faq-panel-9">
+                <span class="faq-q-text">Can I book multiple vendors together?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-9" role="region" aria-labelledby="faq-btn-9">
+              <div class="faq-a-inner"><p>Absolutely. You can request quotes from several venues and planners, shortlist and compare them, and book more than one supplier for the same event — for example a venue plus a separate planner or caterer.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-10" aria-expanded="false" aria-controls="faq-panel-10">
+                <span class="faq-q-text">How do I cancel or modify a booking?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-10" role="region" aria-labelledby="faq-btn-10">
+              <div class="faq-a-inner"><p>Open My Bookings in your account and choose the booking you want to change. Modifications and cancellations follow the terms shown on that booking; any charges depend on how far in advance you cancel.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-11" aria-expanded="false" aria-controls="faq-panel-11">
+                <span class="faq-q-text">What happens after I submit an inquiry?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-11" role="region" aria-labelledby="faq-btn-11">
+              <div class="faq-a-inner"><p>Your request is sent to the matched businesses right away. Their quotes usually arrive within 48 hours, and we line them up side by side so you can compare and choose without any back-and-forth.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-12" aria-expanded="false" aria-controls="faq-panel-12">
+                <span class="faq-q-text">Are bookings confirmed instantly?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-12" role="region" aria-labelledby="faq-btn-12">
+              <div class="faq-a-inner"><p>A booking is confirmed the moment you accept a quote and pay the deposit. The business is notified immediately, and your deposit is held safely by Eventara until your event takes place.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="faq-section" id="cat-payments" aria-labelledby="h-payments">
+          <h2 id="h-payments" class="faq-cat-title"><span class="faq-cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span>Payments</h2>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-13" aria-expanded="false" aria-controls="faq-panel-13">
+                <span class="faq-q-text">What payment methods can I use?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-13" role="region" aria-labelledby="faq-btn-13">
+              <div class="faq-a-inner"><p>You can pay by UPI (GPay, PhonePe, BHIM), net banking or major debit/credit cards. Businesses receive their payouts directly to their registered bank account.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-14" aria-expanded="false" aria-controls="faq-panel-14">
+                <span class="faq-q-text">Why do I pay a deposit?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-14" role="region" aria-labelledby="faq-btn-14">
+              <div class="faq-a-inner"><p>A small deposit — usually around 30% — confirms your booking and shows the business you're committed. It's held safely by Eventara, not paid straight to the supplier, and the balance is settled as per your booking terms.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-15" aria-expanded="false" aria-controls="faq-panel-15">
+                <span class="faq-q-text">What is the refund policy?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-15" role="region" aria-labelledby="faq-btn-15">
+              <div class="faq-a-inner"><p>Refunds follow each booking's cancellation terms, which are shown to you before you pay. Cancel far enough in advance and your deposit is refundable in full or in part.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-16" aria-expanded="false" aria-controls="faq-panel-16">
+                <span class="faq-q-text">What are the cancellation charges?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-16" role="region" aria-labelledby="faq-btn-16">
+              <div class="faq-a-inner"><p>Charges depend on timing. A typical policy is a full refund 30+ days before the event, a partial refund 15–30 days before, and no refund under 15 days — but you never pay the balance. The exact terms appear on each booking.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-17" aria-expanded="false" aria-controls="faq-panel-17">
+                <span class="faq-q-text">Are taxes and invoices included?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-17" role="region" aria-labelledby="faq-btn-17">
+              <div class="faq-a-inner"><p>Yes. Quotes show applicable GST, and you receive a proper GST invoice along with a complete booking record for every confirmed booking — easy to download and keep for yourself or your company.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-18" aria-expanded="false" aria-controls="faq-panel-18">
+                <span class="faq-q-text">How secure are payments?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-18" role="region" aria-labelledby="faq-btn-18">
+              <div class="faq-a-inner"><p>Very. Your money is held safely by Eventara and released to the business only after your event is delivered. All transactions run through secure payment gateways, and money never moves off-platform.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="faq-section" id="cat-account" aria-labelledby="h-account">
+          <h2 id="h-account" class="faq-cat-title"><span class="faq-cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>Account &amp; Profile</h2>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-19" aria-expanded="false" aria-controls="faq-panel-19">
+                <span class="faq-q-text">How do I create an account?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-19" role="region" aria-labelledby="faq-btn-19">
+              <div class="faq-a-inner"><p>Click Sign In, then Register, and choose whether you're a Customer or a Business. Fill in a few short details and you're ready to go.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-20" aria-expanded="false" aria-controls="faq-panel-20">
+                <span class="faq-q-text">I can't log in — what should I do?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-20" role="region" aria-labelledby="faq-btn-20">
+              <div class="faq-a-inner"><p>Double-check your email and password and make sure Caps Lock is off. If you've forgotten your password, use “Forgot Password?” to reset it. Still stuck? Contact our support team and we'll help.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-21" aria-expanded="false" aria-controls="faq-panel-21">
+                <span class="faq-q-text">How do I reset my password?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-21" role="region" aria-labelledby="faq-btn-21">
+              <div class="faq-a-inner"><p>On the Sign In page, click “Forgot Password?” and follow the instructions sent to your email to set a new one.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-22" aria-expanded="false" aria-controls="faq-panel-22">
+                <span class="faq-q-text">How do I edit my profile?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-22" role="region" aria-labelledby="faq-btn-22">
+              <div class="faq-a-inner"><p>Go to My Account and open Profile to update your name, contact details, GST number and saved preferences at any time.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-23" aria-expanded="false" aria-controls="faq-panel-23">
+                <span class="faq-q-text">How do I delete my account?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-23" role="region" aria-labelledby="faq-btn-23">
+              <div class="faq-a-inner"><p>Reach out to support from the Help section and we'll close your account and remove your data in line with our Privacy Policy. Some records may be retained where the law requires it.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="faq-section" id="cat-vendors" aria-labelledby="h-vendors">
+          <h2 id="h-vendors" class="faq-cat-title"><span class="faq-cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>Vendors &amp; Event Planners</h2>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-24" aria-expanded="false" aria-controls="faq-panel-24">
+                <span class="faq-q-text">How do I register as a vendor?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-24" role="region" aria-labelledby="faq-btn-24">
+              <div class="faq-a-inner"><p>Click “List Your Business”, choose Business/Supplier, and submit your details. Our team reviews your application before you go live.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-25" aria-expanded="false" aria-controls="faq-panel-25">
+                <span class="faq-q-text">How does onboarding work?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-25" role="region" aria-labelledby="faq-btn-25">
+              <div class="faq-a-inner"><p>After you register, the Eventara team checks your documents — GST and relevant licences. Once approved, you receive a verified badge and your listing goes live to customers.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-26" aria-expanded="false" aria-controls="faq-panel-26">
+                <span class="faq-q-text">How are vendors verified?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-26" role="region" aria-labelledby="faq-btn-26">
+              <div class="faq-a-inner"><p>We check identity, GST registration and the relevant trade or food-safety licences before granting the verified badge, so customers can book with confidence.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-27" aria-expanded="false" aria-controls="faq-panel-27">
+                <span class="faq-q-text">How do I receive booking inquiries?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-27" role="region" aria-labelledby="faq-btn-27">
+              <div class="faq-a-inner"><p>Matched customer requests arrive in your business dashboard's enquiry inbox, and you're notified so you can respond quickly.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-28" aria-expanded="false" aria-controls="faq-panel-28">
+                <span class="faq-q-text">How do I manage availability?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-28" role="region" aria-labelledby="faq-btn-28">
+              <div class="faq-a-inner"><p>Use the availability calendar in your dashboard to mark dates as open or blocked, so you only receive enquiries for dates you can serve.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-29" aria-expanded="false" aria-controls="faq-panel-29">
+                <span class="faq-q-text">Can I update my portfolio?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-29" role="region" aria-labelledby="faq-btn-29">
+              <div class="faq-a-inner"><p>Yes — add photos, packages, capacities and details from your dashboard whenever you like. A rich, up-to-date portfolio wins more bookings.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-30" aria-expanded="false" aria-controls="faq-panel-30">
+                <span class="faq-q-text">How do payments and payouts work?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-30" role="region" aria-labelledby="faq-btn-30">
+              <div class="faq-a-inner"><p>The customer's deposit is held safely by Eventara and released to you after the event is delivered, net of commission. Your payouts go to your registered bank account.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-31" aria-expanded="false" aria-controls="faq-panel-31">
+                <span class="faq-q-text">How are commissions handled?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-31" role="region" aria-labelledby="faq-btn-31">
+              <div class="faq-a-inner"><p>Eventara charges a small commission only on confirmed bookings. It's deducted from your payout automatically — there are no upfront, listing or subscription fees.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-32" aria-expanded="false" aria-controls="faq-panel-32">
+                <span class="faq-q-text">How do I respond to customer requests?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-32" role="region" aria-labelledby="faq-btn-32">
+              <div class="faq-a-inner"><p>Open the enquiry, build a quote with your inclusions and price, and send it. Replying within 48 hours keeps your rating high and improves your chances of winning the booking.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="faq-section" id="cat-hotels" aria-labelledby="h-hotels">
+          <h2 id="h-hotels" class="faq-cat-title"><span class="faq-cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg></span>Hotels &amp; Venues</h2>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-33" aria-expanded="false" aria-controls="faq-panel-33">
+                <span class="faq-q-text">How do I list my property?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-33" role="region" aria-labelledby="faq-btn-33">
+              <div class="faq-a-inner"><p>Register as a business, add your property details, photos, halls and rooms, and set your pricing. Your listing goes live once verification is complete.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-34" aria-expanded="false" aria-controls="faq-panel-34">
+                <span class="faq-q-text">How do I manage rooms and halls?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-34" role="region" aria-labelledby="faq-btn-34">
+              <div class="faq-a-inner"><p>From your dashboard you can add each hall or room with its capacity, inclusions and pricing, and edit them any time.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-35" aria-expanded="false" aria-controls="faq-panel-35">
+                <span class="faq-q-text">How do I update pricing?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-35" role="region" aria-labelledby="faq-btn-35">
+              <div class="faq-a-inner"><p>Edit your package tiers and per-event pricing directly in the dashboard — changes apply to new quotes straight away.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-36" aria-expanded="false" aria-controls="faq-panel-36">
+                <span class="faq-q-text">How do I manage availability?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-36" role="region" aria-labelledby="faq-btn-36">
+              <div class="faq-a-inner"><p>Mark dates as available or blocked on your calendar so you only receive enquiries for open dates and avoid double-bookings.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-37" aria-expanded="false" aria-controls="faq-panel-37">
+                <span class="faq-q-text">How do I handle bookings?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-37" role="region" aria-labelledby="faq-btn-37">
+              <div class="faq-a-inner"><p>Accept a request by sending a quote. Once the customer pays the deposit, the booking is confirmed and appears in your dashboard with all the details.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-38" aria-expanded="false" aria-controls="faq-panel-38">
+                <span class="faq-q-text">How does cancellation management work?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-38" role="region" aria-labelledby="faq-btn-38">
+              <div class="faq-a-inner"><p>Your cancellation terms are shown to customers before they book. If a booking is cancelled, refunds and any charges follow those terms and are handled by Eventara — you don't have to chase anyone.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="faq-section" id="cat-trust" aria-labelledby="h-trust">
+          <h2 id="h-trust" class="faq-cat-title"><span class="faq-cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>Trust &amp; Safety</h2>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-39" aria-expanded="false" aria-controls="faq-panel-39">
+                <span class="faq-q-text">How are vendors verified?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-39" role="region" aria-labelledby="faq-btn-39">
+              <div class="faq-a-inner"><p>Every business is checked for identity, GST and the relevant licences before going live, and carries a verified badge so you always know who you're booking.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-40" aria-expanded="false" aria-controls="faq-panel-40">
+                <span class="faq-q-text">Are customers verified too?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-40" role="region" aria-labelledby="faq-btn-40">
+              <div class="faq-a-inner"><p>Yes. Customer contact and GST details are validated, and only customers who actually booked through Eventara can leave a review — so ratings you see are genuine.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-41" aria-expanded="false" aria-controls="faq-panel-41">
+                <span class="faq-q-text">How does Eventara prevent fraud?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-41" role="region" aria-labelledby="faq-btn-41">
+              <div class="faq-a-inner"><p>Contact details stay private until a booking is confirmed, payments are held safely on-platform, and we monitor for and flag suspicious activity.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-42" aria-expanded="false" aria-controls="faq-panel-42">
+                <span class="faq-q-text">How is my data kept private?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-42" role="region" aria-labelledby="faq-btn-42">
+              <div class="faq-a-inner"><p>We collect only what's needed to run your bookings, never sell your data, and never share your contact details without your consent. See our Privacy Policy for the details.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-43" aria-expanded="false" aria-controls="faq-panel-43">
+                <span class="faq-q-text">Are payments secure?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-43" role="region" aria-labelledby="faq-btn-43">
+              <div class="faq-a-inner"><p>Yes. Deposits are held by Eventara and released only after your event, and every transaction uses secure payment gateways.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-44" aria-expanded="false" aria-controls="faq-panel-44">
+                <span class="faq-q-text">How do I report suspicious activity?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-44" role="region" aria-labelledby="faq-btn-44">
+              <div class="faq-a-inner"><p>Use the Report option on any listing or message, or contact support. We investigate every report and act quickly to keep the platform safe.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="faq-section" id="cat-support" aria-labelledby="h-support">
+          <h2 id="h-support" class="faq-cat-title"><span class="faq-cat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>Support</h2>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-45" aria-expanded="false" aria-controls="faq-panel-45">
+                <span class="faq-q-text">How do I contact customer support?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-45" role="region" aria-labelledby="faq-btn-45">
+              <div class="faq-a-inner"><p>Reach us any time through the Help section, by email at support@eventara.in, or via the contact form. We're always happy to help.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-46" aria-expanded="false" aria-controls="faq-panel-46">
+                <span class="faq-q-text">What are your support hours?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-46" role="region" aria-labelledby="faq-btn-46">
+              <div class="faq-a-inner"><p>Our team is available 9 am–8 pm IST, Monday to Saturday. Urgent, event-day booking issues are handled around the clock.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-47" aria-expanded="false" aria-controls="faq-panel-47">
+                <span class="faq-q-text">How do I escalate an issue?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-47" role="region" aria-labelledby="faq-btn-47">
+              <div class="faq-a-inner"><p>If your query isn't resolved, just ask to escalate and a senior team member will follow up. Event-day problems are always given priority.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-48" aria-expanded="false" aria-controls="faq-panel-48">
+                <span class="faq-q-text">Do you offer technical support?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-48" role="region" aria-labelledby="faq-btn-48">
+              <div class="faq-a-inner"><p>Yes. For login, payment or website problems, contact support and we'll help you troubleshoot and get things working again.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-49" aria-expanded="false" aria-controls="faq-panel-49">
+                <span class="faq-q-text">How do I report a bug?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-49" role="region" aria-labelledby="faq-btn-49">
+              <div class="faq-a-inner"><p>Use the feedback form or email support@eventara.in with a short description and a screenshot if you can — it goes straight to our team.</p></div>
+            </div>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-q-h">
+              <button class="faq-q" id="faq-btn-50" aria-expanded="false" aria-controls="faq-panel-50">
+                <span class="faq-q-text">How do I share feedback or suggestions?</span>
+                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </h3>
+            <div class="faq-a" id="faq-panel-50" role="region" aria-labelledby="faq-btn-50">
+              <div class="faq-a-inner"><p>We'd love to hear from you. Use the feedback link in the Help section — your ideas genuinely help shape how Eventara grows.</p></div>
+            </div>
+          </div>
+        </section>
+
+          <!-- Empty state -->
+          <div class="faq-empty" id="faqEmpty">
+            <h3>No results found</h3>
+            <p>We couldn't find anything for “<span class="q" id="faqEmptyTerm"></span>”. Try a different word, or reach our team below.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Still need help -->
+      <section class="faq-help" aria-labelledby="help-title">
+        <h2 id="help-title">Still need help?</h2>
+        <p>Can't find what you're looking for? Our support team is here for you — for planning an event or running your business on Eventara.</p>
+        <div class="faq-help-actions">
+          <a href="mailto:support@eventara.in" class="btn btn-primary">Contact Support</a>
+          <a href="brief.html" class="btn btn-secondary">Get Free Quotes</a>
+        </div>
+        <p class="faq-help-meta">Email <a href="mailto:support@eventara.in">support@eventara.in</a> &nbsp;·&nbsp; 9 am–8 pm IST, Mon–Sat</p>
+      </section>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="index.html" class="navbar-logo">
+            <img src="logo.svg?v=1" alt="Eventara" class="logo-img" />
+          </a>
+          <p class="footer-tagline">Every Occasion, One Platform</p>
+          <p>Udaipur's trusted marketplace for events — weddings, birthdays, corporate days and celebrations. Discover verified venues and planners, compare quotes, and book with your payment protected until the big day.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Plan an Event</h4>
+          <ul>
+            <li><a href="search.html">Browse Venues &amp; Planners</a></li>
+            <li><a href="brief.html">Get Free Quotes</a></li>
+            <li><a href="compare.html">Compare Quotes</a></li>
+            <li><a href="index.html#how-it-works">How It Works</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>For Businesses</h4>
+          <ul>
+            <li><a href="signin.html?mode=register&type=business">List Your Business</a></li>
+            <li><a href="signin.html">Business Sign In</a></li>
+            <li><a href="index.html#trust">Why Eventara</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="faq.html">Help Centre</a></li>
+            <li><a href="faq.html">FAQ</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Eventara — Udaipur. A student project by IIM Udaipur PSM Group 10. Venue and event photos belong to the respective businesses and are shown with permission.</p>
+      </div>
+    </div>
+  </footer>
+
+
+  <script src="app.js?v=3"></script>
+  <script>
+  (function () {
+    // ---- Accordion ----
+    var items = Array.prototype.slice.call(document.querySelectorAll('.faq-item'));
+    document.querySelectorAll('.faq-q').forEach(function (btn) {
+      var panel = document.getElementById(btn.getAttribute('aria-controls'));
+      var item = btn.closest('.faq-item');
+      btn.addEventListener('click', function () {
+        var open = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!open));
+        item.classList.toggle('open', !open);
+        panel.style.maxHeight = open ? null : (panel.scrollHeight + 'px');
+      });
+    });
+    // Keep an open panel sized correctly on resize
+    window.addEventListener('resize', function () {
+      document.querySelectorAll('.faq-q[aria-expanded="true"]').forEach(function (b) {
+        var p = document.getElementById(b.getAttribute('aria-controls'));
+        p.style.maxHeight = p.scrollHeight + 'px';
+      });
+    });
+
+    // ---- Search ----
+    var input = document.getElementById('faqSearch');
+    var box = document.getElementById('faqSearchBox');
+    var clearBtn = document.getElementById('faqSearchClear');
+    var empty = document.getElementById('faqEmpty');
+    var emptyTerm = document.getElementById('faqEmptyTerm');
+    var sections = Array.prototype.slice.call(document.querySelectorAll('.faq-section'));
+
+    function runSearch(q) {
+      q = (q || '').trim().toLowerCase();
+      box.classList.toggle('has-value', q.length > 0);
+      var anyVisible = false;
+      sections.forEach(function (sec) {
+        var secHas = false;
+        sec.querySelectorAll('.faq-item').forEach(function (it) {
+          var text = it.textContent.toLowerCase();
+          var match = !q || text.indexOf(q) !== -1;
+          it.style.display = match ? '' : 'none';
+          if (match) { secHas = true; anyVisible = true; }
+        });
+        sec.style.display = secHas ? '' : 'none';
+      });
+      empty.style.display = anyVisible ? 'none' : 'block';
+      if (!anyVisible) emptyTerm.textContent = q;
+    }
+    input.addEventListener('input', function () { runSearch(input.value); });
+    clearBtn.addEventListener('click', function () { input.value = ''; runSearch(''); input.focus(); });
+
+    // ---- Sidebar active state on scroll ----
+    var links = Array.prototype.slice.call(document.querySelectorAll('.faq-navlink'));
+    var map = {};
+    links.forEach(function (l) { map[l.getAttribute('data-target')] = l; });
+    if ('IntersectionObserver' in window) {
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            links.forEach(function (l) { l.classList.remove('active'); });
+            var active = map[e.target.id];
+            if (active) active.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-100px 0px -70% 0px', threshold: 0 });
+      sections.forEach(function (s) { obs.observe(s); });
+    }
+  })();
+  </script>
+</body>
+</html>
