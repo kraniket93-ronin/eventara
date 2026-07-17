@@ -1,5 +1,5 @@
 /* ============================================================
-   EVENTARA — Shared Interactions
+   EVENTARA - Shared Interactions
    ============================================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ============================================================
-   1. NAVBAR — Scroll Effect & Floating
+   1. NAVBAR - Scroll Effect & Floating
    ============================================================ */
 function initNavbar() {
   const navbar = document.querySelector('.navbar');
@@ -32,7 +32,7 @@ function initNavbar() {
 }
 
 /* ============================================================
-   2. SCROLL ANIMATIONS — IntersectionObserver
+   2. SCROLL ANIMATIONS - IntersectionObserver
    ============================================================ */
 function initScrollAnimations() {
   const animatedElements = document.querySelectorAll('.fade-in, .fade-in-left, .fade-in-right, .scale-in');
@@ -60,7 +60,7 @@ function initScrollAnimations() {
 }
 
 /* ============================================================
-   3. COUNTER ANIMATIONS — Count Up on Scroll
+   3. COUNTER ANIMATIONS - Count Up on Scroll
    ============================================================ */
 function initCounters() {
   const counters = document.querySelectorAll('[data-count]');
@@ -184,7 +184,7 @@ function initMultiStepForm() {
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--trust-green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
         </div>
         <h3 class="display-md" style="margin-bottom: 12px;">Request Sent!</h3>
-        <p class="body-lg text-secondary" style="max-width: 460px; margin: 0 auto 32px;">Your request has gone to Paandora Grand Udaipur, Sterling Balicha and Blossom Events. Their quotes will arrive within 48 hours — we'll line them up side by side so you can compare easily.</p>
+        <p class="body-lg text-secondary" style="max-width: 460px; margin: 0 auto 32px;">Your request has gone to Paandora Grand Udaipur, Sterling Balicha and Blossom Events. Their quotes will arrive within 48 hours - we'll line them up side by side so you can compare easily.</p>
         <a href="compare.html" class="btn btn-primary">See Your Quotes</a>
         <a href="index.html" class="btn btn-ghost">Back to Home</a>
       </div>

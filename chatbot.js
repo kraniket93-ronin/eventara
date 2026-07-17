@@ -1,9 +1,9 @@
 /* ============================================================
-   EVENTARA — Assistant (floating chat widget)
+   EVENTARA - Assistant (floating chat widget)
    ------------------------------------------------------------
    Self-contained widget: injects its own styles + DOM on every
    page that includes this file. Prototype-grade conversational
-   engine — intent matching + context awareness, no backend.
+   engine - intent matching + context awareness, no backend.
 
    ARCHITECTURE
      KB[]        -> the knowledge base. Add entries here to teach
@@ -76,7 +76,7 @@
   alias('delete', ['remove', 'close', 'deactivate', 'deletion']);
   alias('update', ['edit', 'change', 'modify', 'amend']);
   alias('negotiate', ['negotiation', 'bargain', 'discount', 'haggle']);
-  // NB: deliberately NOT aliasing 'udaipur' here — it appears in many
+  // NB: deliberately NOT aliasing 'udaipur' here - it appears in many
   // supplier-search queries and would fight the 'find' intent.
   alias('city', ['cities', 'delhi', 'mumbai', 'jaipur', 'bengaluru', 'bangalore', 'pune',
                  'hyderabad', 'chennai', 'kolkata', 'goa', 'ahmedabad', 'gurgaon', 'noida',
@@ -99,7 +99,7 @@
   }
 
   /* ========================================================
-     2. CONTEXT — which page, who is the user, where are they
+     2. CONTEXT - which page, who is the user, where are they
      ======================================================== */
   var PAGES = {
     'index': { name: 'the home page', chips: ['What is Eventara?', 'What events are supported?', 'Get free quotes'] },
@@ -155,34 +155,34 @@
   var KB = [
     /* ---------------- PLATFORM ---------------- */
     { id: 'what', aud: 'both', k: ['eventara', 'platform'], p: ['what is eventara', 'about eventara', 'tell me about'],
-      a: "Eventara is Udaipur's trusted marketplace for events. We connect people planning events with verified venues, hotels and event planners — so you can compare clear quotes side by side and book with your payment protected until your event is delivered.",
+      a: "Eventara is Udaipur's trusted marketplace for events. We connect people planning events with verified venues, hotels and event planners - so you can compare clear quotes side by side and book with your payment protected until your event is delivered.",
       chips: ['How does it work?', 'What events are supported?', 'Is it free?'] },
 
     { id: 'how', aud: 'both', k: ['work'], p: ['how does eventara work', 'how does it work', 'how it works'],
-      a: "It's three steps:<br><b>1.</b> Tell us about your event (type, date, guests, budget).<br><b>2.</b> A few matched venues/planners send itemised quotes — usually within 48 hours.<br><b>3.</b> Pick one and pay a small deposit. It's held safely and released only after your event.<br><br>Start here: " + L.brief,
+      a: "It's three steps:<br><b>1.</b> Tell us about your event (type, date, guests, budget).<br><b>2.</b> A few matched venues/planners send itemised quotes - usually within 48 hours.<br><b>3.</b> Pick one and pay a small deposit. It's held safely and released only after your event.<br><br>Start here: " + L.brief,
       chips: ['Find suppliers', 'What deposit do I pay?'] },
 
     { id: 'scope', aud: 'both', k: ['category', 'scope', 'phase', 'launch', 'corporate', 'conference', 'institutional'], p: ['what event categories', 'which events', 'currently available', 'what events are supported', 'what do you cover'],
-      a: "Right now Eventara covers two categories:<br><b>• Corporate Events &amp; Conferences</b> — offsites, conferences, product launches, award nights (typically from ₹5 lakh).<br><b>• Institutional Events &amp; Fests</b> — college fests, convocations, school annual days (typically from ₹2.5 lakh).<br><br>Weddings &amp; related celebrations are coming soon.",
+      a: "Right now Eventara covers two categories:<br><b>• Corporate Events &amp; Conferences</b> - offsites, conferences, product launches, award nights (typically from ₹5 lakh).<br><b>• Institutional Events &amp; Fests</b> - college fests, convocations, school annual days (typically from ₹2.5 lakh).<br><br>Weddings &amp; related celebrations are coming soon.",
       chips: ['Find suppliers', 'Get free quotes', 'What about weddings?'] },
 
     { id: 'wedding', aud: 'both', k: ['wedding'], p: ['about weddings', 'wedding venue', 'book a wedding'],
-      a: "Weddings &amp; related celebrations are <b>coming soon</b> — they're planned for our next phase, so you can't browse or book wedding venues on Eventara just yet.<br><br>Today we cover corporate events &amp; conferences and institutional events &amp; fests.",
+      a: "Weddings &amp; related celebrations are <b>coming soon</b> - they're planned for our next phase, so you can't browse or book wedding venues on Eventara just yet.<br><br>Today we cover corporate events &amp; conferences and institutional events &amp; fests.",
       chips: ['What events are supported?', 'Contact support'] },
 
     { id: 'free', aud: 'both', k: ['free'], p: ['is eventara free', 'does it cost', 'any fees', 'do you charge'],
-      a: "Eventara is <b>free for customers</b> — browsing, requesting quotes and comparing costs you nothing.<br><br>Businesses list for free too. We earn a small commission only on confirmed bookings — no listing or subscription fees.",
+      a: "Eventara is <b>free for customers</b> - browsing, requesting quotes and comparing costs you nothing.<br><br>Businesses list for free too. We earn a small commission only on confirmed bookings - no listing or subscription fees.",
       chips: ['How are commissions handled?', 'List your business'] },
 
     { id: 'cities', aud: 'both', k: ['city'],
       p: ['which cities', 'what cities', 'other cities', 'outside udaipur', 'services in',
           'service in', 'operate in', 'available in', 'do you serve', 'do you cover',
           'only in udaipur', 'apart from udaipur', 'besides udaipur'],
-      a: "Right now Eventara operates in <b>Udaipur only</b>. Every venue and planner on the platform is a verified Udaipur business, and bookings are for events held in Udaipur — we're not live in other cities yet.<br><br>If you're planning an event in Udaipur, start with " + L.brief + ".",
+      a: "Right now Eventara operates in <b>Udaipur only</b>. Every venue and planner on the platform is a verified Udaipur business, and bookings are for events held in Udaipur - we're not live in other cities yet.<br><br>If you're planning an event in Udaipur, start with " + L.brief + ".",
       chips: ['What events are supported?', 'Find suppliers', 'Contact support'] },
 
     { id: 'who', aud: 'both', k: [], p: ['who can use', 'who is it for'],
-      a: "Both sides of an event. <b>Customers</b> — companies and institutions planning events — find and book trusted suppliers. <b>Businesses</b> — hotels, venues and event planners — reach genuine customers and win bookings.",
+      a: "Both sides of an event. <b>Customers</b> - companies and institutions planning events - find and book trusted suppliers. <b>Businesses</b> - hotels, venues and event planners - reach genuine customers and win bookings.",
       chips: ['Find suppliers', 'List your business'] },
 
     /* ---------------- CUSTOMER JOURNEY ---------------- */
@@ -196,12 +196,12 @@
       chips: ['How do I compare?', 'Get free quotes'] },
 
     { id: 'compare', aud: 'customer', k: ['compare'], p: ['compare quotes', 'side by side', 'how do i choose'],
-      a: "Once your quotes arrive, " + L.compare + " lines them up side by side against what you asked for — price, inclusions, capacity and rating. Anything a supplier left out is flagged, so you can compare fairly.",
+      a: "Once your quotes arrive, " + L.compare + " lines them up side by side against what you asked for - price, inclusions, capacity and rating. Anything a supplier left out is flagged, so you can compare fairly.",
       chips: ['Can I negotiate?', 'What deposit do I pay?'] },
 
     { id: 'quote', aud: 'customer', k: ['quote'], p: ['request a quote', 'how do i request', 'get a quote', 'ask for pricing'],
       flow: 'event_type_quote',
-      a: "Use " + L.brief + " — tell us your event type, date, guest count and budget. Your request goes to a few matched venues and planners, and their quotes arrive within 48 hours.",
+      a: "Use " + L.brief + " - tell us your event type, date, guest count and budget. Your request goes to a few matched venues and planners, and their quotes arrive within 48 hours.",
       chips: ['What happens after I request?', 'How are prices decided?'] },
 
     { id: 'after', aud: 'customer', k: [], p: ['what happens after', 'after i request', 'after i submit', 'after i send'],
@@ -209,7 +209,7 @@
       chips: ['How do I choose?', 'Are bookings instant?'] },
 
     { id: 'prices', aud: 'customer', k: ['price'], p: ['how are prices', 'how is pricing', 'who decides price'],
-      a: "Each business sets its own pricing based on your requirements — guest count, date, inclusions and services. You get <b>itemised</b> quotes, so you can see exactly what's included and compare fairly.",
+      a: "Each business sets its own pricing based on your requirements - guest count, date, inclusions and services. You get <b>itemised</b> quotes, so you can see exactly what's included and compare fairly.",
       chips: ['Can I negotiate?', 'What deposit do I pay?'] },
 
     { id: 'negotiate', aud: 'customer', k: ['negotiate'], p: ['can i negotiate'],
@@ -217,7 +217,7 @@
       chips: ['How do I book?', 'How do I compare?'] },
 
     { id: 'bookhow', aud: 'customer', k: ['book'], p: ['how do i book', 'book a venue', 'how to book'],
-      a: "Browse or request quotes, compare what comes back, then pick one and pay a small deposit to confirm. That's it — your booking, invoice and details are saved to your account.<br><br>Start with " + L.brief + ".",
+      a: "Browse or request quotes, compare what comes back, then pick one and pay a small deposit to confirm. That's it - your booking, invoice and details are saved to your account.<br><br>Start with " + L.brief + ".",
       chips: ['What deposit do I pay?', 'Are bookings instant?', 'Cancellation policy'] },
 
     { id: 'instant', aud: 'customer', k: [], p: ['bookings confirmed instantly', 'instant booking', 'are bookings instant', 'confirmed instantly'],
@@ -225,7 +225,7 @@
       chips: ['Is my payment safe?', 'Cancellation policy'] },
 
     { id: 'multi', aud: 'customer', k: [], p: ['multiple vendors', 'more than one', 'several vendors', 'book multiple'],
-      a: "Yes — you can request quotes from several venues and planners, shortlist and compare them, and book more than one supplier for the same event (say a venue plus a separate planner).",
+      a: "Yes - you can request quotes from several venues and planners, shortlist and compare them, and book more than one supplier for the same event (say a venue plus a separate planner).",
       chips: ['How do I compare?', 'Get free quotes'] },
 
     { id: 'mybookings', aud: 'customer', k: ['book', 'dashboard'], p: ['my bookings', 'booking history', 'where are my bookings', 'find my booking', 'past bookings'],
@@ -236,7 +236,7 @@
       chips: ['How do I cancel?', 'Where is my invoice?'] },
 
     { id: 'cancel', aud: 'customer', k: ['cancel'], p: ['cancel my booking', 'cancellation policy', 'cancellation charges'],
-      a: "You can cancel or change a booking from <b>My Bookings</b>. Charges depend on timing — a typical policy is a full refund 30+ days before, partial 15–30 days before, and no refund under 15 days (but you never pay the balance). The exact terms are shown on each booking before you pay.",
+      a: "You can cancel or change a booking from <b>My Bookings</b>. Charges depend on timing - a typical policy is a full refund 30+ days before, partial 15–30 days before, and no refund under 15 days (but you never pay the balance). The exact terms are shown on each booking before you pay.",
       chips: ['How do refunds work?', 'Contact support'] },
 
     { id: 'refund', aud: 'both', k: ['refund'], p: ['how do refunds', 'get my money back'],
@@ -244,7 +244,7 @@
       chips: ['Cancellation policy', 'Contact support'] },
 
     { id: 'review', aud: 'both', k: ['review'], p: ['leave a review', 'how do reviews'],
-      a: "Only customers who actually booked through Eventara can leave a review — so every rating you see comes from a real event. You'll be invited to review after your event is delivered.",
+      a: "Only customers who actually booked through Eventara can leave a review - so every rating you see comes from a real event. You'll be invited to review after your event is delivered.",
       chips: ['Are suppliers verified?'] },
 
     /* ---------------- PAYMENTS ---------------- */
@@ -253,15 +253,15 @@
       chips: ['Is my payment safe?', 'What deposit do I pay?'] },
 
     { id: 'deposit', aud: 'both', k: ['deposit'], p: ['what deposit', 'how much deposit', 'why deposit'],
-      a: "A small deposit — usually around <b>30%</b> — confirms your booking. It's held safely by Eventara (not paid straight to the supplier), and the balance is settled per your booking terms.",
+      a: "A small deposit - usually around <b>30%</b> - confirms your booking. It's held safely by Eventara (not paid straight to the supplier), and the balance is settled per your booking terms.",
       chips: ['Is my payment safe?', 'Cancellation policy'] },
 
     { id: 'secure', aud: 'both', k: ['secure'], p: ['is my payment safe', 'payment security', 'is it safe'],
-      a: "Yes. Your money is held safely by Eventara and released to the business <b>only after your event is delivered</b> — never before. Every transaction runs through a secure gateway and money never moves off-platform.",
+      a: "Yes. Your money is held safely by Eventara and released to the business <b>only after your event is delivered</b> - never before. Every transaction runs through a secure gateway and money never moves off-platform.",
       chips: ['What deposit do I pay?', 'How do refunds work?'] },
 
     { id: 'invoice', aud: 'both', k: ['invoice'], p: ['gst invoice', 'do i get an invoice', 'tax invoice', 'where is my invoice'],
-      a: "Every confirmed booking comes with a proper <b>GST invoice</b> and a full booking record — ready the moment you pay, and easy to download and keep for yourself or your company. You'll find it on the booking in your account.",
+      a: "Every confirmed booking comes with a proper <b>GST invoice</b> and a full booking record - ready the moment you pay, and easy to download and keep for yourself or your company. You'll find it on the booking in your account.",
       chips: ['Where are my bookings?', 'Payment methods'] },
 
     /* ---------------- ACCOUNT ---------------- */
@@ -279,7 +279,7 @@
 
     { id: 'profile', aud: 'both', k: ['account', 'update'], p: ['update my profile', 'edit my profile', 'change my details'],
       a: function (ctx) {
-        if (ctx.role === 'supplier') return "Open your " + L.sdash + " and edit your business profile — name, contact, photos, packages and documents.";
+        if (ctx.role === 'supplier') return "Open your " + L.sdash + " and edit your business profile - name, contact, photos, packages and documents.";
         if (ctx.role === 'customer') return "Open " + L.cdash + " → <b>My Profile</b> to update your name, contact details, GST number and preferences.";
         return L.signin + " first, then open <b>My Account → My Profile</b> to update your name, contact details and preferences.";
       },
@@ -291,19 +291,19 @@
 
     /* ---------------- SUPPLIER JOURNEY ---------------- */
     { id: 'become', aud: 'supplier', k: ['register', 'listing'], p: ['become a vendor', 'become an event planner', 'become a supplier', 'list my business', 'register as a vendor', 'join as a', 'list my property', 'list my hotel'],
-      a: "Great — click " + L.reg + ", choose <b>Business/Supplier</b>, and submit your business details (name, type, contact, GST). Our team verifies you, and once approved you get a <b>verified badge</b> and go live to customers.<br><br>There are no listing fees — we take a small commission only on confirmed bookings.",
+      a: "Great - click " + L.reg + ", choose <b>Business/Supplier</b>, and submit your business details (name, type, contact, GST). Our team verifies you, and once approved you get a <b>verified badge</b> and go live to customers.<br><br>There are no listing fees - we take a small commission only on confirmed bookings.",
       chips: ['How does verification work?', 'How do payouts work?', 'How are commissions handled?'] },
 
     { id: 'onboard', aud: 'supplier', k: ['verify'], p: ['how does onboarding', 'verification process', 'how are vendors verified', 'get verified', 'verified badge'],
-      a: "After you register, the Eventara team checks your documents — identity, <b>GST</b> and the relevant trade or food-safety licences. Once approved, your verified badge goes live and customers can find you. It's handled by our ops team, so there's nothing technical for you to do.",
+      a: "After you register, the Eventara team checks your documents - identity, <b>GST</b> and the relevant trade or food-safety licences. Once approved, your verified badge goes live and customers can find you. It's handled by our ops team, so there's nothing technical for you to do.",
       chips: ['List your business', 'How do I get enquiries?'] },
 
     { id: 'listing', aud: 'supplier', k: ['listing'], p: ['list my services', 'add my property', 'manage rooms', 'manage halls', 'add packages'],
-      a: "From your " + L.sdash + " you can add your property details, each hall or room with its capacity and inclusions, your package tiers and pricing — and edit them any time.",
+      a: "From your " + L.sdash + " you can add your property details, each hall or room with its capacity and inclusions, your package tiers and pricing - and edit them any time.",
       chips: ['Manage availability', 'Update my portfolio'] },
 
     { id: 'availability', aud: 'supplier', k: ['availability'], p: ['manage availability', 'block dates', 'my calendar'],
-      a: "Use the <b>availability calendar</b> in your " + L.sdash + " to mark dates open or blocked — so you only receive enquiries for dates you can actually serve, and avoid double-bookings.",
+      a: "Use the <b>availability calendar</b> in your " + L.sdash + " to mark dates open or blocked - so you only receive enquiries for dates you can actually serve, and avoid double-bookings.",
       chips: ['How do I get enquiries?', 'Manage my listing'] },
 
     { id: 'enquiry', aud: 'supplier', k: ['enquiry'], p: ['receive enquiries', 'get enquiries', 'booking inquiries', 'respond to customer', 'how do i respond'],
@@ -315,29 +315,29 @@
       chips: ['Manage my listing', 'How do I get enquiries?'] },
 
     { id: 'payout', aud: 'supplier', k: ['payout'], p: ['how do payouts', 'when do i get paid', 'my earnings'],
-      a: "The customer's deposit is held safely by Eventara and released to you <b>after the event is delivered</b>, net of commission — or automatically 72 hours after the event if nothing is flagged. Payouts go to your registered bank account.",
+      a: "The customer's deposit is held safely by Eventara and released to you <b>after the event is delivered</b>, net of commission - or automatically 72 hours after the event if nothing is flagged. Payouts go to your registered bank account.",
       chips: ['How are commissions handled?', 'How do I get enquiries?'] },
 
     { id: 'commission', aud: 'supplier', k: ['commission'], p: ['how are commissions', 'what commission', 'your cut'],
-      a: "Eventara charges a <b>small commission only on confirmed bookings</b>. It's deducted from your payout automatically — no upfront, listing or subscription fees. You only pay when you earn.",
+      a: "Eventara charges a <b>small commission only on confirmed bookings</b>. It's deducted from your payout automatically - no upfront, listing or subscription fees. You only pay when you earn.",
       chips: ['How do payouts work?', 'List your business'] },
 
     /* ---------------- TRUST & SAFETY ---------------- */
     { id: 'verified', aud: 'customer', k: ['verify'], p: ['are suppliers verified', 'are vendors verified', 'is it trustworthy', 'can i trust'],
-      a: "Every business on Eventara is identity-checked and licence-verified (including GST) before it can list, and carries a <b>verified badge</b>. Plus only customers who actually booked can leave reviews — so ratings are genuine.",
+      a: "Every business on Eventara is identity-checked and licence-verified (including GST) before it can list, and carries a <b>verified badge</b>. Plus only customers who actually booked can leave reviews - so ratings are genuine.",
       chips: ['Is my payment safe?', 'Report suspicious activity'] },
 
     { id: 'fraud', aud: 'both', k: ['fraud'], p: ['report suspicious', 'report a vendor', 'is this a scam'],
-      a: "Use the <b>Report</b> option on any listing or message, or email " + L.mail + ". We investigate every report. Contact details stay private until booking and payments are held on-platform — which removes most of the risk up front.",
+      a: "Use the <b>Report</b> option on any listing or message, or email " + L.mail + ". We investigate every report. Contact details stay private until booking and payments are held on-platform - which removes most of the risk up front.",
       chips: ['Is my payment safe?', 'Contact support'] },
 
     { id: 'privacy', aud: 'both', k: ['privacy'], p: ['my data', 'data privacy', 'is my data safe', 'privacy policy'],
-      a: "We collect only what's needed to run your bookings, never sell your data, and never share your contact details without your consent — they stay private until you book.",
+      a: "We collect only what's needed to run your bookings, never sell your data, and never share your contact details without your consent - they stay private until you book.",
       chips: ['Is my payment safe?', 'Delete my account'] },
 
     /* ---------------- SUPPORT ---------------- */
     { id: 'support', aud: 'both', k: ['support'], p: ['contact support', 'talk to a human', 'speak to someone', 'customer support', 'need help', 'real person'],
-      a: "Happy to hand you over. Email <b>" + L.mail + "</b> — our team is available <b>9 am–8 pm IST, Mon–Sat</b>, and urgent event-day issues are handled around the clock. You can also browse the " + L.faq + ".",
+      a: "Happy to hand you over. Email <b>" + L.mail + "</b> - our team is available <b>9 am–8 pm IST, Mon–Sat</b>, and urgent event-day issues are handled around the clock. You can also browse the " + L.faq + ".",
       chips: ['Support hours', 'Report a bug'] },
 
     { id: 'hours', aud: 'both', k: ['hours'], p: ['support hours', 'when are you open', 'business hours'],
@@ -345,15 +345,15 @@
       chips: ['Contact support'] },
 
     { id: 'escalate', aud: 'both', k: ['escalate'], p: ['escalate', 'complaint', 'speak to a manager', 'not resolved'],
-      a: "If something isn't resolved, just ask to escalate when you email " + L.mail + " — a senior team member will follow up, and event-day problems always get priority.",
+      a: "If something isn't resolved, just ask to escalate when you email " + L.mail + " - a senior team member will follow up, and event-day problems always get priority.",
       chips: ['Contact support'] },
 
     { id: 'bug', aud: 'both', k: ['bug'], p: ['report a bug', 'something is broken', 'not working', 'technical issue'],
-      a: "Sorry about that. Email " + L.mail + " with a short description and a screenshot if you can — it goes straight to our team. For login or payment trouble we can usually help right away.",
+      a: "Sorry about that. Email " + L.mail + " with a short description and a screenshot if you can - it goes straight to our team. For login or payment trouble we can usually help right away.",
       chips: ["I can't log in", 'Contact support'] },
 
     { id: 'faq', aud: 'both', k: [], p: ['faq', 'help centre', 'help center', 'frequently asked'],
-      a: "Our " + L.faq + " has 50 answers across General, Booking, Payments, Account, Vendors, Hotels &amp; Venues, Trust &amp; Safety and Support — with a search box.",
+      a: "Our " + L.faq + " has 50 answers across General, Booking, Payments, Account, Vendors, Hotels &amp; Venues, Trust &amp; Safety and Support - with a search box.",
       chips: ['Contact support'] },
 
     /* ---------------- SMALL TALK ---------------- */
@@ -362,13 +362,13 @@
     { id: 'thanks', aud: 'both', k: [], p: ['thanks', 'thank you', 'thankyou', 'cheers', 'appreciate'], exact: true,
       a: "You're very welcome! Anything else I can help with?" },
     { id: 'bye', aud: 'both', k: [], p: ['bye', 'goodbye', 'see you'], exact: true,
-      a: "Goodbye — and good luck with your event! I'm here whenever you need me." },
+      a: "Goodbye - and good luck with your event! I'm here whenever you need me." },
     { id: 'who_r_u', aud: 'both', k: [], p: ['who are you', 'are you a bot', 'are you human', 'are you real'],
-      a: "I'm the Eventara Assistant — an automated helper. I can explain how the platform works, guide you through booking or listing, and answer FAQs. For anything I can't handle, I'll point you to our team at " + L.mail + "." }
+      a: "I'm the Eventara Assistant - an automated helper. I can explain how the platform works, guide you through booking or listing, and answer FAQs. For anything I can't handle, I'll point you to our team at " + L.mail + "." }
   ];
 
   /* ========================================================
-     4. THE ENGINE  ——  respond(text, ctx) -> {text, chips}
+     4. THE ENGINE  --  respond(text, ctx) -> {text, chips}
         >>> Swap this function for a server/LLM call to upgrade.
      ======================================================== */
   var convo = { pending: null, misses: 0, last: null };
@@ -420,13 +420,13 @@
         convo.pending = null;
         var label = et === 'corporate' ? 'corporate events' : et === 'conference' ? 'conferences' : 'institutional events &amp; fests';
         if (goal === 'quotes') {
-          return { text: "Perfect — for <b>" + label + "</b>, open " + L.brief + " and fill in your date, guest count and budget. Your request goes to a few matched venues and planners, and quotes arrive within 48 hours.",
+          return { text: "Perfect - for <b>" + label + "</b>, open " + L.brief + " and fill in your date, guest count and budget. Your request goes to a few matched venues and planners, and quotes arrive within 48 hours.",
                    chips: ['What happens after I request?', 'How are prices decided?'] };
         }
-        return { text: "Great — for <b>" + label + "</b>, head to " + L.search + " and set the <b>Event Type</b> filter. You can also filter by guest count and budget, and switch between Banquet Hotels and Event Managers.<br><br>Prefer quotes to come to you? Try " + L.brief + ".",
+        return { text: "Great - for <b>" + label + "</b>, head to " + L.search + " and set the <b>Event Type</b> filter. You can also filter by guest count and budget, and switch between Banquet Hotels and Event Managers.<br><br>Prefer quotes to come to you? Try " + L.brief + ".",
                  chips: ['How do I filter?', 'How do I request a quote?'] };
       }
-      // not an event type — drop the slot and answer normally
+      // not an event type - drop the slot and answer normally
       convo.pending = null;
     }
 
@@ -466,7 +466,7 @@
     /* --- fallback: never invent an answer --- */
     convo.misses++;
     var extra = convo.misses >= 2
-      ? "<br><br>It might be quicker to talk to a person — email " + L.mail + " (9 am–8 pm IST, Mon–Sat)."
+      ? "<br><br>It might be quicker to talk to a person - email " + L.mail + " (9 am–8 pm IST, Mon–Sat)."
       : "";
     return {
       text: "I don't have enough information to answer that confidently, and I'd rather not guess.<br><br>You can search all 50 answers in our " + L.faq + ", or I can point you in the right direction." + extra,
@@ -493,7 +493,7 @@
   function topicLabel(e) { return LABELS[e.id] || null; }
 
   /* ========================================================
-     4b. REMOTE BRAIN — /api/chat (Claude, server-side key)
+     4b. REMOTE BRAIN - /api/chat (Claude, server-side key)
          Falls back to the local engine above whenever the
          endpoint is absent (static hosting), unconfigured,
          or erroring. The widget therefore works everywhere.

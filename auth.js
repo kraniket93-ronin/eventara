@@ -1,9 +1,9 @@
 /* ============================================================
-   EVENTARA — Shared authentication/session module
+   EVENTARA - Shared authentication/session module
    ------------------------------------------------------------
    Single source of truth for the signed-in state across EVERY
    page (public + dashboards). Prototype-grade: the "session" is
-   a signed-shape token held in localStorage with an expiry — it
+   a signed-shape token held in localStorage with an expiry - it
    follows real session best-practices (single store, expiry,
    guard-before-render) but is not a server-verified credential.
 
@@ -26,7 +26,7 @@
   function now() { return Date.now(); }
 
   function makeToken() {
-    // Opaque random token — stands in for a server-issued JWT/session id.
+    // Opaque random token - stands in for a server-issued JWT/session id.
     return 'evt_' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
   }
 
