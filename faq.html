@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Eventara Help Centre and FAQ - answers for customers planning events and for businesses (hotels, venues and event planners) in Udaipur. Booking, payments, deposits, refunds, verification, accounts and support.">
   <title>Help Centre &amp; FAQ - Eventara</title>
-  <link rel="stylesheet" href="styles.css?v=11">
+  <link rel="stylesheet" href="styles.css?v=14">
   <script src="auth.js?v=1"></script>
   <style>
     body { padding-top: 80px; }
@@ -82,8 +82,11 @@
 
     /* Responsive */
     @media (max-width: 900px) {
-      .faq-layout { grid-template-columns: 1fr; gap: var(--space-24); }
-      .faq-sidebar { position: sticky; top: 64px; z-index: 20; background: var(--surface); margin: 0 calc(-1 * var(--space-16)); padding: var(--space-8) var(--space-16); border-bottom: 1px solid var(--hairline); }
+      /* min-width:0 is load-bearing: grid items default to min-width:auto,
+         so the chip row refused to shrink and widened the whole page. */
+      .faq-layout { grid-template-columns: minmax(0, 1fr); gap: var(--space-24); }
+      .faq-layout > * { min-width: 0; }
+      .faq-sidebar { position: sticky; top: 64px; z-index: 20; background: var(--surface); margin: 0 calc(-1 * var(--space-16)); padding: var(--space-8) var(--space-16); border-bottom: 1px solid var(--hairline); min-width: 0; max-width: 100vw; }
       .faq-sidebar h2 { display: none; }
       .faq-sidebar ul { flex-direction: row; overflow-x: auto; gap: var(--space-8); padding-bottom: var(--space-4); -webkit-overflow-scrolling: touch; }
       .faq-navlink { white-space: nowrap; border: 1px solid var(--hairline); padding: 8px 14px; }
@@ -125,6 +128,7 @@
     <a href="index.html#how-it-works">How It Works</a>
     <a href="compare.html">Compare Quotes</a>
     <a href="faq.html">FAQ</a>
+    <a href="help.html">Help Centre</a>
     <a href="signin.html">Sign In</a>
   </div>
 
@@ -767,9 +771,9 @@
       <!-- Still need help -->
       <section class="faq-help" aria-labelledby="help-title">
         <h2 id="help-title">Still need help?</h2>
-        <p>Can't find what you're looking for? Our support team is here for you - for planning an event or running your business on Eventara.</p>
+        <p>Can't find what you're looking for? Send us the details in our Help Centre and our support team will take it from there - whether you're planning an event or running your business on Eventara.</p>
         <div class="faq-help-actions">
-          <a href="mailto:support@eventara.in" class="btn btn-primary">Contact Support</a>
+          <a href="help.html" class="btn btn-primary">Still need help? Contact Support</a>
           <a href="brief.html" class="btn btn-secondary">Get Free Quotes</a>
         </div>
         <p class="faq-help-meta">Email <a href="mailto:support@eventara.in">support@eventara.in</a> &nbsp;·&nbsp; 9 am–8 pm IST, Mon–Sat</p>
@@ -808,7 +812,7 @@
         <div class="footer-col">
           <h4>Support</h4>
           <ul>
-            <li><a href="faq.html">Help Centre</a></li>
+            <li><a href="help.html">Help Centre</a></li>
             <li><a href="faq.html">FAQ</a></li>
             <li><a href="#">Privacy Policy</a></li>
             <li><a href="#">Terms of Service</a></li>
@@ -891,6 +895,6 @@
     }
   })();
   </script>
-  <script src="chatbot.js?v=6"></script>
+  <script src="chatbot.js?v=8"></script>
 </body>
 </html>

@@ -2392,3 +2392,171 @@ textarea.input-field {
 
 .overflow-hidden { overflow: hidden; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============================================================
+   14. MOBILE RESPONSIVENESS  (added v12)
+   ------------------------------------------------------------
+   Appended last so these rules win over earlier equal-specificity
+   declarations. Findings come from a measured audit at 375x812.
+   Desktop/tablet are untouched: everything here is inside a
+   max-width media query, except the two global safety rules below.
+   ============================================================ */
+
+/* --- Global safety: nothing may push the page sideways --------- */
+html { -webkit-text-size-adjust: 100%; }   /* stop iOS inflating text in landscape */
+body { overflow-x: hidden; }               /* last-resort guard against stray overflow */
+
+/* Grid/flex children default to min-width:auto and refuse to shrink
+   below their content, which silently widens the page. Opt them out. */
+.grid > *,
+.faq-layout > *,
+.brief-layout > *,
+.dashboard-layout > * { min-width: 0; }
+
+/* Media should never exceed its box. */
+img, svg, video { max-width: 100%; }
+
+/* ============================================================
+   TABLET  (<= 1024px)
+   ============================================================ */
+@media (max-width: 1024px) {
+  .compare-wrap,
+  .card-flat { -webkit-overflow-scrolling: touch; }
+}
+
+/* ============================================================
+   MOBILE  (<= 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+
+  /* --- Touch targets: WCAG 2.5.8 / Apple HIG ~44px ------------- */
+
+  /* The hamburger is the primary mobile nav control - it measured
+     24px tall. Pad it out without moving the icon. */
+  .hamburger {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0;
+    margin-right: -10px;   /* keep the optical edge alignment */
+  }
+
+  /* Footer + breadcrumb links measured 17px tall. Give them a real
+     tap area using padding (not height) so text alignment holds. */
+  .footer-col ul li a,
+  .footer-brand a:not(.navbar-logo),
+  .breadcrumb a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    line-height: 1.2;
+  }
+
+  /* Labels that wrap a radio/checkbox ARE the touch target - keep them
+     comfortably tappable (the 20px control itself is not the hit area). */
+  .seg-radio label,
+  .radio-group label,
+  .style-grid label { min-height: 44px; }
+  .footer-col ul { display: flex; flex-direction: column; }
+
+  /* Buttons and form controls: minimum comfortable height. */
+  .btn,
+  .btn-sm,
+  .input-field,
+  select.input-field,
+  .filter-select,
+  .seg button,
+  .faq-navlink,
+  .btn-signin {
+    min-height: 44px;
+  }
+  textarea.input-field { min-height: 120px; }
+
+  /* iOS Safari zooms the page when a focused input is under 16px.
+     Force 16px on every text-entry control. */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  input[type="search"],
+  input[type="password"],
+  select,
+  textarea,
+  .input-field,
+  .filter-select {
+    font-size: 16px;
+  }
+
+  /* Checkboxes/radios are easier to hit at 20px. */
+  input[type="checkbox"],
+  input[type="radio"] { width: 20px; height: 20px; }
+
+  /* --- Tables: scroll inside their card, never clip ------------ */
+  /* Dashboard tables were squeezing 7-8 columns into ~309px and
+     clipping content. Let the card scroll and keep columns legible. */
+  .card-flat { overflow-x: auto; }
+  /* width:max-content lets the table size to its content (with nowrap cells)
+     instead of compressing 7-8 columns; min-width:100% keeps a narrow table
+     filling the card. The card scrolls - the page never does. */
+  .data-table { width: max-content; min-width: 100%; }
+  .data-table th,
+  .data-table td { white-space: nowrap; }
+
+  /* --- Layout ------------------------------------------------- */
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .two-col-row { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid { grid-template-columns: 1fr; gap: var(--space-32); }
+
+  /* Section rhythm tightens up on small screens. */
+  .section { padding-top: var(--space-48); padding-bottom: var(--space-48); }
+  .container { padding-left: var(--space-16); padding-right: var(--space-16); }
+
+  /* Long unbroken strings (refs, emails, URLs) must not widen the page. */
+  h1, h2, h3, h4, p, td, th, li, dd, .provider-name { overflow-wrap: break-word; }
+}
+
+/* ============================================================
+   SMALL PHONES  (<= 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .stats-row { grid-template-columns: 1fr; }
+
+  /* Stacked action buttons go full width so they are easy to hit. */
+  .faq-help-actions .btn,
+  .success-actions .btn,
+  .form-btn-row .btn { width: 100%; }
+  .form-btn-row { flex-direction: column-reverse; gap: var(--space-12); }
+}
+
+/* ============================================================
+   LANDSCAPE PHONES - short viewports
+   ============================================================ */
+@media (max-height: 480px) and (orientation: landscape) {
+  .navbar { position: static; }   /* reclaim vertical space */
+  body { padding-top: 0 !important; }
+}
+
+/* ============================================================
+   iPhone safe areas (notch / home indicator)
+   ============================================================ */
+@supports (padding: max(0px)) {
+  @media (max-width: 768px) {
+    .footer { padding-bottom: max(var(--space-32), env(safe-area-inset-bottom)); }
+  }
+}
+
+/* Respect reduced-motion for the animation-heavy sections. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

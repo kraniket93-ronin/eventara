@@ -585,7 +585,31 @@
     + '.evb-send svg{width:17px;height:17px}'
     + '.evb-foot{font-size:10.5px;color:var(--ink-faint,#929292);text-align:center;padding:0 0 8px;background:#fff;flex-shrink:0}'
     + '.evb-foot a{color:var(--ink-muted,#6a6a6a)}'
-    + '@media (max-width:480px){.evb-panel{right:8px;left:8px;bottom:8px;width:auto;height:78vh;max-height:78vh}.evb-fab{right:16px;bottom:16px;width:52px;height:52px}}'
+    /* ---- Mobile (<=768px) ------------------------------------------------
+       Touch targets to ~44px, 16px input (stops iOS zoom-on-focus), dynamic
+       viewport units so the panel resizes when the on-screen keyboard opens,
+       and safe-area insets for notched iPhones. */
+    + '@media (max-width:768px){'
+    +   '.evb-fab{right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));width:56px;height:56px}'
+    +   '.evb-iconbtn{width:44px;height:44px;min-height:44px}'
+    +   '.evb-iconbtn svg{width:19px;height:19px}'
+    +   '.evb-form{gap:8px}'
+    +   '.evb-form input{height:44px;font-size:16px}'
+    +   '.evb-send{width:44px;height:44px;min-height:44px;flex-shrink:0}'
+    +   '.evb-send svg{width:19px;height:19px}'
+    +   '.evb-chip{min-height:40px;padding:10px 14px}'
+    + '}'
+    /* Phone: panel fills the screen edge-to-edge. 100dvh tracks the visible
+       area when the keyboard opens, so the input stays reachable. */
+    + '@media (max-width:480px){'
+    +   '.evb-panel{right:8px;left:8px;bottom:8px;width:auto;height:78vh;max-height:78vh}'
+    +   '@supports (height:100dvh){.evb-panel{height:min(78dvh,620px);max-height:78dvh;bottom:max(8px,env(safe-area-inset-bottom))}}'
+    +   '.evb-fab{right:16px;bottom:max(16px,env(safe-area-inset-bottom));width:52px;height:52px}'
+    + '}'
+    /* Very short landscape phones: keep the panel inside the viewport. */
+    + '@media (max-height:480px) and (orientation:landscape){'
+    +   '.evb-panel{height:88vh;max-height:88vh;bottom:6px}'
+    + '}'
     + '@media print{.evb-fab,.evb-panel{display:none!important}}';
 
   var ICON_CHAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>';
