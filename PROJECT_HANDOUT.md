@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 1.2 (see §18 Change Log) |
+| **Doc version** | 1.3 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-18 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -226,6 +226,9 @@ Project B Prototype/                  ← LOCAL project root (NOT the repo root)
     │
     ├── images/                       Local images
     │   ├── corporate.png  fest.png  hotel.png  wedding1.png  wedding2.png
+    │   ├── login-bg.jpg              ★ Sign In hero photograph (228KB, optimised)
+    │   ├── login-bg-blur.jpg         ★ Pre-blurred 5KB companion (glass backdrop)
+    │   └── Login page image bg.png   Original 2MB source for login-bg.jpg (not referenced)
     │
     ├── package.json                  Declares @google/genai (for the serverless fn only)
     ├── check_mojibake.py             Dev utility - scans for UTF-8 corruption
@@ -540,6 +543,64 @@ name/email/booking - genuine file upload - status tracking.
 
 **Two tabs:** Sign In · Register. Register has a Customer / Business toggle.
 
+#### Layout - immersive split screen (redesigned v1.3)
+
+A full-viewport two-column grid (`.auth-split`), no navbar or footer:
+
+| Column | Width (desktop) | Contents |
+|---|---|---|
+| **Left** `.auth-hero` | 62% | Full-bleed photograph + dark scrim + hero copy: *"Your perfect event starts here."*, subtitle, and three gold-icon proof points (Trusted Vendors · Seamless Booking · Dedicated Support). **No logo here by design** - the logo lives on the card. |
+| **Right** `.auth-aside` | 38% | The same photograph, heavily out of focus, behind the frosted `.auth-card`. |
+
+The right column repeats the photograph blurred so the glass has something real to
+refract - a solid colour there would make `backdrop-filter` a no-op and the card
+would read as flat plastic.
+
+#### Glassmorphism (`.auth-card`)
+
+| Property | Value | Why |
+|---|---|---|
+| `background` | `rgba(255,255,255,0.86)` | **Light** frosted glass, not dark. Keeps `--ink` text at **11.6:1** contrast (AAA). A dark glass card would have forced light text and a much weaker ratio. |
+| `backdrop-filter` | `blur(28px) saturate(170%)` | The frost itself; saturation stops the bokeh going grey |
+| `border` | `1px solid rgba(255,255,255,0.55)` | Catches the light like a glass edge |
+| `box-shadow` | `0 24px 64px rgba(0,0,0,0.38)` + inset white top highlight | Lifts the card off the photo |
+| `border-radius` | `var(--radius-3xl)` (20px) | Design-system token, not a bespoke value |
+
+Two safeguards:
+- `@supports not (backdrop-filter…)` raises the card to `0.97` opacity - without the
+  blur, a translucent card looks muddy rather than glassy.
+- Inputs are `rgba(255,255,255,0.72)` at rest and **solid `--surface` on focus**, so the
+  field being typed into is never translucent.
+
+#### Background image loading
+
+Referenced as a **relative path** - `url("images/login-bg.jpg")` - so it resolves
+identically in local dev, the GitHub repo and Vercel. Not Base64, not absolute, not hotlinked.
+
+> **Asset note.** The supplied source is `images/Login page image bg.png` (1672x941, **2.0MB**).
+> A 2MB PNG for a photograph would dominate page weight, and its **spaces** would need
+> percent-encoding in every URL. It was therefore converted once to
+> **`images/login-bg.jpg` (228KB, -89%)**, which is what the page loads, plus a 5KB
+> pre-blurred `login-bg-blur.jpg` for the right column (blurring the full image in CSS
+> would decode 2MB twice). **The original PNG is retained in the repo** - to switch back,
+> change the two `url()` values.
+
+`<link rel="preload" as="image" href="images/login-bg.jpg">` promotes the hero to an
+early fetch, since it is the page's Largest Contentful Paint element.
+
+#### Responsive behaviour
+
+| Width | Layout |
+|---|---|
+| > 1100px | 62% / 38% split |
+| 861-1100px | 52% / 48% - hero narrows, panel stays prominent |
+| ≤ 860px | **Stacked.** Photo becomes a `position: fixed` full-screen backdrop (`.auth-bg`) under a dark gradient; hero copy centres above the card; card overlays at `0.92` opacity |
+| ≤ 480px | Tighter padding; the two-up form rows collapse to one column |
+| Landscape phone | Feature list hides to reclaim vertical space |
+
+Mobile uses a **fixed backdrop element** rather than `background-attachment: fixed`,
+which iOS Safari renders unreliably.
+
 **Demo credentials (hard-coded in `signin.html`, deliberately NOT shown in the UI):**
 
 | Role | Email | Password |
@@ -555,6 +616,12 @@ Email · City · GSTIN · Password.
 > **🔒 SECURITY RULE - do not undo.** A "Continue as Customer" button that bypassed
 > authentication entirely was **deliberately removed**. Never add any control that reaches a
 > dashboard without validating credentials.
+
+> **The v1.3 redesign was presentation-only.** The `<script>` block - tab switching, the
+> Customer/Business toggle, `handleSignIn()`, both credential constants, `Auth.login()` calls
+> and post-login redirects - is **byte-for-byte identical** to the previous version (verified
+> by diffing against the deployed copy). Element IDs, form `onsubmit` handlers and CSS class
+> hooks were all preserved. Any future restyle must keep that contract.
 
 ---
 
@@ -1143,6 +1210,21 @@ Reusable rules introduced by the mobile pass - prefer these over new one-off med
 | 16px `font-size` on all text inputs | Prevents iOS zoom-on-focus |
 | `@media (prefers-reduced-motion: reduce)` | Near-disables animation/transition globally |
 
+### Sign In page classes (`signin.html`, page-scoped)
+
+Defined in that page's inline `<style>`, not in `styles.css`, because nothing else uses them.
+Reuse the **pattern** rather than the class names if another immersive page is ever added.
+
+| Class | Role |
+|---|---|
+| `.auth-split` | Full-viewport two-column grid; children carry `min-width: 0` |
+| `.auth-hero` | Left photo column; `::after` paints the readability scrim |
+| `.auth-hero-inner` / `.auth-hero-sub` / `.auth-hero-features` / `.auth-hero-feature` | Hero copy and the three gold-icon proof points |
+| `.auth-aside` | Right column; `::before` = blurred photo, `::after` = dark gradient |
+| `.auth-card` | **The glass panel** - frosted, bordered, shadowed |
+| `.auth-bg` | Mobile-only `position: fixed` full-screen photographic backdrop |
+| `.auth-header` `.auth-logo` `.auth-tabs` `.auth-tab` `.auth-body` `.auth-view` `.type-toggle` `.type-toggle-btn` | Pre-existing card internals, retained unchanged |
+
 ### Shared behaviours - `app.js`
 
 | Function | Purpose |
@@ -1225,6 +1307,7 @@ inline `<style>`.
 | `max-width: 1024px` | Momentum scrolling on scroll containers |
 | `max-width: 900px` | FAQ sidebar → horizontal chip row; grids collapse |
 | `max-width: 768px` | **Main mobile breakpoint** - mobile menu, 44px touch targets, 16px inputs, tables scroll inside cards, single-column grids, body padding-top 64px, search filters behind a toggle |
+| `max-width: 860px` | Sign In page stacks (photo → fixed backdrop, card overlays) |
 | `max-width: 640px` | Full-width selects; logo 34px |
 | `max-width: 480px` | Stacked full-width buttons; tighter card padding; chat panel goes edge-to-edge |
 | `max-height: 480px` + landscape | Navbar becomes static to reclaim vertical space; chat panel shortens |
@@ -1397,6 +1480,8 @@ Be honest about these - especially in a stakeholder demo.
 | L20 | **Help Centre submissions go nowhere.** `help.html` does not POST, store, email or upload. The reference number is generated client-side and cannot be looked up. Attachments are listed for show only. |
 | L21 | **Mobile verification was engine-based, not device-based.** Layout was measured in a Chromium engine at real device widths; **no physical iPhone/Android device test has been run.** WebKit-specific behaviour (keyboard resize, momentum scrolling, notch insets) is handled defensively but unverified on hardware. |
 | L22 | **`provider.html` image gallery and `ops.html` remain desktop-oriented in density.** They fit and do not overflow on mobile, but were designed for larger screens. |
+| L23 | **`backdrop-filter` is GPU-composited.** On low-end Android the Sign In glass card may repaint slowly while scrolling. The `@supports` fallback covers browsers without it, but not slow ones. |
+| L24 | **The Sign In redesign was verified by DOM measurement, not by screenshot.** Screenshot capture timed out in the build environment (a known interaction with `backdrop-filter` compositing). Geometry, contrast, overflow and touch targets were measured numerically; **no human has visually signed off the rendered page.** |
 
 ### Data & media
 
@@ -1515,23 +1600,28 @@ add automated tests.
 14. **Test in a browser, don't assume.** Serve `prototype/` and check the affected pages.
 15. **Check both signed-in states** when touching auth, nav or the chatbot (customer, supplier,
     signed-out).
-16. **Check mobile properly.** Test at **360px** (not just 375px) and compare
+16. **Do not restyle `signin.html` into a dark glass card.** Light frosted glass
+    (`rgba(255,255,255,0.86)`) is a deliberate accessibility choice - it keeps `--ink`
+    text at AAA contrast. Dark glass forces light text and a far weaker ratio.
+17. **Never blur a full-size image in CSS to make a backdrop.** Generate a small
+    pre-blurred asset (see `login-bg-blur.jpg`, 5KB) - CSS blur decodes the full image.
+18. **Check mobile properly.** Test at **360px** (not just 375px) and compare
     `document.documentElement.scrollWidth` against **`clientWidth`** - using `innerWidth`
     silently hides overflow bugs. Confirm: no horizontal page scroll, touch targets ≥44px,
     text inputs ≥16px, and that any new grid/flex layout has `min-width: 0` on its children.
-17. **Check the console** - zero errors.
-18. **Test the chatbot's offline path too.** A static server has no `/api`, which is exactly the
+19. **Check the console** - zero errors.
+20. **Test the chatbot's offline path too.** A static server has no `/api`, which is exactly the
     fallback case.
 
 ### After you change anything
 
-19. **UPDATE THIS DOCUMENT IN THE SAME CHANGE.** Non-negotiable. If you added a page, feature,
+21. **UPDATE THIS DOCUMENT IN THE SAME CHANGE.** Non-negotiable. If you added a page, feature,
     component, business rule, route, env var or dependency - document it here.
     **This file exists in TWO places** - `PROJECT_HANDOUT.md` (local root, master) and
     `prototype/PROJECT_HANDOUT.md` (deployed to the repo root). Edit one, then copy it over the
     other so they stay byte-identical. Never update only one.
-20. **Add a change-log entry** (§18) with a bumped version.
-21. **Say plainly what you did and did not verify.** If you couldn't test something, say so.
+22. **Add a change-log entry** (§18) with a bumped version.
+23. **Say plainly what you did and did not verify.** If you couldn't test something, say so.
 
 ### Things that need explicit human approval
 
@@ -1547,6 +1637,45 @@ add automated tests.
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 1.3 - 2026-07-18
+**Sign In / Register page redesigned - immersive split screen with a glass panel.**
+
+Replaced the centred card on a flat grey field with a full-viewport two-column layout:
+a photographic hero on the left (62%) and a frosted-glass authentication panel on the
+right (38%). Presentation only - **no authentication logic was touched.**
+
+| Area | Change |
+|---|---|
+| **Layout** | New `.auth-split` grid; hero 62% / panel 38%, narrowing to 52/48 on tablet and stacking below 860px |
+| **Hero** | Photograph + directional dark scrim + headline, subtitle and three gold-icon proof points. No logo (it stays on the card) |
+| **Glass** | `.auth-card` - `rgba(255,255,255,0.86)` + `blur(28px) saturate(170%)`, light-catching border, deep shadow, `--radius-3xl`, with an `@supports` opaque fallback |
+| **Assets** | Source PNG (2.0MB) converted to `login-bg.jpg` (228KB, **-89%**) + a 5KB pre-blurred companion; both loaded by **relative path**; hero `preload`ed |
+| **Mobile** | Photo becomes a fixed full-screen backdrop; card overlays it at 0.92 opacity with safe-area padding |
+
+- **Files changed:** `signin.html` (only). **Added:** `images/login-bg.jpg`,
+  `images/login-bg-blur.jpg`. `styles.css` and all other pages **untouched** - confirmed by
+  diffing every shared asset against the deployed copy, so cross-page regression risk is nil.
+- **Sections updated:** §4 (assets), §5.9 (rewritten), §12 (new class table), §13
+  (breakpoint), §15 (L23, L24), §17 (AI rules 16-17), §18
+- **Verified by measurement:**
+  - Auth `<script>` block **byte-for-byte identical** to the deployed version
+  - Customer login → `customer-dashboard.html` with a valid `customer` session; supplier
+    login → `dashboard.html` with a `supplier` session
+  - Wrong credentials → error shown, **no session written, no navigation**
+  - Unauthenticated `customer-dashboard.html` → redirected to `signin.html` (guard intact)
+  - Tab switching, Customer/Business toggle and HTML5 `required` validation all still work
+  - **Zero horizontal overflow** at 1440 / 1280 / 1024 / 768 / 390 / 360px
+  - Hero and card **never overlap**; card always fully inside the viewport
+  - Contrast: hero headline **10.1:1**, subtitle 12.3:1, proof points 8.5:1, card body text
+    **11.6:1** - all above WCAG AA, most above AAA (sampled from composited pixels)
+  - All touch targets ≥44px, all text inputs ≥16px (one defect found and fixed: the
+    Customer/Business toggle measured 41px)
+  - Chat widget still renders and does not collide with the card
+- **Not verified:** no screenshot - capture timed out in the build environment; and no
+  physical device test. See L24.
 
 ---
 
