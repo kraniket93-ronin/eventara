@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 1.3 (see §18 Change Log) |
+| **Doc version** | 1.5 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-18 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -219,16 +219,19 @@ Project B Prototype/                  ← LOCAL project root (NOT the repo root)
     ├── app.js                        Shared UI behaviours (navbar, forms, tabs, lightbox)
     ├── auth.js                       ★ Session/auth module - window.Auth
     ├── chatbot.js                    ★ Assistant widget + offline knowledge base (50 intents)
-    ├── logo.svg                      Brand logo (gold arc + "eventara" wordmark)
+    ├── logo.svg                      Brand logo (gold arc + blue "eventara" wordmark)
+    ├── logo-light.svg                ★ White-wordmark variant for dark/photographic surfaces
     │
     ├── api/
     │   └── chat.js                   ★ Vercel serverless fn - Gemini-backed assistant
     │
     ├── images/                       Local images
     │   ├── corporate.png  fest.png  hotel.png  wedding1.png  wedding2.png
-    │   ├── login-bg.jpg              ★ Sign In hero photograph (228KB, optimised)
-    │   ├── login-bg-blur.jpg         ★ Pre-blurred 5KB companion (glass backdrop)
-    │   └── Login page image bg.png   Original 2MB source for login-bg.jpg (not referenced)
+    │   ├── login-bg.jpg              ★ Sign In desktop artwork (228KB, optimised)
+    │   ├── login-bg-mobile.jpg       ★ Sign In mobile artwork  (228KB, optimised)
+    │   ├── Login page image bg.png   2MB source for login-bg.jpg (not referenced at runtime)
+    │   ├── Sign-in-page-ui-mobile-bg.png     1.9MB source for login-bg-mobile.jpg
+    │   └── Sign-in-page-ui-*-idea.png        Design references (not referenced at runtime)
     │
     ├── package.json                  Declares @google/genai (for the serverless fn only)
     ├── check_mojibake.py             Dev utility - scans for UTF-8 corruption
@@ -543,63 +546,144 @@ name/email/booking - genuine file upload - status tracking.
 
 **Two tabs:** Sign In · Register. Register has a Customer / Business toggle.
 
-#### Layout - immersive split screen (redesigned v1.3)
+#### Layout - full-bleed artwork + one floating card (redesigned v1.4)
 
-A full-viewport two-column grid (`.auth-split`), no navbar or footer:
+**The headline, supporting copy and the three gold feature icons are baked into the
+background artwork as pixels.** They are deliberately NOT recreated in HTML. The page
+renders the background plus exactly **one** element: the glass card.
 
-| Column | Width (desktop) | Contents |
+> **Do not add a hero section to this page.** An earlier revision rendered the headline,
+> subtitle and icons in HTML on top of artwork that already contained them, so every
+> element appeared twice. If you need to change that copy, edit the image.
+
+| Breakpoint | Artwork | Card placement |
 |---|---|---|
-| **Left** `.auth-hero` | 62% | Full-bleed photograph + dark scrim + hero copy: *"Your perfect event starts here."*, subtitle, and three gold-icon proof points (Trusted Vendors · Seamless Booking · Dedicated Support). **No logo here by design** - the logo lives on the card. |
-| **Right** `.auth-aside` | 38% | The same photograph, heavily out of focus, behind the frosted `.auth-card`. |
+| ≥ 861px | `images/login-bg.jpg` (landscape, copy on the left) | Right-aligned, vertically centred |
+| ≤ 860px | `images/login-bg-mobile.jpg` (portrait) | **Below the full hero** - page scrolls (see the mobile note below) |
+| Landscape phone | back to the landscape artwork | Right-aligned, centred |
 
-The right column repeats the photograph blurred so the glass has something real to
-refract - a solid colour there would make `backdrop-filter` a no-op and the card
-would read as flat plastic.
+`background-position` is **`left center`** on desktop. With `cover`, a viewport narrower
+than the artwork's 16:9 crops horizontally - anchoring left guarantees the baked-in
+headline is never cut off.
+
+Geometry is matched to `images/Sign-in-page-ui-web-idea.png` (measured off the reference,
+not eyeballed) - card **34vw wide** with a **5.8% right gutter**, vertically centred.
+Mobile matches `Sign-in-page-ui-mobile-idea.png` - **90% wide**, 4.9% gutters, sitting
+~39% down the screen.
+
+> `width` uses **vw, not %**. A percentage resolves against `.auth-shell`'s content box
+> (viewport minus its own 5.8vw padding), which made the card ~4% too narrow.
 
 #### Glassmorphism (`.auth-card`)
 
 | Property | Value | Why |
 |---|---|---|
-| `background` | `rgba(255,255,255,0.86)` | **Light** frosted glass, not dark. Keeps `--ink` text at **11.6:1** contrast (AAA). A dark glass card would have forced light text and a much weaker ratio. |
-| `backdrop-filter` | `blur(28px) saturate(170%)` | The frost itself; saturation stops the bokeh going grey |
-| `border` | `1px solid rgba(255,255,255,0.55)` | Catches the light like a glass edge |
-| `box-shadow` | `0 24px 64px rgba(0,0,0,0.38)` + inset white top highlight | Lifts the card off the photo |
-| `border-radius` | `var(--radius-3xl)` (20px) | Design-system token, not a bespoke value |
+| `background` | `rgba(38, 28, 52, 0.46)` | A **dark violet scrim**, carrying white text |
+| `backdrop-filter` | `blur(26px) saturate(150%)` | The frost; saturation stops the bokeh going grey |
+| `border` | `1px solid rgba(255,255,255,0.28)` | Catches light like a glass edge |
+| `box-shadow` | `0 28px 70px rgba(0,0,0,0.45)` + inset white top highlight | Lifts the card off the photo |
+| `border-radius` | `var(--radius-3xl)` (20px) | Design-system token |
 
-Two safeguards:
-- `@supports not (backdrop-filter…)` raises the card to `0.97` opacity - without the
-  blur, a translucent card looks muddy rather than glassy.
-- Inputs are `rgba(255,255,255,0.72)` at rest and **solid `--surface` on focus**, so the
-  field being typed into is never translucent.
+> **Why dark glass, when the mock-up looks pale?** The reference card is a light lavender
+> tint. Measured against the actual photograph, white text on that tint falls to
+> **2.6:1 over the bright chandelier bokeh** - well under WCAG AA. The violet scrim holds
+> **6.1:1** while keeping the same frosted character. Every secondary text colour is
+> pinned at **α ≥ 0.82**, the measured floor for 4.5:1 on this glass.
+
+Because the card is dark, the standard blue wordmark in `logo.svg` would sit at **1.4:1**.
+The card therefore uses **`logo-light.svg`** - identical gold arc, white wordmark.
+
+Fallback: `@supports not (backdrop-filter…)` raises the card to `rgba(28,20,40,0.92)`;
+without the blur a translucent card looks muddy rather than glassy.
+
+#### Card sizing (refined v1.4)
+
+The card was reduced by **~10% on both axes** (490x590 → 441x531 at 1440px) to give the
+artwork more breathing room. It was scaled *proportionally* - the aspect ratio moved only
+1.204 → 1.206 - by trimming padding, the logo, tab and field spacing together, not by
+shrinking the width alone.
+
+Controls are still **≥44px** everywhere; `.btn-lg` is explicitly held at 14px padding to
+keep the submit button at exactly 44px after the trim.
+
+#### Frosted scrollbar
+
+On desktop the card is capped at `calc(100dvh - var(--space-80))` and **`.auth-body`
+scrolls internally** - the Business registration form is taller than most viewports. The
+native scrollbar rendered as an opaque grey slab that broke the glass, so it is styled:
+
+| Engine | Mechanism |
+|---|---|
+| Chrome · Edge · Safari · Opera | `::-webkit-scrollbar`, `-track`, `-thumb`, `-corner` |
+| Firefox (and any engine with the standard properties) | `scrollbar-width: thin` + `scrollbar-color` |
+| Anything else | Falls back to the native control - still fully usable |
+
+The thumb is `rgba(255,255,255,0.26)` (→ 0.42 hover, 0.52 active) on a
+`rgba(255,255,255,0.07)` track, pill-radius, with a **2px transparent border +
+`background-clip: padding-box`** so it reads as a slim floating bar rather than a slab
+wedged against the card edge.
+
+**`scrollbar-gutter: stable`** reserves the track width up-front, so the form does not
+jump sideways when switching between the short Sign In view and the tall Register view
+(verified: 0px shift).
 
 #### Background image loading
 
-Referenced as a **relative path** - `url("images/login-bg.jpg")` - so it resolves
-identically in local dev, the GitHub repo and Vercel. Not Base64, not absolute, not hotlinked.
+Both artworks are referenced by **relative path** - `url("images/login-bg.jpg")` - so they
+resolve identically in local dev, the GitHub repo and Vercel. Not Base64, not absolute,
+not hotlinked. The desktop artwork is `preload`ed as the page's LCP element.
 
-> **Asset note.** The supplied source is `images/Login page image bg.png` (1672x941, **2.0MB**).
-> A 2MB PNG for a photograph would dominate page weight, and its **spaces** would need
-> percent-encoding in every URL. It was therefore converted once to
-> **`images/login-bg.jpg` (228KB, -89%)**, which is what the page loads, plus a 5KB
-> pre-blurred `login-bg-blur.jpg` for the right column (blurring the full image in CSS
-> would decode 2MB twice). **The original PNG is retained in the repo** - to switch back,
-> change the two `url()` values.
-
-`<link rel="preload" as="image" href="images/login-bg.jpg">` promotes the hero to an
-early fetch, since it is the page's Largest Contentful Paint element.
+> **Asset note.** The supplied sources are `images/Login page image bg.png` (2.0MB) and
+> `images/Sign-in-page-ui-mobile-bg.png` (1.9MB). Multi-megabyte PNGs of photographs would
+> dominate page weight - and the desktop filename's **spaces** would need percent-encoding
+> in every URL. Each was converted once to a **228KB progressive JPEG**
+> (`login-bg.jpg`, `login-bg-mobile.jpg`), a **-89%** saving, and those are what the page
+> loads. **The originals are retained** - to switch back, change the `url()` values.
+> The four `Sign-in-page-ui-*` files are design references, not runtime assets.
 
 #### Responsive behaviour
 
 | Width | Layout |
 |---|---|
-| > 1100px | 62% / 38% split |
-| 861-1100px | 52% / 48% - hero narrows, panel stays prominent |
-| ≤ 860px | **Stacked.** Photo becomes a `position: fixed` full-screen backdrop (`.auth-bg`) under a dark gradient; hero copy centres above the card; card overlays at `0.92` opacity |
-| ≤ 480px | Tighter padding; the two-up form rows collapse to one column |
-| Landscape phone | Feature list hides to reclaim vertical space |
+| ≥ 1101px | Landscape artwork; card 34vw, right gutter 5.8%, vertically centred |
+| 861-1100px | Same hierarchy, scaled: card 38vw (max 390px), gutter 4.5% |
+| ≤ 860px | **Hero shown in full at the top, card scrolls in below it** - see the note below |
+| ≤ 480px | Tighter internal padding; two-up form rows collapse to one column |
+| Landscape phone | Reverts to the landscape artwork (portrait art suits a short wide screen badly), card centred |
 
-Mobile uses a **fixed backdrop element** rather than `background-attachment: fixed`,
-which iOS Safari renders unreliably.
+#### Mobile layout - hero first, then the card (reworked v1.5)
+
+The portrait artwork `login-bg-mobile.jpg` bakes the headline, subtitle and the three
+feature icons into its **top ~37%**; the rest is decorative photography. So on mobile the
+hero is shown **in full first**, and the card sits **below** the icons - never over them.
+
+```
+   Hero artwork (headline + subtitle + 3 icons, fully visible)
+        |
+        v   ~4% gap
+   Glass authentication card  (overlaps only the decorative lower photo)
+        |
+        v
+   page scrolls if the form is taller than the viewport
+```
+
+How it holds on every device without magic numbers:
+
+| Mechanism | Effect |
+|---|---|
+| `body { background-size: 100% auto }` | The artwork renders at full viewport **width**, so its height is a **fixed multiple** of that width (its 2.16 aspect) |
+| `.auth-shell { display: block; padding-top: 86vw }` | Because the artwork height scales with width, a **`vw`** top spacer lands at the same fraction of it on **every** screen - 86vw clears the icons (which end ~80vw down) with a ~40px gap |
+| `.auth-shell` natural document flow | The page grows and **scrolls**; the hero is never compressed to fit |
+| `padding-bottom: calc(116px + safe-area)` | Reserves space so the fixed chatbot FAB (bottom-right) never covers the Sign In / Create Account button at full scroll (verified ~33px clearance) |
+| `background-color: #140f18` | Fills below the artwork if a tall form scrolls past the image |
+
+This replaced a flexbox `margin-top: auto` approach that bottom-aligned the card **within a
+single viewport**, so on tall phones it floated up over the baked-in headline and icons -
+the exact overlap the reference forbids.
+
+**Desktop, tablet and landscape-phone layouts were not touched** - the change lives entirely
+inside the `≤860px` portrait media query (plus a longhand tweak at `≤480px` so it no longer
+resets `padding-top`).
 
 **Demo credentials (hard-coded in `signin.html`, deliberately NOT shown in the UI):**
 
@@ -1217,12 +1301,13 @@ Reuse the **pattern** rather than the class names if another immersive page is e
 
 | Class | Role |
 |---|---|
-| `.auth-split` | Full-viewport two-column grid; children carry `min-width: 0` |
-| `.auth-hero` | Left photo column; `::after` paints the readability scrim |
-| `.auth-hero-inner` / `.auth-hero-sub` / `.auth-hero-features` / `.auth-hero-feature` | Hero copy and the three gold-icon proof points |
-| `.auth-aside` | Right column; `::before` = blurred photo, `::after` = dark gradient |
+| `body.auth-page` | Carries the full-bleed artwork; swaps to the portrait image ≤860px |
+| `.auth-shell` | Full-viewport flex wrapper that positions the card (right/centred, or low on mobile) |
 | `.auth-card` | **The glass panel** - frosted, bordered, shadowed |
-| `.auth-bg` | Mobile-only `position: fixed` full-screen photographic backdrop |
+| `.auth-body` | Scroll container for the form; owns the frosted scrollbar |
+| `.checkbox-row` / `.link-subtle` / `.form-error` / `.legal-note` | Light-on-glass text treatments |
+| `@keyframes authCardIn` | Transform-only entrance (see the AI rules - never animate opacity here) |
+| `.sr-only` | Visually-hidden `<h1>`, because the real headline exists only as pixels |
 | `.auth-header` `.auth-logo` `.auth-tabs` `.auth-tab` `.auth-body` `.auth-view` `.type-toggle` `.type-toggle-btn` | Pre-existing card internals, retained unchanged |
 
 ### Shared behaviours - `app.js`
@@ -1481,7 +1566,8 @@ Be honest about these - especially in a stakeholder demo.
 | L21 | **Mobile verification was engine-based, not device-based.** Layout was measured in a Chromium engine at real device widths; **no physical iPhone/Android device test has been run.** WebKit-specific behaviour (keyboard resize, momentum scrolling, notch insets) is handled defensively but unverified on hardware. |
 | L22 | **`provider.html` image gallery and `ops.html` remain desktop-oriented in density.** They fit and do not overflow on mobile, but were designed for larger screens. |
 | L23 | **`backdrop-filter` is GPU-composited.** On low-end Android the Sign In glass card may repaint slowly while scrolling. The `@supports` fallback covers browsers without it, but not slow ones. |
-| L24 | **The Sign In redesign was verified by DOM measurement, not by screenshot.** Screenshot capture timed out in the build environment (a known interaction with `backdrop-filter` compositing). Geometry, contrast, overflow and touch targets were measured numerically; **no human has visually signed off the rendered page.** |
+| L24 | **The Sign In page has been verified by DOM measurement, never by screenshot.** The build environment's renderer does not composite: screenshots time out, CSS animations freeze at frame 0, IntersectionObserver never fires and `window.scrollTo` is a no-op (confirmed against `faq.html` as a control). Geometry, contrast, overflow and touch targets were measured numerically; **no human has visually signed off the rendered page.** |
+| L25 | **The glass card is intentionally darker than `Sign-in-page-ui-web-idea.png`.** The mock-up's pale lavender tint measures 2.6:1 for white text over the bright bokeh - below WCAG AA. Accessibility was prioritised over pixel-matching the mock-up. |
 
 ### Data & media
 
@@ -1600,28 +1686,35 @@ add automated tests.
 14. **Test in a browser, don't assume.** Serve `prototype/` and check the affected pages.
 15. **Check both signed-in states** when touching auth, nav or the chatbot (customer, supplier,
     signed-out).
-16. **Do not restyle `signin.html` into a dark glass card.** Light frosted glass
-    (`rgba(255,255,255,0.86)`) is a deliberate accessibility choice - it keeps `--ink`
-    text at AAA contrast. Dark glass forces light text and a far weaker ratio.
-17. **Never blur a full-size image in CSS to make a backdrop.** Generate a small
-    pre-blurred asset (see `login-bg-blur.jpg`, 5KB) - CSS blur decodes the full image.
-18. **Check mobile properly.** Test at **360px** (not just 375px) and compare
+16. **Never render the Sign In hero copy in HTML.** The headline, subtitle and the three
+    feature icons are baked into `login-bg.jpg` / `login-bg-mobile.jpg`. Adding them as
+    markup duplicates them on screen - this shipped once already.
+17. **Do not lighten the Sign In glass card to match the mock-up.** The dark violet scrim
+    is an accessibility decision, measured: the mock-up's pale tint gives white text
+    2.6:1 over the chandelier bokeh. Keep secondary text at α ≥ 0.82.
+18. **Never gate above-the-fold content behind an opacity animation or `.fade-in`.**
+    `.fade-in` starts at `opacity: 0` and waits for app.js's IntersectionObserver; an
+    opacity keyframe with `fill-mode: both` pins the element invisible if animations do
+    not run. The Sign In card animates **transform only** for exactly this reason.
+19. **Never blur a full-size image in CSS to make a backdrop.** CSS blur decodes the
+    full image; generate a small pre-blurred asset instead.
+20. **Check mobile properly.** Test at **360px** (not just 375px) and compare
     `document.documentElement.scrollWidth` against **`clientWidth`** - using `innerWidth`
     silently hides overflow bugs. Confirm: no horizontal page scroll, touch targets ≥44px,
     text inputs ≥16px, and that any new grid/flex layout has `min-width: 0` on its children.
-19. **Check the console** - zero errors.
-20. **Test the chatbot's offline path too.** A static server has no `/api`, which is exactly the
+21. **Check the console** - zero errors.
+22. **Test the chatbot's offline path too.** A static server has no `/api`, which is exactly the
     fallback case.
 
 ### After you change anything
 
-21. **UPDATE THIS DOCUMENT IN THE SAME CHANGE.** Non-negotiable. If you added a page, feature,
+23. **UPDATE THIS DOCUMENT IN THE SAME CHANGE.** Non-negotiable. If you added a page, feature,
     component, business rule, route, env var or dependency - document it here.
     **This file exists in TWO places** - `PROJECT_HANDOUT.md` (local root, master) and
     `prototype/PROJECT_HANDOUT.md` (deployed to the repo root). Edit one, then copy it over the
     other so they stay byte-identical. Never update only one.
-22. **Add a change-log entry** (§18) with a bumped version.
-23. **Say plainly what you did and did not verify.** If you couldn't test something, say so.
+24. **Add a change-log entry** (§18) with a bumped version.
+25. **Say plainly what you did and did not verify.** If you couldn't test something, say so.
 
 ### Things that need explicit human approval
 
@@ -1637,6 +1730,101 @@ add automated tests.
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 1.5 - 2026-07-19
+**Mobile Sign In layout reworked - hero shown in full, card scrolls in below it.**
+
+On phones the card overlapped the hero: the Sign In card partly covered the baked-in
+headline, and the Register card buried the headline, subtitle and all three feature icons.
+Cause - the mobile layout bottom-aligned the card **inside a single viewport**
+(`display: flex` + `margin-top: auto`), so on tall phones it floated up over the artwork's
+top region, where the hero content lives.
+
+Rebuilt so the artwork is shown **in full first** and the card sits **below** it, per
+`images/Sign-in-page-ui-mobile-idea.png`:
+
+| Change | Detail |
+|---|---|
+| Hero fully visible | `background-size: 100% auto` renders the whole portrait artwork at viewport width; the headline, subtitle and icons (top ~37%) are never covered |
+| Card positioned below | `.auth-shell` switched to `display: block` with `padding-top: 86vw` - a `vw` spacer that tracks the artwork's height (a fixed 2.16x of width) on every device, landing ~40px below the icons |
+| Natural scroll | The page grows and scrolls; the hero is never compressed to fit one screen |
+| Chatbot clearance | `padding-bottom: calc(116px + safe-area)` keeps the fixed FAB off the Sign In / Create Account button at full scroll (~33px clearance, verified) |
+| `≤480px` fix | Its shell rule was changed from the `padding` shorthand (which reset `padding-top` to 0) to longhand, so the 86vw spacer survives |
+
+- **Files changed:** `signin.html` (only) - the three mobile media blocks. Nothing else
+  touched; **`chatbot.js` was read but not modified**.
+- **Sections updated:** §5.9 (placement + responsive tables, new mobile-flow note), §18
+- **Verified by measurement** at 360 / 390 / 412 / 768 px and 740x380 landscape:
+  - Card top always **below** the baked-in icons (computed icon-end = 37% of the rendered
+    artwork height) - gaps 40-76px, **zero overlap** in both the Sign In and the tall
+    Register/Business views
+  - Card width ~90% (72% at 768 where `max-width: 34rem` caps it), centred
+  - **Zero horizontal overflow**; page scrolls vertically as intended
+  - Chatbot FAB clears the last CTA by ~33px at full scroll, both views
+  - **Desktop unchanged** - 1440px still 441x533, 5.8% gutter, centred, `login-bg.jpg`
+    cover/left, flex shell (byte-for-byte the v1.4 geometry)
+  - Landscape phone still falls back to the landscape artwork with a centred card
+  - Auth intact - tab switch, Customer/Business toggle, error + no-session on bad
+    credentials, and `customer@eventara.in` → `customer-dashboard.html`; zero console errors
+- **Not verified:** no screenshot / no physical device - the build renderer does not
+  composite or scroll (see L24). Geometry, overlap and clearance were computed numerically;
+  **the rendered mobile page has not been seen.** Worth a real-device glance.
+
+---
+
+### Version 1.4 - 2026-07-19
+**Sign In page rebuilt to match the supplied design references, then refined.**
+
+v1.3's split-screen was wrong in a fundamental way: the artwork **already contains** the
+headline, subtitle and the three gold feature icons, and v1.3 rendered all of them again
+in HTML - so every element appeared twice, in two different places. Rebuilt as the
+references actually show it: full-bleed artwork, one glass card floating on it, nothing
+else.
+
+| Area | Change |
+|---|---|
+| **Composition** | Removed `.auth-split`, `.auth-hero*`, `.auth-bg` and all duplicated hero markup. The page is now the background plus a single `.auth-card` inside a positioning `.auth-shell`. |
+| **Artwork** | `login-bg.jpg` (landscape) ≥861px; `login-bg-mobile.jpg` (portrait) ≤860px. `background-position: left center` so the baked-in headline is never cropped. |
+| **Geometry** | Measured off the references rather than eyeballed - desktop card 34vw with a 5.8% right gutter, vertically centred; mobile 90% wide, 4.9% gutters, ~39% down. |
+| **Glass** | Inverted to a **dark violet scrim** (`rgba(38,28,52,0.46)`) carrying white text, because the mock-up's pale tint measures **2.6:1** for white text over the chandelier bokeh. |
+| **Logo** | New `logo-light.svg` (white wordmark). The standard blue wordmark scores **1.4:1** on dark glass. |
+| **Sizing (refinement)** | Card reduced **~10% on both axes** (490x590 → 441x531 at 1440px), scaled proportionally - aspect ratio moved only 1.204 → 1.206. |
+| **Scrollbar (refinement)** | `.auth-body`'s native scrollbar replaced with a frosted one - webkit pseudo-elements + `scrollbar-color`/`scrollbar-width`, plus `scrollbar-gutter: stable`. |
+
+**Three latent robustness bugs found and fixed while verifying:**
+
+1. The card used the shared **`.fade-in`** class - `opacity: 0` until app.js's
+   IntersectionObserver adds `.visible`. On a page whose only content is that card, a
+   missed observer means a blank background. Replaced with a **transform-only**
+   `authCardIn` keyframe that never touches opacity.
+2. `.auth-view.active` animated opacity the same way (inherited from the original page) -
+   the entire form could render invisible. Same fix.
+3. `width: 34%` resolved against `.auth-shell`'s content box, not the viewport, making the
+   card ~4% narrower than intended. Now `34vw`. The tablet rule had the same defect.
+
+- **Files changed:** `signin.html` (only). **Added:** `images/login-bg-mobile.jpg` (228KB),
+  `logo-light.svg`. **Removed:** `images/login-bg-blur.jpg` (v1.3-only, now unreferenced).
+  `styles.css` and every other page **untouched**.
+- **Sections updated:** §4, §5.9 (rewritten), §12, §15 (L24, L25), §17 (rules 16-19), §18
+- **Verified by measurement:**
+  - Auth logic untouched - tab switching, Customer/Business toggle, `handleSignIn()`,
+    both credential constants and redirects all unchanged
+  - Customer login → `customer-dashboard.html`; supplier → `dashboard.html`; wrong
+    credentials → error, **no session, no navigation**; unauthenticated dashboard access →
+    bounced to `signin.html`; `?mode=register` deep link works; Customer is the default
+  - Geometry within **0.3% of the desktop reference** and **0.2% of the mobile reference**
+  - **Zero horizontal overflow** at 1920 / 1440 / 1280 / 1024 / 900 / 768 / 390 / 360 and
+    740x380 landscape, in both the Sign In and the tall Business Register view
+  - Contrast, sampled from composited pixels: white text **6.1:1**, labels 5.6, tabs and
+    placeholder 4.7, legal note 4.9 - **all above WCAG AA**
+  - All controls **≥44px**; custom scrollbar active (10px vs the browser's 15px default);
+    **0px layout shift** between the scrolling and non-scrolling views
+- **Not verified:** no screenshot and no physical device test - see L24. The build
+  environment's renderer does not composite, so screenshots, CSS animations, scrolling and
+  IntersectionObserver are all inert there (confirmed against `faq.html` as a control).
+  **The rendered result has not been seen.**
 
 ---
 

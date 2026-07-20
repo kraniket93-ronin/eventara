@@ -49,8 +49,9 @@
     .auth-card {
       /* vw, not %: a percentage would resolve against .auth-shell's content box
          (viewport minus its 5.8vw padding), making the card ~4% too narrow.
-         34vw + 5.8vw right padding puts the left edge at 60.2% - the reference. */
-      width: clamp(340px, 34vw, 500px);
+         Sized at ~90% of the original 34vw/500px so the card breathes more
+         against the artwork; internal padding and type scale down with it. */
+      width: clamp(320px, 30.6vw, 450px);
       border-radius: var(--radius-3xl);
       /* Self-contained entrance. Deliberately NOT the shared `.fade-in` class:
          that starts at opacity 0 and waits for app.js's IntersectionObserver to
@@ -83,7 +84,7 @@
 
     .auth-header {
       text-align: center;
-      padding: var(--space-40) var(--space-32) var(--space-12);
+      padding: var(--space-32) var(--space-24) var(--space-16);
     }
     .auth-logo {
       display: inline-flex;
@@ -91,19 +92,19 @@
       justify-content: center;
       text-decoration: none;
     }
-    .auth-logo .logo-img { height: 58px; width: auto; }
+    .auth-logo .logo-img { height: 52px; width: auto; }
 
     /* ---------- Tabs ---------- */
     .auth-tabs {
       display: flex;
       border-bottom: 1px solid rgba(255, 255, 255, 0.22);
-      margin: var(--space-20) var(--space-32) var(--space-24);
+      margin: var(--space-16) var(--space-24) var(--space-20);
     }
     .auth-tab {
       flex: 1;
       text-align: center;
-      padding: var(--space-16) var(--space-8);
-      font-size: var(--text-body-lg);
+      padding: var(--space-12) var(--space-8);
+      font-size: var(--text-body);
       font-weight: 600;
       /* 0.82 is the floor for WCAG AA on this glass over the brightest bokeh
          (measured: 0.66 gave only 3.7:1). Same reason for the placeholder and
@@ -126,7 +127,7 @@
       border-radius: 2px 2px 0 0;
     }
 
-    .auth-body { padding: 0 var(--space-32) var(--space-40); }
+    .auth-body { padding: 0 var(--space-24) var(--space-40); }
     .auth-view { display: none; }
     .auth-view.active {
       display: block;
@@ -138,7 +139,10 @@
     /* ---------- Form controls on glass ---------- */
     /* styles.css gives .input-group no bottom margin, so fields would sit flush.
        The reference spaces them generously. */
-    .auth-card .input-group { margin-bottom: var(--space-24); }
+    .auth-card .input-group { margin-bottom: var(--space-20); }
+    /* Trimmed from styles.css's 14px/16px to keep the card ~10% shorter.
+       Still lands at >=44px tall, so touch targets stay compliant. */
+    .auth-card .input-field { padding: 12px 14px; }
     .auth-card .input-group label {
       color: rgba(255, 255, 255, 0.94);
       font-weight: 500;
@@ -170,7 +174,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: var(--space-24);
+      margin-bottom: var(--space-20);
       gap: var(--space-12);
     }
     .auth-card .checkbox-row label {
@@ -203,6 +207,9 @@
       font-size: var(--text-body-sm);
       margin-bottom: var(--space-12);
     }
+
+    /* .btn-lg is generous by default; trim to match the card's reduced scale */
+    .auth-card .btn-lg { padding: 14px 24px; font-size: var(--text-body); }
 
     .auth-card .legal-note {
       font-size: var(--text-micro);
@@ -248,39 +255,108 @@
       .auth-body { overflow-y: auto; }
     }
 
+    /* ---------- Frosted scrollbar ----------
+       The default control is an opaque grey/white slab that breaks the glass.
+       Styled for both engines; declared outside the media query so it applies
+       wherever .auth-body happens to scroll.
+
+         Firefox / any engine with standard properties -> scrollbar-color
+         Chrome, Edge, Safari, Opera                   -> ::-webkit-scrollbar
+
+       `scrollbar-gutter: stable` reserves the track's width up-front so the
+       form does not jump sideways when switching between the short Sign In
+       view and the tall Register view.
+
+       Graceful fallback: an engine that supports neither simply renders its
+       native scrollbar - still usable, just not frosted. Nothing depends on
+       the custom styling for legibility or scrolling. */
+    .auth-body {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.30) transparent;
+      scrollbar-gutter: stable;
+    }
+    .auth-body::-webkit-scrollbar { width: 10px; }
+    .auth-body::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: var(--radius-pill);
+    }
+    .auth-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.26);
+      /* transparent border + padding-box clip = a slim thumb with breathing
+         room either side, instead of a bar wedged against the card edge */
+      border: 2px solid transparent;
+      background-clip: padding-box;
+      border-radius: var(--radius-pill);
+    }
+    .auth-body::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.42);
+      background-clip: padding-box;
+    }
+    .auth-body::-webkit-scrollbar-thumb:active {
+      background: rgba(255, 255, 255, 0.52);
+      background-clip: padding-box;
+    }
+    .auth-body::-webkit-scrollbar-corner { background: transparent; }
+
     /* ---------- Tablet: same hierarchy, scaled ---------- */
     @media (max-width: 1100px) and (min-width: 861px) {
       .auth-shell { padding: var(--space-32) 4.5vw; }
-      .auth-card { width: clamp(330px, 42%, 430px); }
+      /* vw for the same reason as the desktop rule - % resolves against the
+         shell's content box, not the viewport */
+      .auth-card { width: clamp(310px, 38vw, 390px); }
     }
 
-    /* ---------- Mobile: portrait artwork, card sits low ---------- */
+    /* ---------- Mobile: full hero on top, card scrolls in below ----------
+       The portrait artwork bakes in the headline, subtitle and the three
+       feature icons across its top ~37%; the rest is decorative photography.
+       So the hero must be shown IN FULL first, with the card starting below
+       the icons - never overlapping them - and the page scrolls.
+
+       `background-size: 100% auto` renders the artwork at the full viewport
+       width, i.e. at a FIXED height multiple of that width (its 2.16 aspect).
+       A `vw`-based top spacer therefore lands at the same fraction of the
+       artwork on every device width, so the card clears the baked-in icons
+       regardless of screen size. The flow is document-level (`display: block`),
+       so the page grows and scrolls naturally rather than cramming into one
+       viewport. */
     @media (max-width: 860px) {
       body.auth-page {
         background-image: url("images/login-bg-mobile.jpg");
+        background-size: 100% auto;
         background-position: top center;
+        background-repeat: no-repeat;
+        background-color: #140f18;      /* fills below the artwork if the page runs longer */
       }
       .auth-shell {
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: stretch;
-        padding: 0 4.9vw calc(3vh + env(safe-area-inset-bottom));
+        display: block;
+        min-height: 100dvh;
+        padding-left: 4.9vw;
+        padding-right: 4.9vw;
+        /* icons/labels end at ~37% of the artwork (= ~80vw tall); start the
+           card a little below that so it clears them and overlaps only the
+           decorative table/flowers - exactly as the reference shows */
+        padding-top: 86vw;
+        /* clearance so the fixed chatbot FAB (52-56px, bottom-right) cannot
+           sit over the Sign In button once scrolled to the bottom */
+        padding-bottom: calc(116px + env(safe-area-inset-bottom));
       }
       .auth-card {
-        width: 100%;
+        width: 100%;                    /* = ~90vw inside the shell gutters - matches the reference */
         max-width: 34rem;
-        margin: auto auto 0;          /* margin-top:auto - sits low, grows upward safely */
+        margin: 0 auto;
       }
       .auth-header { padding: var(--space-24) var(--space-24) var(--space-4); }
       .auth-tabs { margin: var(--space-12) var(--space-24) var(--space-20); }
       .auth-body { padding: 0 var(--space-24) var(--space-24); }
       .auth-tab { min-height: 44px; display: flex; align-items: center; justify-content: center; }
+      /* styles.css §14 only guards these at <=768px; this page's mobile
+         breakpoint is 860px, and the padding above was trimmed, so restate it */
+      .auth-card .input-field,
+      .auth-card .btn { min-height: 44px; }
     }
 
     @media (max-width: 480px) {
-      /* Keep the reference's 4.9% side gutters rather than a fixed 12px */
-      .auth-shell { padding: 0 4.9vw calc(2.9vh + env(safe-area-inset-bottom)); }
+      /* Side/bottom only - longhand so the 86vw padding-top above is preserved */
       .auth-header { padding: var(--space-20) var(--space-20) var(--space-4); }
       .auth-tabs { margin: var(--space-12) var(--space-20) var(--space-16); }
       .auth-body { padding: 0 var(--space-20) var(--space-20); }
@@ -289,16 +365,20 @@
       .register-form div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
     }
 
-    /* Landscape phones: the portrait artwork does not suit a wide short screen -
-       fall back to the landscape one and centre the card. */
+    /* Landscape phones: the portrait artwork suits a short wide screen badly -
+       fall back to the landscape artwork and centre the card (restates the
+       properties the mobile block above changed, since this query is narrower). */
     @media (max-width: 860px) and (max-height: 520px) and (orientation: landscape) {
       body.auth-page {
         background-image: url("images/login-bg.jpg");
+        background-size: cover;
         background-position: left center;
       }
       .auth-shell {
-        justify-content: center;
+        display: flex;
         align-items: center;
+        justify-content: center;
+        min-height: 100dvh;
         padding: var(--space-24) 5vw;
       }
       .auth-card { max-width: 26rem; margin: 0 0 0 auto; }
