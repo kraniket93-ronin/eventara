@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Sign In or Register for Eventara.">
   <title>Sign In / Register - Eventara</title>
-  <link rel="stylesheet" href="styles.css?v=14">
+  <link rel="stylesheet" href="styles.css?v=15">
   <link rel="preload" as="image" href="images/login-bg.jpg">
   <script src="auth.js?v=1"></script>
   <style>
@@ -43,6 +43,51 @@
       align-items: center;
       justify-content: flex-end;
       padding: var(--space-40) 5.8vw;
+    }
+
+    /* ---------- Back button ----------
+       Same glass recipe as the card. `position: absolute` (not fixed) so it
+       scrolls away with the hero on mobile instead of hovering over the card
+       once the page scrolls. With no positioned ancestor it anchors to the
+       document's top-left and scrolls with it. Sits in the dark chandelier
+       zone above the baked-in headline on both artworks - clear of the hero
+       copy and, being top-left, clear of the right/low-placed card. */
+    .auth-back {
+      position: absolute;
+      top: calc(var(--space-20) + env(safe-area-inset-top));
+      left: calc(var(--space-20) + env(safe-area-inset-left));
+      z-index: 20;
+      width: 44px;
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: #ffffff;
+      background: rgba(38, 28, 52, 0.46);
+      -webkit-backdrop-filter: blur(26px) saturate(150%);
+      backdrop-filter: blur(26px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.22);
+      text-decoration: none;
+      transition: transform var(--duration-fast) var(--ease-out),
+                  background var(--duration-fast),
+                  border-color var(--duration-fast);
+    }
+    @supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+      .auth-back { background: rgba(28, 20, 40, 0.9); }
+    }
+    .auth-back svg { width: 20px; height: 20px; display: block; }
+    .auth-back:hover {
+      background: rgba(58, 44, 78, 0.6);
+      border-color: rgba(255, 255, 255, 0.45);
+      transform: translateX(-2px);
+    }
+    .auth-back:active { transform: translateX(-2px) scale(0.94); }
+    .auth-back:focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) {
+      .auth-back, .auth-back:hover, .auth-back:active { transition: none; transform: none; }
     }
 
     /* ---------- The glass card ---------- */
@@ -407,6 +452,15 @@
 
     <h1 class="sr-only">Your perfect event starts here. Sign in or register with Eventara.</h1>
 
+    <!-- Back navigation - href is the no-JS fallback (Home); authGoBack()
+         upgrades it to history-back when the user came from within Eventara -->
+    <a href="index.html" class="auth-back" aria-label="Go back to the previous page" onclick="return authGoBack(event);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M19 12H5"/>
+        <path d="M12 19l-7-7 7-7"/>
+      </svg>
+    </a>
+
     <div class="auth-card">
 
       <div class="auth-header">
@@ -539,6 +593,22 @@
 
   <script src="app.js?v=4"></script>
   <script>
+    // Back navigation. If the user arrived from another Eventara page, go back
+    // in history; otherwise (direct hit, external referrer, no history) the
+    // anchor's href="index.html" fallback fires. Kept separate from all auth
+    // logic below.
+    function authGoBack(e) {
+      var ref = document.referrer;
+      var internal = false;
+      try { internal = !!ref && new URL(ref).origin === window.location.origin; } catch (_) {}
+      if (internal && window.history.length > 1) {
+        e.preventDefault();
+        window.history.back();
+        return false;
+      }
+      return true; // let href="index.html" navigate
+    }
+
     // Tab switching logic (Sign In vs Register)
     const authTabs = document.querySelectorAll('.auth-tab');
     const authViews = document.querySelectorAll('.auth-view');

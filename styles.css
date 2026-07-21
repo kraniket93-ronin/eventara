@@ -1026,6 +1026,10 @@ textarea.input-field {
 
 .search-bar .search-field {
   flex: 1;
+  min-width: 0;            /* let all four fields share width equally - without this
+                             the Event Type <select> keeps its wide min-content size
+                             and squeezes the Guest Count field until its placeholder
+                             clips to "Guest Cou" */
   border: none;
   background: none;
   padding: 12px 20px;
@@ -1035,6 +1039,12 @@ textarea.input-field {
 }
 
 .search-bar .search-field::placeholder { color: var(--ink-faint); }
+
+/* Drop the number spinner so it does not reserve space on the right of the
+   Guest Count field (another source of the placeholder clip); value still typed/validated */
+.search-bar .search-field[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.search-bar .search-field[type="number"]::-webkit-outer-spin-button,
+.search-bar .search-field[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .search-bar .search-divider {
   width: 1px;
@@ -1056,6 +1066,11 @@ textarea.input-field {
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
   flex-shrink: 0;
+  /* Balanced breathing room: the button sits 6px (--space-6, the bar's own
+     padding) from the last field on its left and the pill edge on its right,
+     so it reads as an integrated part of the bar rather than jammed against
+     the Guest Count field */
+  margin-left: var(--space-6);
 }
 
 .search-bar .search-btn:hover {
@@ -2329,11 +2344,16 @@ textarea.input-field {
 
   .search-bar {
     flex-direction: column;
+    /* stretch (not the base rule's center) so every stacked field fills the
+       width - otherwise fields keep their intrinsic width and the Guest Count
+       placeholder clips on narrow phones */
+    align-items: stretch;
     border-radius: var(--radius-2xl);
     padding: var(--space-12);
   }
+  .search-bar .search-field { padding: 14px 16px; }   /* full-width now, so the field is the touch row */
   .search-bar .search-divider { width: 100%; height: 1px; }
-  .search-bar .search-btn { width: 100%; border-radius: var(--radius-xl); height: 48px; }
+  .search-bar .search-btn { width: 100%; border-radius: var(--radius-xl); height: 48px; margin-left: 0; }
 
   .cta-band { padding: var(--space-48) var(--space-24); border-radius: var(--radius-2xl); }
 

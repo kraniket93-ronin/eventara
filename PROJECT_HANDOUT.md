@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 1.5 (see §18 Change Log) |
+| **Doc version** | 1.7 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-18 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -177,7 +177,7 @@ There is no build hash, so assets are versioned by **query string**, bumped manu
 file changes:
 
 ```html
-<link rel="stylesheet" href="styles.css?v=14">
+<link rel="stylesheet" href="styles.css?v=15">
 <script src="auth.js?v=1"></script>
 <script src="app.js?v=4"></script>
 <script src="chatbot.js?v=8"></script>
@@ -256,7 +256,7 @@ flat in the root. This is intentional for a no-build prototype. Do not reorganis
 ## 5. PAGE DOCUMENTATION
 
 There are **13 pages**. Every page includes, in `<head>` or before `</body>`:
-`styles.css?v=14` · `auth.js?v=1` · `app.js?v=4` · `chatbot.js?v=8`
+`styles.css?v=15` · `auth.js?v=1` · `app.js?v=4` · `chatbot.js?v=8`
 
 ---
 
@@ -286,6 +286,20 @@ with real photos - chosen so no card has an empty image).
 
 **Hero event-type dropdown:** Corporate Event · Conference · College/University Fest ·
 Convocation/Annual Day · Product Launch/Award Night · *Weddings - coming soon* (`disabled` option).
+
+**Hero search bar (`.search-bar`, in `styles.css`; only used on this page):** a pill-shaped
+flex row of four fields - Event Type, City, Event Date, Guest Count - separated by
+`.search-divider` lines, ending in a circular `.search-btn` (an `<a href="search.html">`,
+not a submit). Refined in v1.7:
+
+| Fix | How |
+|---|---|
+| **Guest Count placeholder no longer clips** | `.search-field { min-width: 0 }` lets all four fields share width equally (the Event Type `<select>` was keeping its wide min-content size and squeezing Guest Count to ~134px, 1px short of the placeholder); the number spinner is also removed so it reserves no right-hand space |
+| **Search button integrated, not floating** | `margin-left: var(--space-6)` gives a balanced 6px gap on both sides of the button (it was flush - 0px - against the Guest field). It was already vertically centred and the icon already centred |
+| **Mobile fields full-width** | The stacked column now uses `align-items: stretch`, so every field fills the width (they were uneven - Event Type wide, Guest Count clipped) with a 44px+ touch height; the button's desktop `margin-left` is reset to 0 |
+
+Verified equal field widths and a fitting placeholder at 1440 / 768 / 390px, the button
+still routing to `search.html`, and no horizontal overflow at any width.
 
 **Data flow:** Static. Counters animate via `IntersectionObserver` in `app.js`.
 
@@ -626,6 +640,34 @@ wedged against the card edge.
 **`scrollbar-gutter: stable`** reserves the track width up-front, so the form does not
 jump sideways when switching between the short Sign In view and the tall Register view
 (verified: 0px shift).
+
+#### Back navigation button (added v1.6)
+
+A glassmorphic **Back** button sits at the **top-left** of the page (`.auth-back`), outside
+the card, over the artwork's dark chandelier zone - clear of the baked-in headline and of
+the right/low-placed card at every breakpoint.
+
+| Aspect | Detail |
+|---|---|
+| Markup | `<a href="index.html" aria-label="Go back to the previous page" onclick="return authGoBack(event)">` with a white arrow SVG (`aria-hidden`) |
+| Style | Same glass recipe as the card - `rgba(38,28,52,0.46)`, `blur(26px) saturate(150%)`, white border, soft shadow; **44x44** circle with hover (`translateX(-2px)`), active (scale 0.94) and `:focus-visible` (2px white outline) states |
+| Position | `position: absolute` at `top/left: 20px + safe-area` insets. **Absolute, not fixed**, so it scrolls away with the hero on mobile instead of drifting over the card once the page scrolls |
+| Fallback | The `@supports not (backdrop-filter)` block raises it to `rgba(28,20,40,0.9)` |
+
+**Navigation logic (`authGoBack`)** - progressive enhancement:
+
+- The anchor's `href="index.html"` is the **no-JS / fallback** destination.
+- `authGoBack()` checks `document.referrer`: if it is **same-origin** *and* `history.length > 1`,
+  it `preventDefault()`s and calls `history.back()` - returning the user to the exact Eventara
+  page they came from (Home → Search → Supplier → Sign In → **back to Supplier**).
+- Otherwise (direct hit, refresh with no prior entry, or an **external** referrer) it does
+  nothing and lets the `href` carry the user to **`index.html`**.
+
+Accessibility: it is a real `<a>` (keyboard-focusable, Enter-activatable, **first in the tab
+order**), carries an `aria-label`, hides the decorative SVG from assistive tech, and shows a
+visible `:focus-visible` ring. It respects `prefers-reduced-motion`.
+
+This is navigation-only - it touches no auth, session, form or layout code.
 
 #### Background image loading
 
@@ -1302,6 +1344,7 @@ Reuse the **pattern** rather than the class names if another immersive page is e
 | Class | Role |
 |---|---|
 | `body.auth-page` | Carries the full-bleed artwork; swaps to the portrait image ≤860px |
+| `.auth-back` | Glassmorphic top-left back button; `authGoBack()` = history-back with an `index.html` fallback |
 | `.auth-shell` | Full-viewport flex wrapper that positions the card (right/centred, or low on mobile) |
 | `.auth-card` | **The glass panel** - frosted, bordered, shadowed |
 | `.auth-body` | Scroll container for the form; owns the frosted scrollbar |
@@ -1730,6 +1773,66 @@ add automated tests.
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 1.7 - 2026-07-19
+**Home hero search bar - alignment and placeholder fixes.**
+
+Three UI-only refinements to `.search-bar` (in `styles.css`, used only on `index.html`);
+no markup, search routing or field logic changed.
+
+| Issue | Cause | Fix |
+|---|---|---|
+| Guest Count placeholder clipped to "Guest Cou" | The Event Type `<select>` kept its wide min-content width (285px), squeezing Guest Count to 134px - 1px under the placeholder - and the number spinner ate more right-hand space | `.search-field { min-width: 0 }` equalises all four fields (177px each); number spinner removed (`appearance: textfield` + hidden webkit spin buttons) |
+| Search button looked detached | It sat flush (0px) against the Guest field while having 6px to the pill's right edge | `margin-left: var(--space-6)` - balanced 6px both sides. It was already vertically centred and the icon already centred |
+| Mobile fields uneven / Guest Count clipped | The stacked column inherited `align-items: center`, so fields kept intrinsic widths | Mobile block now `align-items: stretch` (all fields full-width, 52px touch height); the button's desktop `margin-left` reset to 0 |
+
+- **Files changed:** `styles.css` (the `.search-bar` rules + its `≤768px` block). All 13
+  HTML files bumped **`styles.css?v=14 → v=15`** for cache-busting. No other file touched.
+- **Sections updated:** §3 & §5 (version strings), §5.1 (new hero-search subsection), §18
+- **Verified by measurement** at 1440 / 768 / 390px:
+  - Fields **equal width** (177px desktop; uniform full-width stacked on mobile/tablet)
+  - "Guest Count" placeholder **fits** (94px into 137px desktop / 245px mobile) - no clip
+  - Search button **vertically centred** (0px offset), **6px balanced gap**, icon centred (0,0)
+  - Field touch height 52px on mobile (≥44)
+  - Search button still routes to `search.html`; Event Type select and Guest Count input
+    still accept values
+  - **No horizontal overflow** at any width; **zero console errors**
+  - `.search-bar` exists only on `index.html`, so no other page is affected
+- **Not verified:** no screenshot - build-renderer limitation (see L24).
+
+---
+
+### Version 1.6 - 2026-07-19
+**Added a back-navigation button to the Sign In page.**
+
+Users reach `signin.html` from many entry points (Home, Search, Supplier, Help, FAQ). A
+glassmorphic **Back** button now sits at the top-left so they can return without the
+browser chrome.
+
+| Aspect | Detail |
+|---|---|
+| Look | 44x44 glass circle matching the card - `rgba(38,28,52,0.46)` + `blur(26px)`, white border/arrow, hover/active/focus states |
+| Place | `position: absolute`, top-left, `20px + safe-area`. Absolute (not fixed) so it scrolls away with the hero on mobile rather than drifting over the card |
+| Logic | `authGoBack()` - same-origin referrer + history → `history.back()`; else the `href="index.html"` fallback fires |
+| A11y | Real `<a>`, first in tab order, `aria-label`, `aria-hidden` SVG, `:focus-visible` ring, honours reduced-motion |
+
+- **Files changed:** `signin.html` (only) - one CSS block, one `<a>`, one `authGoBack()`
+  function. No auth, session, layout or background code touched.
+- **Sections updated:** §5.9 (new back-button subsection), §12 (class table), §18
+- **Verified end-to-end:**
+  - Search → Sign In, click back → **returns to search.html** (history-back path)
+  - Direct load (empty referrer), click back → **index.html** (fallback path)
+  - Decision function correct for external referrer, empty+direct, empty+history and
+    internal referrer
+  - Button 44x44 at (20,20); **no overlap** with the card (desktop or mobile) or the
+    baked-in headline (mobile button bottom 64px vs headline ~110px); no horizontal overflow
+  - Keyboard-focusable, first in tab order, `:focus-visible` outline present, `aria-label`
+    set, SVG `aria-hidden`
+  - Auth untouched - tab switch, toggle, bad-credential error + no-session, and
+    `customer@eventara.in` → `customer-dashboard.html`; zero console errors
+- **Not verified:** no screenshot / device test - build renderer limitation (see L24).
 
 ---
 
