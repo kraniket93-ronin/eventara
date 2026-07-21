@@ -7,7 +7,7 @@
   <title>Sign In / Register - Eventara</title>
   <link rel="stylesheet" href="styles.css?v=15">
   <link rel="preload" as="image" href="images/login-bg.jpg">
-  <script src="auth.js?v=1"></script>
+  <script src="auth.js?v=2"></script>
   <style>
     /* ==========================================================
        SIGN IN / REGISTER
@@ -537,7 +537,7 @@
           </form>
 
           <!-- Business Registration Form -->
-          <form id="form-business" class="register-form" style="display: none;" onsubmit="event.preventDefault(); Auth.login('supplier', {name: this.querySelector('input[type=text]').value || 'Your Business', email: (this.querySelector('input[type=email]')||{}).value}); window.location.href='dashboard.html';">
+          <form id="form-business" class="register-form" style="display: none;" onsubmit="event.preventDefault(); Auth.login('supplier', {name: this.querySelector('input[type=text]').value || 'Your Business', email: (this.querySelector('input[type=email]')||{}).value}); window.location.href='supplier-dashboard.html';">
             <div class="input-group">
               <label>Business Name</label>
               <input type="text" class="input-field" placeholder="e.g. Paandora Grand Udaipur" required>
@@ -682,7 +682,7 @@
 
       if (email === SUPPLIER_LOGIN.email && password === SUPPLIER_LOGIN.password) {
         Auth.login('supplier', { name: 'Paandora Grand Udaipur', email: email });
-        window.location.href = 'dashboard.html';
+        window.location.href = 'supplier-dashboard.html';
       } else if (email === CUSTOMER_LOGIN.email && password === CUSTOMER_LOGIN.password) {
         Auth.login('customer', { name: 'Secure Meters Ltd', email: email });
         window.location.href = 'customer-dashboard.html';
@@ -692,6 +692,6 @@
       }
     }
   </script>
-  <script src="chatbot.js?v=8"></script>
+  <script src="chatbot.js?v=9"></script>
 </body>
 </html>

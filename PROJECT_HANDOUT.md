@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 1.7 (see §18 Change Log) |
+| **Doc version** | 1.9 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-18 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -178,9 +178,9 @@ file changes:
 
 ```html
 <link rel="stylesheet" href="styles.css?v=15">
-<script src="auth.js?v=1"></script>
+<script src="auth.js?v=2"></script>
 <script src="app.js?v=4"></script>
-<script src="chatbot.js?v=8"></script>
+<script src="chatbot.js?v=9"></script>
 ```
 
 > **RULE:** if you edit `styles.css`, `app.js`, `auth.js` or `chatbot.js`, you **must** bump its
@@ -212,7 +212,7 @@ Project B Prototype/                  ← LOCAL project root (NOT the repo root)
     ├── help.html                     Help Centre - contact support / raise a complaint
     ├── signin.html                   Sign In + Register (both roles)
     ├── customer-dashboard.html       Customer account (PROTECTED)
-    ├── dashboard.html                Supplier/business portal (PROTECTED)
+    ├── supplier-dashboard.html                Supplier/business portal (PROTECTED)
     ├── ops.html                      Internal operations console (staff-facing)
     │
     ├── styles.css                    ★ Entire design system (2,394 lines)
@@ -256,7 +256,7 @@ flat in the root. This is intentional for a no-build prototype. Do not reorganis
 ## 5. PAGE DOCUMENTATION
 
 There are **13 pages**. Every page includes, in `<head>` or before `</body>`:
-`styles.css?v=15` · `auth.js?v=1` · `app.js?v=4` · `chatbot.js?v=8`
+`styles.css?v=15` · `auth.js?v=2` · `app.js?v=4` · `chatbot.js?v=9`
 
 ---
 
@@ -759,8 +759,12 @@ Email · City · GSTIN · Password.
 | **URL** | `/customer-dashboard.html` |
 | **Auth** | **PROTECTED** - `Auth.requireRole('customer', 'signin.html?next=customer&role=customer')` in `<head>` |
 
-**Sidebar sections:** Overview · Profile · Requests & Quotes · My Bookings · Payments ·
-Saved Suppliers · Disputes/Support.
+**Sidebar sections (8 panels):** Overview · My Profile · Requests & Quotes · My Bookings ·
+Invoices & Records · Payments & Mandate · Disputes · Saved Suppliers. All switch via
+`showPanel()`; no `href="#"` dead links.
+
+**Header:** date · **Home button** (`<a href="index.html">`, home icon, between the date and
+New Request - session preserved, never a logout) · **New Request** (`brief.html`).
 
 **Panels:** metric cards (Active Requests, Deposit Held Safely ₹3.0L, …) · activity timeline ·
 requests table (Request / Event / Date / Guests / Budget / Matched / Status / Action) ·
@@ -769,23 +773,61 @@ Balicha, Blossom).
 
 ---
 
-### 5.11 `dashboard.html` - Supplier / Business Portal 🔒
+### 5.11 `supplier-dashboard.html` - Supplier / Business Portal 🔒
 
 | Field | Detail |
 |---|---|
 | **Purpose** | Business's home: enquiries, quoting, availability, performance, payouts |
-| **URL** | `/dashboard.html` |
+| **URL** | `/supplier-dashboard.html` |
 | **Auth** | **PROTECTED** - `Auth.requireRole('supplier', 'signin.html?next=dashboard&role=business')` in `<head>` |
 
 Hard-coded to **Paandora Grand Udaipur** as the logged-in business.
 
-**Panels:** metrics (Protected Bookings, ₹6.02L deposit held for you, …) · enquiry inbox with
-48-hour reply window · quote builder · availability calendar · pipeline bar (Enquiry 9 / Quoted 4
-/ …) · **Your Performance** (48-hour response rate, median time to quote, Deposit Setup,
-Delivery Rate, Average Rating) · **Payouts & Ledger**.
+**Architecture (rebuilt v1.8 to full parity with the Customer Account).** Same
+**single-page panel-switch** model as `customer-dashboard.html`: a fixed sidebar of nav links
+each carrying `data-panel`, and one `.dash-panel` per section that `showPanel(name)` shows/hides
+(deep-linkable via `#hash`, syncs the mobile sidebar close and scroll-to-top). **No `href="#"`
+dead links remain** - every sidebar item, action button and quick-action either switches a panel,
+navigates a page, or fires a `toast()` acknowledgement.
+
+**Sidebar → panels (7):**
+
+| Panel | Contents |
+|---|---|
+| **Overview** | 4 metric cards (Today's Enquiries, Pending Quotations, Active Bookings, This Month's Earnings) · 3 quick actions · Needs-Attention list · Recent-Activity timeline · Booking Pipeline bar · Revenue Summary · Performance snapshot (response rate, median time to quote, delivery rate, **customer rating 4.6★**) |
+| **Enquiries** | Status filter pills (All / New / Under Review / Quote Submitted / Accepted / Rejected / Expired) + select filters (Event Type, Budget, Customer type, Date); table with **Build/Edit Quote, Respond, Save Draft, Archive, View** actions |
+| **Bookings** | Status pills (Upcoming / Ongoing / Completed / Cancelled); table with **Invoice, Contact customer, Update status, Payment status** actions |
+| **Calendar** | **Month / Week / Day** view toggle; toolbar to **Block dates / Maintenance day / Reopen**; clicking an open day applies the current mode (`cycleDay`); legend for Confirmed / Tentative hold / Enquiry hold / Blocked / Maintenance |
+| **Disputes & Complaints** *(new module)* | Complaints against the supplier and disputes the supplier raises; status filter (Open / Under Review / Resolved), **priority dots** (Low / Medium / High / Critical), Respond / Upload Evidence / View Timeline actions, and a resolution timeline |
+| **Business Profile** | Editable business details, contact & address, **compliance (GSTIN / PAN / FSSAI)**, amenities & pricing, cancellation policy, media **upload zones** (logo / video / gallery) and social links |
+| **Settings** | Account (password, email, phone-verified badge) · Business (working hours, availability default, auto-response) · Notifications (Email / SMS / WhatsApp / Push **toggle switches**) · Payment (bank / UPI / GST) · Privacy (public profile, ratings, data prefs) |
+
+**Header:** greeting · date · **Home button** (`<a href="index.html">`, home icon - session is
+preserved, it is a plain link, never a logout) · **notification bell** that opens a real
+`.notif-panel` (New enquiry, Quote deadline, Booking confirmed, Payment released, New message,
+Complaint update, Calendar reminders) with **Mark read / Mark all read / View all** and a live
+unread count on the bell (becomes a full-width bottom sheet ≤768px).
+
+**Session:** navigating Home / Dashboard / Search / FAQ / Help never logs the supplier out
+(auth lives in `localStorage`, only `signOut()` → `Auth.logout('index.html')` clears it). Verified:
+Home → `index.html` keeps the supplier session; returning to `supplier-dashboard.html` passes the gate
+without re-login; the Log-out button clears the session and lands on Home.
+
+**Reused design-system components:** `.metric-card`, `.metrics-grid`, `.card-flat`,
+`.data-table`, `.status-*`, `.badge-*`, `.calendar-grid`/`.calendar-day`, `.btn-*`, `.input-group`,
+`grid grid-2/3`. New page-scoped pieces (in `supplier-dashboard.html`'s `<style>`): notification panel,
+filter pills, calendar toolbar/week/day views, toast, toggle switch, upload zone, priority dots.
+
+**Responsive:** verified **zero horizontal overflow on all 7 panels** at 390 / 768 / 1440px;
+sidebar collapses behind the hamburger ≤1024px; data tables scroll inside their card; the
+notification panel docks to the bottom on phones.
 
 **Audience note:** this is business-facing, so operational vocabulary ("enquiry", "payout",
 "commission", "GSTIN ✓ FSSAI ✓") is appropriate - unlike customer pages.
+
+> **Prototype scope:** action buttons that would hit a backend in production (Build Quote,
+> Respond, Upload Evidence, Save Settings, etc.) confirm with a `toast()` - there is no server.
+> This is the same "no real persistence" limit noted for the rest of the prototype.
 
 ---
 
@@ -861,7 +903,7 @@ index.html ──► "List Your Business"
         signin.html?mode=register&type=business
                     │
                     ▼  register → Auth.login('supplier')
-        dashboard.html 🔒           (enquiries, quotes, availability, payouts)
+        supplier-dashboard.html 🔒           (enquiries, quotes, availability, payouts)
 ```
 
 ### Auth redirect paths
@@ -870,10 +912,10 @@ index.html ──► "List Your Business"
 Unauthenticated → customer-dashboard.html
         └──► signin.html?next=customer&role=customer
 
-Unauthenticated → dashboard.html
+Unauthenticated → supplier-dashboard.html
         └──► signin.html?next=dashboard&role=business
 
-Successful sign-in  → role's dashboard  (customer-dashboard.html | dashboard.html)
+Successful sign-in  → role's dashboard  (customer-dashboard.html | supplier-dashboard.html)
 Log out (any page)  → index.html
 ```
 
@@ -967,7 +1009,7 @@ Any page ──► floating chat button (bottom-right) ──► assistant panel
 5. Build profile             Photos, packages/tiers, capacity, inclusions, pricing
       │
       ▼
-6. Receive enquiries         dashboard.html 🔒 enquiry inbox (customer contact stays MASKED)
+6. Receive enquiries         supplier-dashboard.html 🔒 enquiry inbox (customer contact stays MASKED)
       │
       ▼
 7. Quote                     Quote builder → itemised quote. 48-hour reply window;
@@ -997,7 +1039,7 @@ Any page ──► floating chat button (bottom-right) ──► assistant panel
 | Trade licence | Venues / hotels |
 | FSSAI licence | Only if in-house catering is offered |
 
-### Supplier performance metrics (`dashboard.html` → "Your Performance")
+### Supplier performance metrics (`supplier-dashboard.html` → "Your Performance")
 
 48-hour Quote Response Rate · Median Time to Quote · Deposit Setup · Delivery Rate · Average Rating
 
@@ -1017,7 +1059,7 @@ Any page ──► floating chat button (bottom-right) ──► assistant panel
 | `Auth.getSession()` | Returns the session or `null`; **auto-expires** and clears if `exp` has passed |
 | `Auth.isAuthenticated()` | Boolean |
 | `Auth.getRole()` | `'customer'` \| `'supplier'` \| `null` |
-| `Auth.dashboardUrl(role)` | `'customer-dashboard.html'` \| `'dashboard.html'` \| `'index.html'` |
+| `Auth.dashboardUrl(role)` | `'customer-dashboard.html'` \| `'supplier-dashboard.html'` \| `'index.html'` |
 | `Auth.requireRole(role, url)` | **Guard.** If no session or role mismatch → `window.location.replace(url)` |
 | `Auth.logout(redirectTo)` | Clears session, re-renders nav, redirects (default `index.html`) |
 | `Auth.renderNav()` | Swaps "Sign In" for an account chip + Log out, in navbar **and** mobile menu |
@@ -1041,7 +1083,7 @@ signin.html
     ▼
 Compare email+password against SUPPLIER_LOGIN / CUSTOMER_LOGIN
     │
-    ├── match (supplier) ──► Auth.login('supplier', …) ──► dashboard.html
+    ├── match (supplier) ──► Auth.login('supplier', …) ──► supplier-dashboard.html
     ├── match (customer) ──► Auth.login('customer', …) ──► customer-dashboard.html
     └── no match ─────────► inline error "Incorrect email or password. Please try again."
                              (no navigation)
@@ -1214,7 +1256,7 @@ down, it silently degrades to the scripted engine rather than erroring.
 | | |
 |---|---|
 | **Purpose** | Let a business run their Eventara presence |
-| **Location** | `dashboard.html` 🔒 |
+| **Location** | `supplier-dashboard.html` 🔒 |
 | **Capabilities** | Enquiry inbox · quote builder · availability calendar · portfolio/packages · performance metrics · payouts ledger |
 | **Rules** | Supplier role only; customer contacts masked until booking; 48-hour reply window with 24h/40h reminders |
 
@@ -1262,7 +1304,7 @@ These encode product decisions. **Do not change them without an explicit instruc
 | # | Rule |
 |---|---|
 | B13 | **Only authenticated users reach dashboards** - enforced by `Auth.requireRole` in `<head>`. |
-| B14 | **Role separation** - customers → `customer-dashboard.html`; suppliers → `dashboard.html`. Cross-role access redirects to sign-in. |
+| B14 | **Role separation** - customers → `customer-dashboard.html`; suppliers → `supplier-dashboard.html`. Cross-role access redirects to sign-in. |
 | B15 | **No auth bypass may exist.** (A "Continue as Customer" bypass was deliberately removed.) |
 | B16 | Suppliers are **verified before listing** (identity + GST + licences) and carry a verified badge. |
 | B17 | **Customer contact details stay private** until a booking is confirmed. |
@@ -1274,7 +1316,7 @@ These encode product decisions. **Do not change them without an explicit instruc
 | # | Rule |
 |---|---|
 | B20 | Customer-facing pages use **plain, warm, jargon-free language**. Banned: "brief" (→ request), "advance/bank mandate/escrow" (→ deposit, held safely), "SLA" (→ within 48 hours), "budget band" (→ budget), "reputation score" (→ rating), "PoC"/"pilot"/"B2B". |
-| B21 | **Exception - `dashboard.html`** is business-facing: operational vocabulary is fine. |
+| B21 | **Exception - `supplier-dashboard.html`** is business-facing: operational vocabulary is fine. |
 | B22 | **Exception - `ops.html`** is internal staff tooling: funnel/crux/mandate terminology is intentional. |
 | B23 | **Exception - `invoice.html`** and business verification: GST/GSTIN/SAC/FSSAI are correct and must stay. |
 | B24 | Two-sided messaging: copy must address **both** customers and businesses, never assume one. |
@@ -1643,7 +1685,7 @@ analytics · admin portal · CRM · database of any kind.
 - Initials covers instead of photos → the design's official no-photo treatment.
 - `--coral` holding a blue value → legacy variable name, intentional.
 - `.escrow-*` class names → legacy; the visible UX correctly says "held safely".
-- Operational jargon on `ops.html` / `dashboard.html` → intentional, audience-appropriate.
+- Operational jargon on `ops.html` / `supplier-dashboard.html` → intentional, audience-appropriate.
 
 ---
 
@@ -1721,7 +1763,7 @@ add automated tests.
 12. **Watch encoding.** These files have had UTF-8 mojibake before. Edit as UTF-8; `check_mojibake.py`
     and `fix_encoding.py` exist for a reason. ₹ and → must survive your edit.
 13. **Don't "fix" intentional things:** `--coral` is blue; `.escrow-*` is a legacy class name;
-    initials covers are the official no-photo treatment; `ops.html`/`dashboard.html` jargon is
+    initials covers are the official no-photo treatment; `ops.html`/`supplier-dashboard.html` jargon is
     audience-appropriate; invoice GST terminology is correct.
 
 ### Verify your work
@@ -1773,6 +1815,71 @@ add automated tests.
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 1.9 - 2026-07-19
+**Supplier dashboard renamed to `supplier-dashboard.html`; customer dashboard gains a Home button.**
+
+| Change | Detail |
+|---|---|
+| **Rename** | `dashboard.html` → **`supplier-dashboard.html`**. Every reference updated (boundary-aware, so `customer-dashboard.html` was untouched): `auth.js` (`dashboardUrl`), `signin.html` (business register + sign-in redirect), `invoice.html` (Venue's-view link), `chatbot.js` (business-portal link), and this document. |
+| **Cache-bust** | `auth.js?v=1 → v=2` and `chatbot.js?v=8 → v=9` across all 13 HTML files - a cached `auth.js` would otherwise redirect suppliers to the old, now-404 filename. |
+| **Customer Home button** | Added to the customer dashboard header, **between Date and New Request** (`.btn.btn-secondary.btn-sm`, home icon), matching the supplier dashboard. Plain `index.html` link - preserves the session. |
+
+- **Files changed:** `dashboard.html` renamed to `supplier-dashboard.html`; `auth.js`,
+  `signin.html`, `invoice.html`, `chatbot.js`, `customer-dashboard.html` edited; all 13 HTML
+  files version-bumped. No `styles.css` change.
+- **Sections updated:** §4 (file tree), §5.10 (customer Home button), §5.11 (heading/URL), §18,
+  plus asset-version strings throughout.
+- **Verified end-to-end:**
+  - Supplier login → **`/supplier-dashboard.html`**; `Auth.dashboardUrl('supplier')` returns the
+    new name; old `dashboard.html` → **404**, new file → **200**
+  - Redirect protection: unauthenticated direct hit on `supplier-dashboard.html` → `signin.html`
+  - **No broken internal links** anywhere (all 13 pages resolve); **zero standalone `dashboard.html`**
+    left in any html/js/css
+  - Customer dashboard Home button sits **Date → Home → New Request**; both dashboards' Home
+    buttons return to `index.html` with the **session preserved** (role intact); logout still only
+    via the Log-out button
+  - Customer nav: 8 panels switch, 0 dead links; Supplier nav: 7 panels switch, 0 dead links
+  - **Zero horizontal overflow** on all panels of both dashboards at 390px; sidebar hamburger,
+    open, and overlay-close all work; **zero console errors**
+- **Not verified:** no screenshot / no physical device (build-renderer limit, see L24).
+**Supplier Dashboard rebuilt to full feature parity with the Customer Account.**
+
+`supplier-dashboard.html` was a single long-scroll page with **every sidebar link dead (`href="#"`)** and
+no panel switching. Rebuilt on the same `showPanel()` panel architecture as
+`customer-dashboard.html`, so the two portals feel like one product.
+
+| Area | What changed |
+|---|---|
+| **Navigation** | 7 sidebar items, each `data-panel` → its own `.dash-panel`; deep-linkable `#hash`; **zero `href="#"` dead links** |
+| **Overview** | Richer metrics, quick actions, needs-attention, activity timeline, pipeline, revenue summary, performance + customer rating |
+| **Enquiries** | Full module - status pills + Event Type / Budget / Customer / Date filters; Build/Edit Quote, Respond, Save Draft, Archive, View |
+| **Bookings** | Upcoming / Ongoing / Completed / Cancelled pills; Invoice, Contact, Update status, Payment |
+| **Calendar** | Month / Week / Day views; Block / Maintenance / Reopen tools; click-to-apply on open days; full legend |
+| **Disputes & Complaints** | **New module** - complaints & disputes, Open/Under Review/Resolved, priority dots (Low–Critical), Respond / Upload Evidence / Timeline |
+| **Profile** | Business details, GSTIN/PAN/FSSAI, amenities & pricing, cancellation policy, logo/video/gallery upload zones, socials |
+| **Settings** | Account, Business, Notifications (Email/SMS/WhatsApp/Push toggles), Payment, Privacy |
+| **Notifications** | Decorative bell → real panel with mark-read / mark-all-read / view-all and a live unread count |
+| **Home button** | Added beside the bell (`<a href="index.html">`) - **preserves the session** |
+
+- **Files changed:** `supplier-dashboard.html` (only). No shared file touched - all new components are
+  page-scoped in its `<style>`, reusing design-system classes elsewhere.
+- **Sections updated:** §5.11 (rewritten), §18
+- **Verified by measurement / interaction:**
+  - 7 nav links → 7 panels, each switch shows exactly one panel; **0 dead links**
+  - Notifications: opens, unread 4 → 3 (mark one) → badge hidden (mark all)
+  - Enquiry filter All=6/New=2/back=6; Booking Cancelled=1; Dispute filters work
+  - Calendar Month/Week/Day toggle; block-a-day applies and toasts
+  - **Home → `index.html` keeps the supplier session; re-entering the dashboard passes the
+    gate without re-login; Log-out clears the session and lands on Home** (logout only via button)
+  - Auth gate (`requireRole('supplier', …)`) intact; supplier login still routes here
+  - **Zero horizontal overflow on all 7 panels at 390 / 768 / 1440px**; sidebar hamburger
+    <=1024px; tables scroll inside cards; notification panel docks bottom on phones
+  - **Zero console errors**
+- **Not verified:** no screenshot / no physical device (build-renderer limit, see L24); action
+  buttons are `toast()` acknowledgements (no backend - prototype scope).
 
 ---
 
@@ -1914,7 +2021,7 @@ else.
 - **Verified by measurement:**
   - Auth logic untouched - tab switching, Customer/Business toggle, `handleSignIn()`,
     both credential constants and redirects all unchanged
-  - Customer login → `customer-dashboard.html`; supplier → `dashboard.html`; wrong
+  - Customer login → `customer-dashboard.html`; supplier → `supplier-dashboard.html`; wrong
     credentials → error, **no session, no navigation**; unauthenticated dashboard access →
     bounced to `signin.html`; `?mode=register` deep link works; Customer is the default
   - Geometry within **0.3% of the desktop reference** and **0.2% of the mobile reference**
@@ -1954,7 +2061,7 @@ right (38%). Presentation only - **no authentication logic was touched.**
 - **Verified by measurement:**
   - Auth `<script>` block **byte-for-byte identical** to the deployed version
   - Customer login → `customer-dashboard.html` with a valid `customer` session; supplier
-    login → `dashboard.html` with a `supplier` session
+    login → `supplier-dashboard.html` with a `supplier` session
   - Wrong credentials → error shown, **no session written, no navigation**
   - Unauthenticated `customer-dashboard.html` → redirected to `signin.html` (guard intact)
   - Tab switching, Customer/Business toggle and HTML5 `required` validation all still work

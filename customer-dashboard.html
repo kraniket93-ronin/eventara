@@ -7,7 +7,7 @@
   <title>My Account - Eventara</title>
   <!-- Access gate: customer account is for signed-in Customers only.
        Runs before render to avoid any flash of protected content. -->
-  <script src="auth.js?v=1"></script>
+  <script src="auth.js?v=2"></script>
   <script>Auth.requireRole('customer', 'signin.html?next=customer&role=customer');</script>
   <link rel="stylesheet" href="styles.css?v=15" />
   <style>
@@ -188,6 +188,11 @@
         </div>
         <div class="dashboard-header-right">
           <span class="header-date">July 13, 2026</span>
+          <!-- Home: returns to the marketplace home; session is preserved (plain link, never a logout) -->
+          <a href="index.html" class="btn btn-secondary btn-sm" aria-label="Go to Eventara Home">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            Home
+          </a>
           <a href="brief.html" class="btn btn-primary btn-sm">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             New Request
@@ -583,6 +588,6 @@
     const initial = (location.hash || '').replace('#', '');
     if (initial) showPanel(initial);
   </script>
-  <script src="chatbot.js?v=8"></script>
+  <script src="chatbot.js?v=9"></script>
 </body>
 </html>

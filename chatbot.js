@@ -148,7 +148,7 @@
     reg: '<a href="signin.html?mode=register&type=business">List Your Business</a>',
     signin: '<a href="signin.html">Sign In</a>',
     cdash: '<a href="customer-dashboard.html">My Account</a>',
-    sdash: '<a href="dashboard.html">business portal</a>',
+    sdash: '<a href="supplier-dashboard.html">business portal</a>',
     mail: '<a href="mailto:' + SUPPORT + '">' + SUPPORT + '</a>'
   };
 

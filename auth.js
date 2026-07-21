@@ -56,7 +56,7 @@
     KEY: KEY,
 
     dashboardUrl: function (role) {
-      if (role === 'supplier') return 'dashboard.html';
+      if (role === 'supplier') return 'supplier-dashboard.html';
       if (role === 'customer') return 'customer-dashboard.html';
       return 'index.html';
     },
