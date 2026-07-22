@@ -7,9 +7,9 @@
   <title>My Account - Eventara</title>
   <!-- Access gate: customer account is for signed-in Customers only.
        Runs before render to avoid any flash of protected content. -->
-  <script src="auth.js?v=2"></script>
+  <script src="auth.js?v=3"></script>
   <script>Auth.requireRole('customer', 'signin.html?next=customer&role=customer');</script>
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <link rel="stylesheet" href="styles.css?v=16" />
   <style>
     /* --- Sidebar customer block --- */
     .sidebar-provider {
@@ -106,6 +106,25 @@
       .dashboard-header { flex-direction: column; align-items: flex-start; gap: var(--space-16); }
       .data-table { display: block; overflow-x: auto; }
     }
+
+    /* --- Account Settings panel (mirrors supplier dashboard) --- */
+    .settings-group { margin-bottom: var(--space-24); }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); padding: var(--space-16) 0; border-bottom: 1px solid var(--hairline-light); }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-row .sr-label b { font-size: var(--text-body-sm); display: block; }
+    .setting-row .sr-label span { font-size: var(--text-caption); color: var(--ink-muted); }
+    .switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider { position: absolute; inset: 0; background: var(--hairline-strong); border-radius: var(--radius-pill); cursor: pointer; transition: background var(--duration-fast); }
+    .switch .slider::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform var(--duration-fast); box-shadow: var(--shadow-xs); }
+    .switch input:checked + .slider { background: var(--trust-green); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+    .switch input:focus-visible + .slider { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    /* --- Toast --- */
+    .toast-wrap { position: fixed; bottom: calc(var(--space-24) + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 700; display: flex; flex-direction: column; gap: var(--space-8); align-items: center; pointer-events: none; }
+    .toast { background: var(--ink); color: #fff; padding: 12px 20px; border-radius: var(--radius-pill); font-size: var(--text-body-sm); font-weight: 500; box-shadow: var(--shadow-xl); display: flex; align-items: center; gap: var(--space-8); animation: fadeInUp 0.25s var(--ease-out); max-width: 90vw; }
+    .toast svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--trust-green); }
   </style>
 </head>
 <body style="background: var(--canvas);">
@@ -160,6 +179,10 @@
         <a href="#shortlist" data-panel="shortlist">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           Saved Suppliers
+        </a>
+        <a href="#settings" data-panel="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Account Settings
         </a>
       </nav>
 
@@ -562,6 +585,45 @@
         </div>
       </section>
 
+      <!-- ============ PANEL: ACCOUNT SETTINGS ============ -->
+      <section class="dash-panel" id="panel-settings">
+        <h3 style="margin-bottom: var(--space-4);">Account Settings</h3>
+        <p class="caption text-muted" style="margin-bottom: var(--space-24);">Manage your sign-in, how we reach you, and your privacy. Changes here apply to your Eventara account.</p>
+
+        <div class="card-flat settings-group">
+          <h3>Account</h3>
+          <div class="setting-row">
+            <div class="sr-label"><b>Password</b><span>Last changed 2 months ago</span></div>
+            <button class="btn btn-secondary btn-sm" onclick="settingsToast('Change password dialog opened')">Change</button>
+          </div>
+          <div class="setting-row">
+            <div class="sr-label"><b>Email address</b><span>admin@securemeters.example</span></div>
+            <button class="btn btn-secondary btn-sm" onclick="settingsToast('Email editor opened')">Edit</button>
+          </div>
+          <div class="setting-row">
+            <div class="sr-label"><b>Phone number</b><span>+91 294 •••• ••••</span></div>
+            <span class="badge badge-verified" style="font-size: 11px;">Verified ✓</span>
+          </div>
+        </div>
+
+        <div class="card-flat settings-group">
+          <h3>Notification Preferences</h3>
+          <div class="setting-row"><div class="sr-label"><b>Email</b><span>Quotes, bookings, invoices</span></div><label class="switch"><input type="checkbox" checked onchange="settingsToast('Email notifications updated')"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>SMS</b><span>Payment &amp; event reminders</span></div><label class="switch"><input type="checkbox" checked onchange="settingsToast('SMS notifications updated')"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>WhatsApp</b><span>Booking confirmations</span></div><label class="switch"><input type="checkbox" onchange="settingsToast('WhatsApp notifications updated')"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Push notifications</b><span>Browser &amp; app alerts</span></div><label class="switch"><input type="checkbox" checked onchange="settingsToast('Push notifications updated')"><span class="slider"></span></label></div>
+        </div>
+
+        <div class="card-flat settings-group">
+          <h3>Privacy</h3>
+          <div class="setting-row"><div class="sr-label"><b>Share event details with matched suppliers only</b><span>Your contact stays private until you confirm a booking</span></div><label class="switch"><input type="checkbox" checked onchange="settingsToast('Privacy preference updated')"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Product updates &amp; offers</b><span>Occasional emails from Eventara</span></div><label class="switch"><input type="checkbox" onchange="settingsToast('Marketing preference updated')"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Data preferences</b><span>Manage how your data is used</span></div><button class="btn btn-secondary btn-sm" onclick="settingsToast('Data preferences opened')">Manage</button></div>
+        </div>
+
+        <button class="btn btn-primary" onclick="settingsToast('Settings saved')">Save Settings</button>
+      </section>
+
     </main>
   </div>
 
@@ -587,6 +649,20 @@
     // deep-link on load
     const initial = (location.hash || '').replace('#', '');
     if (initial) showPanel(initial);
+    // react to hash changes (e.g. the account dropdown's My Profile / Account
+    // Settings links when already on the dashboard - no reload, just switch)
+    window.addEventListener('hashchange', () => { const n = (location.hash || '').replace('#', ''); if (n) showPanel(n); });
+
+    // Lightweight toast for settings actions (no backend - prototype)
+    function settingsToast(msg) {
+      let wrap = document.getElementById('toastWrap');
+      if (!wrap) { wrap = document.createElement('div'); wrap.className = 'toast-wrap'; wrap.id = 'toastWrap'; wrap.setAttribute('aria-live', 'polite'); document.body.appendChild(wrap); }
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' + msg;
+      wrap.appendChild(t);
+      setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2200);
+    }
   </script>
   <script src="chatbot.js?v=9"></script>
 </body>

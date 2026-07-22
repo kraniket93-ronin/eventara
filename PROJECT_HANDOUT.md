@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 1.9 (see §18 Change Log) |
+| **Doc version** | 2.0 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-18 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -177,8 +177,8 @@ There is no build hash, so assets are versioned by **query string**, bumped manu
 file changes:
 
 ```html
-<link rel="stylesheet" href="styles.css?v=15">
-<script src="auth.js?v=2"></script>
+<link rel="stylesheet" href="styles.css?v=16">
+<script src="auth.js?v=3"></script>
 <script src="app.js?v=4"></script>
 <script src="chatbot.js?v=9"></script>
 ```
@@ -256,7 +256,7 @@ flat in the root. This is intentional for a no-build prototype. Do not reorganis
 ## 5. PAGE DOCUMENTATION
 
 There are **13 pages**. Every page includes, in `<head>` or before `</body>`:
-`styles.css?v=15` · `auth.js?v=2` · `app.js?v=4` · `chatbot.js?v=9`
+`styles.css?v=16` · `auth.js?v=3` · `app.js?v=4` · `chatbot.js?v=9`
 
 ---
 
@@ -759,9 +759,11 @@ Email · City · GSTIN · Password.
 | **URL** | `/customer-dashboard.html` |
 | **Auth** | **PROTECTED** - `Auth.requireRole('customer', 'signin.html?next=customer&role=customer')` in `<head>` |
 
-**Sidebar sections (8 panels):** Overview · My Profile · Requests & Quotes · My Bookings ·
-Invoices & Records · Payments & Mandate · Disputes · Saved Suppliers. All switch via
-`showPanel()`; no `href="#"` dead links.
+**Sidebar sections (9 panels):** Overview · My Profile · Requests & Quotes · My Bookings ·
+Invoices & Records · Payments & Mandate · Disputes · Saved Suppliers · **Account Settings**
+(added v2.0 - Account, Notification Preferences, Privacy, with toggle switches). All switch via
+`showPanel()`; no `href="#"` dead links. A `hashchange` listener lets the account dropdown's
+`#profile` / `#settings` deep-links switch panels even when already on the dashboard.
 
 **Header:** date · **Home button** (`<a href="index.html">`, home icon, between the date and
 New Request - session preserved, never a logout) · **New Request** (`brief.html`).
@@ -858,8 +860,10 @@ applicants with GSTIN/FSSAI/licence doc chips) · Concierge Booking · Disputes.
 `index.html#how-it-works` · Compare Quotes → `compare.html` · **List Your Business** →
 `signin.html?mode=register&type=business` · **Sign In** → `signin.html`
 
-When signed in, `Auth.renderNav()` **replaces the Sign In button** with an account chip
-(initials + name → the role's dashboard) plus a **Log out** button.
+When signed in, `Auth.renderNav()` **replaces the Sign In button** with the **User Profile
+Dropdown** (see §12) - avatar + name + chevron that opens a role-aware menu (Dashboard ·
+My Profile · Account Settings · Log Out). The standalone Log out button was removed. On mobile
+the same four items are injected into the hamburger menu under an account header.
 
 **Footer (4 columns):**
 
@@ -1062,7 +1066,7 @@ Any page ──► floating chat button (bottom-right) ──► assistant panel
 | `Auth.dashboardUrl(role)` | `'customer-dashboard.html'` \| `'supplier-dashboard.html'` \| `'index.html'` |
 | `Auth.requireRole(role, url)` | **Guard.** If no session or role mismatch → `window.location.replace(url)` |
 | `Auth.logout(redirectTo)` | Clears session, re-renders nav, redirects (default `index.html`) |
-| `Auth.renderNav()` | Swaps "Sign In" for an account chip + Log out, in navbar **and** mobile menu |
+| `Auth.renderNav()` | Swaps "Sign In" for the **User Profile Dropdown** (role-aware: Dashboard / My Profile / Account Settings / Log Out), in navbar **and** hamburger menu. Idempotent; re-run after any nav change. |
 
 ### Storage
 
@@ -1338,7 +1342,8 @@ component framework and no partial/include system - **markup is duplicated acros
 
 | Component | Class(es) | Where used | Purpose |
 |---|---|---|---|
-| **Navbar** | `.navbar`, `.navbar-inner`, `.navbar-logo`, `.navbar-nav`, `.navbar-actions` | All 12 pages | Fixed top nav; `Auth.renderNav()` injects the account chip |
+| **Navbar** | `.navbar`, `.navbar-inner`, `.navbar-logo`, `.navbar-nav`, `.navbar-actions` | 10 navbar pages | Fixed top nav; `Auth.renderNav()` injects the User Profile Dropdown |
+| **User Profile Dropdown** | `.account-menu` > `.account-trigger` (`.account-avatar` + `.account-name` + `.account-chevron`) + `.account-dropdown` (`.account-dd-head`, `.account-dd-item`, `.account-dd-logout`) | Every authenticated navbar page (desktop); `.mobile-account-*` inside `.mobile-menu` on phones | **The** authenticated nav pattern. Built once in `auth.js`, styled in `styles.css`. Role-aware destinations from the session (`dashboardUrl()` + `#profile`/`#settings`). Click / hover / outside-click / ESC / arrow-key + full ARIA (`role=menu`, `aria-haspopup`, `aria-expanded`). |
 | **Logo** | `.logo-img` (→ `logo.svg`) | Navbar, footer, auth card, sidebars | Brand mark. Sizes: 40px nav / 44px footer / 54px auth / 34px sidebar |
 | **Mobile menu** | `.mobile-menu`, `.hamburger` | All pages | Slide-in nav; toggled by `initMobileMenu()` |
 | **Footer** | `.footer`, `.footer-grid`, `.footer-brand`, `.footer-col`, `.footer-tagline`, `.footer-bottom` | All pages | 4-column footer; tagline in royal blue |
@@ -1818,13 +1823,61 @@ Append a new entry for **every** change. Newest first. Bump the version at the t
 
 ---
 
+### Version 2.0 - 2026-07-19
+**Authenticated navigation replaced with a reusable User Profile Dropdown.**
+
+The header's avatar + full name + standalone Log out button became a single **profile menu**:
+**avatar + name + chevron** that opens a dropdown. Built once in `Auth.renderNav()` (`auth.js`)
+and styled in `styles.css`, so it is identical on every authenticated page - no per-page
+duplication.
+
+| Menu item | Customer | Supplier |
+|---|---|---|
+| **Dashboard** | `customer-dashboard.html` | `supplier-dashboard.html` |
+| **My Profile** | `…#profile` | `…#profile` |
+| **Account Settings** | `…#settings` | `…#settings` |
+| **Log Out** | clears session → `index.html` | clears session → `index.html` |
+
+Destinations are derived from the session role (`Auth.dashboardUrl()` + hash) - nothing hard-coded.
+
+| Area | Change |
+|---|---|
+| **Desktop** | `.account-trigger` opens `.account-dropdown`; click-to-open, click-outside & ESC close, ArrowUp/Down move focus, chevron rotates, soft shadow + scale/opacity animation |
+| **Mobile** | Same four items injected into the hamburger `.mobile-menu` under an account header; 44px+ tap targets |
+| **Accessibility** | `role="menu"` / `menuitem`, `aria-haspopup`, `aria-expanded`, `:focus-visible` rings, keyboard operable, `prefers-reduced-motion` respected |
+| **Customer Settings** | Added a real **Account Settings** panel (+ sidebar item) to `customer-dashboard.html` so "Account Settings" has a role-correct destination (Account, Notifications, Privacy) - mirrors the supplier settings |
+| **In-page routing** | Both dashboards gained a `hashchange` listener so the dropdown's `#profile`/`#settings` links switch panels without a reload |
+
+- **Files changed:** `auth.js` (renderNav rewritten to the dropdown), `styles.css` (dropdown +
+  mobile-account styles, old `.account-chip`/`.account-logout` removed), `customer-dashboard.html`
+  (Settings panel + nav item + hashchange), `supplier-dashboard.html` (hashchange). Cache-bust
+  **`auth.js?v=3 → v=3`**, **`styles.css?v=16 → v=16`** across all 13 HTML files.
+- **Sections updated:** §5.10, §6, §9, §12, §18, asset-version strings.
+- **Verified end-to-end:**
+  - Dropdown renders for **both roles** with correct avatar, name and role-aware links; the old
+    standalone Log out button is gone; "Sign In" hidden while authenticated
+  - Open on click; **close on click-outside and ESC**; ArrowUp/Down focus movement; full ARIA
+  - **Customer** Account Settings → `customer-dashboard.html#settings` opens the new Settings
+    panel (toggles work); **Supplier** → `supplier-dashboard.html#settings`
+  - My Profile → each role's `#profile` panel; Dashboard → each role's dashboard
+  - **Log Out** clears the session (+ legacy `sessionStorage`), returns to `index.html`, restores
+    the public "Sign In" nav
+  - Session **persists** across public-page navigation; dropdown present on all 10 navbar pages;
+    dashboards keep their sidebar nav
+  - Mobile: account block inside the hamburger, all items in viewport, 50px tap targets
+  - **No horizontal overflow, no dropdown clipping** at 1280 / 390px; **zero console errors**
+- **Not verified:** no screenshot / no physical device (build-renderer limit, see L24). Prototype
+  settings actions are `toast()` acknowledgements (no backend).
+
+---
+
 ### Version 1.9 - 2026-07-19
 **Supplier dashboard renamed to `supplier-dashboard.html`; customer dashboard gains a Home button.**
 
 | Change | Detail |
 |---|---|
 | **Rename** | `dashboard.html` → **`supplier-dashboard.html`**. Every reference updated (boundary-aware, so `customer-dashboard.html` was untouched): `auth.js` (`dashboardUrl`), `signin.html` (business register + sign-in redirect), `invoice.html` (Venue's-view link), `chatbot.js` (business-portal link), and this document. |
-| **Cache-bust** | `auth.js?v=1 → v=2` and `chatbot.js?v=8 → v=9` across all 13 HTML files - a cached `auth.js` would otherwise redirect suppliers to the old, now-404 filename. |
+| **Cache-bust** | `auth.js?v=1 → v=2` and `chatbot.js?v=9 → v=9` across all 13 HTML files - a cached `auth.js` would otherwise redirect suppliers to the old, now-404 filename. |
 | **Customer Home button** | Added to the customer dashboard header, **between Date and New Request** (`.btn.btn-secondary.btn-sm`, home icon), matching the supplier dashboard. Plain `index.html` link - preserves the session. |
 
 - **Files changed:** `dashboard.html` renamed to `supplier-dashboard.html`; `auth.js`,
