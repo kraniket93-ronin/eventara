@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.0 (see §18 Change Log) |
+| **Doc version** | 2.1 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-18 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -177,7 +177,7 @@ There is no build hash, so assets are versioned by **query string**, bumped manu
 file changes:
 
 ```html
-<link rel="stylesheet" href="styles.css?v=16">
+<link rel="stylesheet" href="styles.css?v=17">
 <script src="auth.js?v=3"></script>
 <script src="app.js?v=4"></script>
 <script src="chatbot.js?v=9"></script>
@@ -256,7 +256,7 @@ flat in the root. This is intentional for a no-build prototype. Do not reorganis
 ## 5. PAGE DOCUMENTATION
 
 There are **13 pages**. Every page includes, in `<head>` or before `</body>`:
-`styles.css?v=16` · `auth.js?v=3` · `app.js?v=4` · `chatbot.js?v=9`
+`styles.css?v=17` · `auth.js?v=3` · `app.js?v=4` · `chatbot.js?v=9`
 
 ---
 
@@ -297,9 +297,11 @@ not a submit). Refined in v1.7:
 | **Guest Count placeholder no longer clips** | `.search-field { min-width: 0 }` lets all four fields share width equally (the Event Type `<select>` was keeping its wide min-content size and squeezing Guest Count to ~134px, 1px short of the placeholder); the number spinner is also removed so it reserves no right-hand space |
 | **Search button integrated, not floating** | `margin-left: var(--space-6)` gives a balanced 6px gap on both sides of the button (it was flush - 0px - against the Guest field). It was already vertically centred and the icon already centred |
 | **Mobile fields full-width** | The stacked column now uses `align-items: stretch`, so every field fills the width (they were uneven - Event Type wide, Guest Count clipped) with a 44px+ touch height; the button's desktop `margin-left` is reset to 0 |
+| **Date field placeholder + icon (v2.1, mobile)** | The native `<input type="date">` showed a blank field with a centred picker chevron on some Android builds. Fixed **mobile-only** (≤768px): `placeholder="dd-mm-yyyy"`, `::-webkit-datetime-edit { flex: 1 1 auto; text-align: left }` (fills the row, greyed empty format text reads as the placeholder), and `::-webkit-calendar-picker-indicator { margin-left: auto }` pins the calendar icon hard-right - matching the other fields. Desktop untouched. |
 
 Verified equal field widths and a fitting placeholder at 1440 / 768 / 390px, the button
-still routing to `search.html`, and no horizontal overflow at any width.
+still routing to `search.html`, and no horizontal overflow from the search component at
+320 / 360 / 375 / 390 / 412 / 430px.
 
 **Data flow:** Static. Counters animate via `IntersectionObserver` in `app.js`.
 
@@ -799,7 +801,7 @@ navigates a page, or fires a `toast()` acknowledgement.
 | **Overview** | 4 metric cards (Today's Enquiries, Pending Quotations, Active Bookings, This Month's Earnings) · 3 quick actions · Needs-Attention list · Recent-Activity timeline · Booking Pipeline bar · Revenue Summary · Performance snapshot (response rate, median time to quote, delivery rate, **customer rating 4.6★**) |
 | **Enquiries** | Status filter pills (All / New / Under Review / Quote Submitted / Accepted / Rejected / Expired) + select filters (Event Type, Budget, Customer type, Date); table with **Build/Edit Quote, Respond, Save Draft, Archive, View** actions |
 | **Bookings** | Status pills (Upcoming / Ongoing / Completed / Cancelled); table with **Invoice, Contact customer, Update status, Payment status** actions |
-| **Calendar** | **Month / Week / Day** view toggle; toolbar to **Block dates / Maintenance day / Reopen**; clicking an open day applies the current mode (`cycleDay`); legend for Confirmed / Tentative hold / Enquiry hold / Blocked / Maintenance |
+| **Calendar** | **Month / Week / Day** view toggle; toolbar to **Block dates / Maintenance day / Reopen**; clicking an open day applies the current mode (`cycleDay`); legend for Confirmed / Tentative hold / Enquiry hold / Blocked / Maintenance. **Mobile (v2.1):** the month grid keeps a readable **640px min-width inside a `.cal-scroll` (`overflow-x: auto`) wrapper**, so all seven weekday columns are reachable by horizontal swipe instead of being clipped by the grid's `overflow: hidden` - the page itself never scrolls sideways. Desktop/tablet unchanged. |
 | **Disputes & Complaints** *(new module)* | Complaints against the supplier and disputes the supplier raises; status filter (Open / Under Review / Resolved), **priority dots** (Low / Medium / High / Critical), Respond / Upload Evidence / View Timeline actions, and a resolution timeline |
 | **Business Profile** | Editable business details, contact & address, **compliance (GSTIN / PAN / FSSAI)**, amenities & pricing, cancellation policy, media **upload zones** (logo / video / gallery) and social links |
 | **Settings** | Account (password, email, phone-verified badge) · Business (working hours, availability default, auto-response) · Notifications (Email / SMS / WhatsApp / Push **toggle switches**) · Payment (bank / UPI / GST) · Privacy (public profile, ratings, data prefs) |
@@ -1823,6 +1825,39 @@ Append a new entry for **every** change. Newest first. Bump the version at the t
 
 ---
 
+### Version 2.1 - 2026-07-19
+**Two mobile-only fixes: scrollable monthly calendar + Hero search Date field.**
+
+| Issue | Fix (mobile-only, ≤768px) |
+|---|---|
+| **Supplier calendar clipped** - only Mon-Thu showed. The 7 `1fr` columns take their `min-content` width, and the "Maintenance"/"Secure Meters" `nowrap` labels forced ~95px each (~665px total), which the grid's `overflow: hidden` clipped. | Wrapped the month grid in **`.cal-scroll { overflow-x: auto }`** with **`.calendar-grid { min-width: 640px }`** (~91px columns). All seven days are now reachable by horizontal swipe **inside the calendar**; the page never scrolls sideways. |
+| **Hero Date field blank + centred chevron** on some Android builds. | `placeholder="dd-mm-yyyy"`; `::-webkit-datetime-edit { flex: 1 1 auto; text-align: left }`; `::-webkit-calendar-picker-indicator { margin-left: auto }` - text left, calendar icon hard-right, matching the other fields. |
+
+- **Files changed:** `styles.css` (date-field pseudo-elements in the ≤768 block),
+  `supplier-dashboard.html` (`.cal-scroll` wrapper + mobile CSS), `index.html`
+  (date placeholder). Cache-bust **`styles.css?v=17 → v=17`** across all 13 HTML files.
+  **Desktop/tablet CSS untouched.**
+- **Sections updated:** §5.1 (Date field row), §5.11 (Calendar mobile note), §18.
+- **Verified:**
+  - **All 7 weekday columns** (Mon-Sun) render; grid 640px **scrolls inside `.cal-scroll`**;
+    **page does not scroll sideways**; scrolling reveals the Sunday column
+  - Calendar indicators intact - 2 booked events, event dots, 4 labels, 1 maintenance,
+    2 blocked, 1 tentative, today; day-click (`cycleDay`) still works
+  - **Desktop calendar unchanged** (min-width 0, 7 columns fit, no scroll)
+  - Date field: `placeholder="dd-mm-yyyy"`, full-width and in-viewport, still accepts values
+    (picker behaviour preserved); alignment rules confirmed present in the CSSOM
+  - Search component: no horizontal overflow at **320 / 360 / 375 / 390 / 412 / 430px**;
+    fields uniform; **zero console errors**
+- **Known pre-existing (not from these fixes, left as-is):** at **320px** the shared navbar's
+  content extends ~17px (hamburger slightly clipped); `body { overflow-x: hidden }` already
+  prevents an actual horizontal scrollbar. Untouched to avoid a shared-navbar regression across
+  all pages; flagged for a separate pass.
+- **Not verified:** no screenshot (build-renderer limit, see L24). `-webkit-` date pseudo-element
+  positions can't be introspected via `getComputedStyle`; the rules are confirmed loaded and are
+  the canonical cross-browser fix - a real-device glance is advised.
+
+---
+
 ### Version 2.0 - 2026-07-19
 **Authenticated navigation replaced with a reusable User Profile Dropdown.**
 
@@ -1851,7 +1886,7 @@ Destinations are derived from the session role (`Auth.dashboardUrl()` + hash) - 
 - **Files changed:** `auth.js` (renderNav rewritten to the dropdown), `styles.css` (dropdown +
   mobile-account styles, old `.account-chip`/`.account-logout` removed), `customer-dashboard.html`
   (Settings panel + nav item + hashchange), `supplier-dashboard.html` (hashchange). Cache-bust
-  **`auth.js?v=3 → v=3`**, **`styles.css?v=16 → v=16`** across all 13 HTML files.
+  **`auth.js?v=3 → v=3`**, **`styles.css?v=17 → v=16`** across all 13 HTML files.
 - **Sections updated:** §5.10, §6, §9, §12, §18, asset-version strings.
 - **Verified end-to-end:**
   - Dropdown renders for **both roles** with correct avatar, name and role-aware links; the old

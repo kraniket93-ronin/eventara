@@ -9,7 +9,7 @@
        Runs before render to avoid any flash of protected content. -->
   <script src="auth.js?v=3"></script>
   <script>Auth.requireRole('supplier', 'signin.html?next=dashboard&role=business');</script>
-  <link rel="stylesheet" href="styles.css?v=16" />
+  <link rel="stylesheet" href="styles.css?v=17" />
   <style>
     /* ============================================================
        SUPPLIER DASHBOARD - page-scoped styles
@@ -205,6 +205,15 @@
       .card-flat .data-table { width: max-content; min-width: 100%; }
       .gallery-grid { grid-template-columns: repeat(2, 1fr); }
       .notif-panel { position: fixed; top: auto; bottom: 0; right: 0; left: 0; width: 100%; max-width: 100%; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+
+      /* Monthly calendar: 7 columns compress below their content width and were
+         clipped by the grid's overflow:hidden (only Mon-Thu showed). Keep a
+         readable min column width and scroll horizontally inside this wrapper -
+         the page itself never scrolls sideways. Desktop/tablet are unchanged. */
+      .cal-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-xl); }
+      .cal-scroll .calendar-grid { min-width: 640px; }
+      /* Slightly tighter day cells so 640px fits ~91px columns comfortably */
+      .cal-scroll .calendar-day, .cal-scroll .calendar-day-header { padding: var(--space-8); }
     }
   </style>
 </head>
@@ -618,6 +627,9 @@
         <div class="cal-view active" id="cal-month">
           <div class="card-flat">
             <h3 style="margin-bottom: var(--space-16);">July 2026</h3>
+            <!-- cal-scroll: on mobile the 7 columns keep a readable min-width and
+                 this wrapper scrolls horizontally instead of clipping (desktop unaffected) -->
+            <div class="cal-scroll">
             <div class="calendar-grid">
               <div class="calendar-day-header">Mon</div><div class="calendar-day-header">Tue</div><div class="calendar-day-header">Wed</div><div class="calendar-day-header">Thu</div><div class="calendar-day-header">Fri</div><div class="calendar-day-header">Sat</div><div class="calendar-day-header">Sun</div>
 
@@ -661,6 +673,7 @@
               <div class="calendar-day empty"></div>
               <div class="calendar-day empty"></div>
             </div>
+            </div><!-- /.cal-scroll -->
           </div>
         </div>
 

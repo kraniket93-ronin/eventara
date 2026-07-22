@@ -2431,6 +2431,13 @@ textarea.input-field {
     padding: var(--space-12);
   }
   .search-bar .search-field { padding: 14px 16px; }   /* full-width now, so the field is the touch row */
+  /* Date field: match the other stacked inputs - value/placeholder text on the
+     left, calendar icon pinned to the right and vertically centred. Empty date
+     inputs ignore [placeholder], but the browser's own dd-mm-yyyy format text
+     (greyed while empty) reads as the placeholder once it is left-aligned.
+     Fixes the "blank field with a centred chevron" seen on some Android builds. */
+  .search-bar input[type="date"]::-webkit-datetime-edit { flex: 1 1 auto; text-align: left; }
+  .search-bar input[type="date"]::-webkit-calendar-picker-indicator { margin-left: auto; flex-shrink: 0; }
   .search-bar .search-divider { width: 100%; height: 1px; }
   .search-bar .search-btn { width: 100%; border-radius: var(--radius-xl); height: 48px; margin-left: 0; }
 
