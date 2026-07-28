@@ -7,7 +7,10 @@
   <title>Sign In / Register - Eventara</title>
   <link rel="stylesheet" href="styles.css?v=17">
   <link rel="preload" as="image" href="images/login-bg.jpg">
-  <script src="auth.js?v=3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="auth-supabase.js?v=1"></script>
   <style>
     /* ==========================================================
        SIGN IN / REGISTER
@@ -674,11 +677,21 @@
     const SUPPLIER_LOGIN = { email: 'hotel@eventara.in',    password: 'udaipur@2026' };
     const CUSTOMER_LOGIN = { email: 'customer@eventara.in', password: 'udaipur@2026' };
 
-    function handleSignIn(event) {
+    async function handleSignIn(event) {
       event.preventDefault();
       const email = document.getElementById('signin-email').value.trim().toLowerCase();
       const password = document.getElementById('signin-password').value;
       const err = document.getElementById('signin-error');
+      err.style.display = 'none';
+
+      // Live mode: authenticate against real Supabase Auth (Postgres-backed,
+      // RLS-enforced). Auth.signIn() redirects on success. Falls through to
+      // the offline demo check below only if the live attempt errors -
+      // covers a network hiccup without breaking the demo mid-presentation.
+      if (window.EVENTARA_LIVE) {
+        const r = await Auth.signIn(email, password);
+        if (!r.error) return;
+      }
 
       if (email === SUPPLIER_LOGIN.email && password === SUPPLIER_LOGIN.password) {
         Auth.login('supplier', { name: 'Paandora Grand Udaipur', email: email });

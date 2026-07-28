@@ -6,7 +6,10 @@
   <meta name="description" content="Confirm your booking on Eventara. Pay a small deposit to confirm - it stays protected and is only released to your venue after your event.">
   <title>Confirm Your Booking - Eventara</title>
   <link rel="stylesheet" href="styles.css?v=17">
-  <script src="auth.js?v=3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="auth-supabase.js?v=1"></script>
   <style>
     .booking-cols { display: grid; grid-template-columns: 1.5fr 1fr; gap: var(--space-32); align-items: start; }
     /* Let grid columns shrink to the track instead of being forced wide by content */
