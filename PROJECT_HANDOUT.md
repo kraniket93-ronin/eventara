@@ -11,8 +11,8 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.1 (see §18 Change Log) |
-| **Last verified against code** | 2026-07-18 |
+| **Doc version** | 2.3 (see §18 Change Log) |
+| **Last verified against code** | 2026-07-29 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
 > The **GitHub repo root == the contents of the local `prototype/` folder.**
@@ -1819,9 +1819,192 @@ add automated tests.
 
 ---
 
+## 19. BACKEND ARCHITECTURE (Supabase)  [added v2.2]
+
+The prototype now ships a complete, apply-ready **Supabase backend** as versioned
+migrations plus a non-breaking front-end integration layer. It converts the app from a
+static/localStorage demo into a real Postgres-backed marketplace. Delivered as code (the
+Supabase connector was not available in-session), applied by the team via the SQL editor or
+`supabase db push` - see `prototype/supabase/APPLY_GUIDE.md`.
+
+### 19.1 Folder structure
+```
+prototype/
+  supabase/
+    migrations/
+      0001_schema.sql     35 tables, enums, PK/FK/unique/check/composite keys, indexes
+      0002_rls.sql        Row-Level Security enabled + role-aware policies on every table
+      0003_functions.sql  RPCs: create_booking, accept/reject_quote, release_escrow,
+                          cancel_booking, generate_invoice(+number), calculate_supplier_rating,
+                          update_availability, supplier/customer_dashboard_stats, search_suppliers, notify
+      0004_triggers.sql   updated_at, ref generators, review->rating, payment sync, verification,
+                          audit logging, and auth.users -> profiles (handle_new_user)
+      0005_views.sql      v_supplier/customer_dashboard, v_upcoming_bookings, v_pending_quotes,
+                          v_revenue_summary, v_monthly_analytics, v_availability_summary,
+                          v_disputes_overview, v_notification_feed, v_supplier_public
+      0006_storage.sql    8 storage buckets + object policies
+      0007_seed.sql       demo data (Paandora Grand, Secure Meters, quote, booking, review, dispute)
+    APPLY_GUIDE.md        apply + connect + env-vars + test checklist
+  supabase-config.js      URL + anon key (you fill in; blank = offline demo mode)
+  supabase-client.js      creates window.sb only when configured
+  auth-supabase.js        drop-in auth.js: same public API, Supabase Auth when live, localStorage fallback
+  data-api.js             EventaraAPI - live queries that replace all mock data
+  api/                    Vercel serverless fns (existing chat.js; add payments/webhooks here)
+```
+
+### 19.2 Database (schema overview)
+Normalized into clear domains (all keys, cascades and indexes in `0001_schema.sql`):
+- **Identity/RBAC:** `profiles` (1:1 `auth.users`), `user_preferences`, `roles`, `permissions`, `role_permissions`.
+- **Customer:** `customer_profiles`.
+- **Supplier:** `suppliers`, `supplier_profiles`, `supplier_services`, `venues`, `venue_images`.
+- **Compliance:** `kyc_verification`, `gst_details`, `bank_accounts`, `documents`.
+- **Catalog/demand:** `event_types`, `event_requests` -> `quotes` -> `quote_line_items`.
+- **Transaction:** `bookings`, `payments`, `escrow_transactions`, `wallet_ledger`, `invoices`.
+- **Trust:** `reviews` (unique per booking; rating rolls up to `suppliers.rating`).
+- **Scheduling:** `availability` (composite PK `supplier_id,day`; single source of truth).
+- **Comms:** `conversations`, `messages`, `notifications`.
+- **Disputes:** `disputes`, `dispute_events`.
+- **Ops:** `audit_logs`, `activity_logs`, `login_events`.
+
+Relationship spine: `auth.users 1-1 profiles`; `profiles 1-* event_requests 1-* quotes 1-* quote_line_items`;
+`quotes 1-1 bookings 1-* payments/escrow/invoices`; `bookings 1-1 reviews`; `suppliers 1-* venues 1-* venue_images`;
+`suppliers 1-* availability`. 19 enum types model the state machines (request/quote/booking/payment/escrow/dispute/verify).
+
+### 19.3 Authentication & roles
+- **Supabase Auth**, email/password with email verification and password reset. JWT access tokens (1h) + rotating refresh tokens; sessions persisted and auto-refreshed client-side.
+- **Role** (`customer`/`supplier`/`admin`) comes from signup metadata and is written to `profiles` by the `handle_new_user` trigger; read in policies via `public.current_role()` / `public.is_admin()`.
+- **Login flow:** `Auth.signIn(email,pw)` -> Supabase verifies -> `onAuthStateChange` refreshes a synchronous session *mirror* in `localStorage` -> navbar re-renders -> redirect to the role's dashboard.
+- **Guard:** `Auth.requireRole()` reads the mirror for a fast route check; the real boundary is RLS (a faked mirror grants no data).
+
+### 19.4 Row-Level Security (authorization model)
+RLS is enabled on all 34 data tables. Policy pattern:
+- **Customers** read/write only rows where they are the `customer_id`.
+- **Suppliers** read/write only rows tied to a `suppliers` row they `own`.
+- **Admins** (`is_admin()`) see everything.
+- **Public marketplace** (active suppliers, venues, published reviews, availability, lookups) is world-readable.
+- **Sensitive** tables (KYC, bank, GST, payments, escrow, ledger, invoices, audit) are owner+admin only.
+- **State-changing money operations** run through `SECURITY DEFINER` RPCs with `search_path` pinned, so business rules (deposit %, escrow hold, availability booking) are enforced server-side, not in the browser.
+
+### 19.5 Storage
+8 buckets (`0006_storage.sql`): public read for `supplier-images`, `venue-images`, `profile-pictures`;
+private (owner/admin only) for `kyc-documents`, `invoices`, `gst-documents`, `dispute-evidence`, `booking-attachments`.
+Upload convention: objects live under a `"<auth.uid()>/..."` folder; object policies enforce it.
+
+### 19.6 API surface
+- **Auto REST/Realtime** over every table (PostgREST), gated by RLS - the front-end calls `sb.from('table')...`.
+- **RPCs** (`sb.rpc(...)`) for transactions: `create_booking`, `accept_quote`, `reject_quote`, `release_escrow`, `cancel_booking`, `generate_invoice`, `update_availability`, `search_suppliers`, `supplier_dashboard_stats`, `customer_dashboard_stats`, `notify`.
+- **Views** for read models (dashboards/analytics), all `security_invoker` so RLS still applies.
+- `data-api.js` wraps these as `EventaraAPI.*`; each returns `{data,error}` and degrades gracefully offline.
+
+### 19.7 Security & env vars
+Server secrets live only in Vercel env (`SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` [rotate], payment/email/WhatsApp keys). The browser only ever gets the **anon** key, which is safe because RLS enforces access. Passwords are hashed by Supabase (bcrypt); input is validated in RPCs and by DB constraints; audit + login events give a trail. Repo should be made **private**.
+
+### 19.8 Activation (non-breaking)
+While `supabase-config.js` is blank the app runs in **offline demo mode** exactly as before - nothing breaks. Filling the URL + anon key, swapping `auth.js` -> `auth-supabase.js`, and binding pages to `EventaraAPI` turns it live incrementally, page by page.
+
+---
+
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.3 - 2026-07-29
+**Supabase backend applied live and the platform connected to it - the prototype now runs on a real database.**
+
+The v2.2 migrations existed only as unapplied files. This change actually runs them against the
+live "Eventara" Supabase project (`jqqliblliwluzdjcmcgz`, ap-south-1) and wires the front end to it.
+
+- **Applied all 7 migrations** (`0001_schema.sql` -> `0007_seed.sql`) via the Supabase MCP connector:
+  35 tables, 19 enums, RLS enabled + policies on every data table, all RPCs/triggers/views, 8 storage
+  buckets, and seed data (Paandora Grand Udaipur, Secure Meters Ltd, a live+a completed booking,
+  a review, a dispute, notifications).
+- **Two real bugs found and fixed while applying `0004_triggers.sql`'s generic `trg_audit()`**
+  (both were latent in the delivered file, not introduced here):
+  1. It referenced `old.id` inside a `CASE` even on `INSERT` - Postgres errors before evaluating
+     the branch, because `OLD` has no bound row on insert (same problem in reverse for `NEW` on
+     `DELETE`). Rewritten as an `if tg_op = 'DELETE' ... else ...` so the unbound record is never
+     touched.
+  2. `kyc_verification`'s primary key is `supplier_id`, not `id` - a hardcoded `NEW.id` fails to
+     compile for that table. The id is now pulled dynamically via `to_jsonb(new)->>'id'` with
+     `supplier_id`/`booking_id` fallbacks, so the one generic audit trigger works across tables
+     with different primary-key names.
+  Fixed both live (`0004_triggers.sql` corrected in place) and in the source migration file, so a
+  fresh apply from `0001` onward hits neither bug.
+- **Added `0008_security_hardening.sql`** closing WARN-level findings from Supabase's security
+  advisor after the apply: pinned `search_path` on 6 helper/trigger functions the linter flagged as
+  mutable, and revoked `anon`/`authenticated` EXECUTE on 5 functions that must only ever run as
+  triggers (`handle_new_user`, `trg_audit`, `trg_payment_after`, `trg_review_after`,
+  `trg_supplier_verified`) - they were unintentionally exposed as public RPC endpoints.
+- **`supabase-config.js` filled in** with the live project URL and anon key (safe to expose - RLS
+  is the real boundary, per the file's own comment).
+- **All 13 HTML pages switched from `auth.js` to the live stack**: each now loads
+  `@supabase/supabase-js@2` (CDN) -> `supabase-config.js` -> `supabase-client.js` ->
+  `auth-supabase.js?v=1`, replacing the single `auth.js?v=3` include, in that order and still
+  render-blocking (no `defer`/`async`) so the `<head>` `Auth.requireRole()` guards on both
+  dashboards still run synchronously against a same-tick session mirror.
+- **`signin.html`'s `handleSignIn()` now calls `Auth.signIn(email, password)` first when
+  `window.EVENTARA_LIVE` is true** (real Supabase Auth, `await`ed); it only falls through to the
+  original hardcoded-credential offline check if the live attempt errors. This means the two demo
+  accounts now authenticate against Postgres for real, not a localStorage shortcut.
+- **Sections updated:** header table (doc version, last verified), §18, §19 note below.
+- **Verified end-to-end in a browser** (`python -m http.server` serving `prototype/`, not `file://`):
+  - `window.sb`, `window.EVENTARA_LIVE`, `window.supabase` all `true` on load; **zero console errors**
+    on `signin.html`, `customer-dashboard.html`, `supplier-dashboard.html`
+  - **`customer@eventara.in` / `udaipur@2026`** -> `Auth.signIn()` returns a real Supabase session
+    -> redirects to `customer-dashboard.html` -> renders "Welcome back, Secure Meters" -> auth
+    guard passes. Decoded the returned JWT: `sub` = the seeded customer's real `auth.users` UUID,
+    issuer = the live project's `/auth/v1`, signed - not a mock token.
+  - **`hotel@eventara.in` / `udaipur@2026`** -> same path -> `supplier-dashboard.html` ->
+    "Supplier Portal - Paandora Grand Udaipur" - correct role read back from `profiles` via RLS.
+  - `list_tables` after seeding: all 33 tables present, `rls_enabled: true` on every one, non-zero
+    row counts matching the seed (profiles=3, suppliers=1, bookings=2, quotes=1, reviews=1,
+    disputes=1, notifications=4, etc).
+  - Security advisor re-run after `0008`: the pinned-search-path and internal-trigger-EXECUTE
+    findings are gone; remaining WARNs are `citext` living in the `public` schema (cosmetic) and
+    "leaked password protection disabled" (an Auth dashboard toggle, not a migration).
+- **Known limitation introduced by this change (be upfront about it):** the **Register** forms
+  (`signin.html`, both Customer and Business) still call the offline `Auth.login()` path only - they
+  do **not** call `Auth.signUp()` yet. A live sign-up would leave the new user unable to log in until
+  they confirm their email, and no email provider is configured for this project, so wiring
+  registration to `Auth.signUp()` now would silently strand every new sign-up. Left on the offline
+  path deliberately until either email confirmation is disabled for the project or an email
+  provider is configured - whichever the team decides. Sign-in for the two seeded accounts is fully
+  live; registration is not, yet.
+- **Not done here (§19.8's page-by-page activation, still open):** search/provider/compare/booking/
+  brief/invoice/ops pages still render the original static demo markup - they have not been rebound
+  to `EventaraAPI`/`data-api.js` to read and write real rows. Only the auth layer is live. Persisting
+  a new event request, quote, or booking through the UI still does nothing (same as before this
+  change) even though the tables and RPCs to do so now exist and work (verified directly via SQL,
+  not yet from the UI).
+
+---
+
+### Version 2.2 - 2026-07-22
+**Supabase backend delivered as apply-ready migrations + non-breaking front-end integration.**
+
+Resolves the audit's database/auth/backend/persistence "Critical" issues with real
+infrastructure (applied by the team - the Supabase connector was unavailable in-session, so
+this ships as production-grade migrations rather than live clicks).
+
+- **Added `prototype/supabase/migrations/` (7 files):** full normalized schema (35 tables,
+  19 enums, all keys/constraints/indexes), RLS + role policies on every data table, business
+  RPCs, triggers (incl. `auth.users`->`profiles`), dashboard/analytics views, 8 storage
+  buckets + policies, and realistic seed data.
+- **Added front-end integration:** `supabase-config.js`, `supabase-client.js`,
+  `auth-supabase.js` (drop-in `auth.js` with the same public API + Supabase Auth + offline
+  fallback), `data-api.js` (`EventaraAPI` live queries replacing mock data), and
+  `supabase/APPLY_GUIDE.md`.
+- **Non-breaking:** new files are inert until `supabase-config.js` is filled; the current
+  demo runs unchanged. Verified: index still loads on the original `auth.js`, no console
+  errors, no layout regression.
+- **Validated statically:** schema parses (sqlglot, 73 statements), all 47 FKs resolve to
+  defined tables, `$$`/paren balance checks pass on every migration, all 4 new JS files pass
+  `node --check`.
+- **Sections updated:** new §19 (Backend Architecture), §18.
+- **Not done here (needs a live project + keys):** executing the migrations against your
+  Supabase instance and end-to-end runtime testing against live data. Apply guide covers it.
 
 ---
 
