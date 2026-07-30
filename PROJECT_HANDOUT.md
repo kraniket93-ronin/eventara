@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.3 (see §18 Change Log) |
+| **Doc version** | 2.4 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-29 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -155,7 +155,7 @@ Every page is a standalone HTML file that a browser can open directly.
 
 | Layer | Technology | Notes |
 |---|---|---|
-| **Markup** | HTML5, semantic | 13 standalone pages, no templating |
+| **Markup** | HTML5, semantic | 14 standalone pages, no templating |
 | **Styling** | Vanilla CSS, one file | `styles.css` (2,394 lines) - CSS custom properties design system |
 | **Fonts** | Inter via Google Fonts | `@import` at the top of `styles.css` |
 | **Scripting** | Vanilla JavaScript (ES5-style, no transpiling) | `app.js`, `auth.js`, `chatbot.js` |
@@ -177,7 +177,7 @@ There is no build hash, so assets are versioned by **query string**, bumped manu
 file changes:
 
 ```html
-<link rel="stylesheet" href="styles.css?v=17">
+<link rel="stylesheet" href="styles.css?v=19">
 <script src="auth.js?v=3"></script>
 <script src="app.js?v=4"></script>
 <script src="chatbot.js?v=9"></script>
@@ -203,7 +203,8 @@ Project B Prototype/                  ← LOCAL project root (NOT the repo root)
     │
     ├── index.html                    Homepage / landing
     ├── search.html                   Find Suppliers - listing + filters
-    ├── provider.html                 Supplier profile (Paandora Grand)
+    ├── provider.html                 Legacy - redirects to supplier.html?slug=paandora-grand-udaipur
+    ├── supplier.html                 ★ Dynamic Supplier Detail Page - one template, all suppliers
     ├── brief.html                    Get Free Quotes - multi-step request form
     ├── compare.html                  Quote comparison table
     ├── booking.html                  Booking confirmation + deposit payment
@@ -255,8 +256,10 @@ flat in the root. This is intentional for a no-build prototype. Do not reorganis
 
 ## 5. PAGE DOCUMENTATION
 
-There are **13 pages**. Every page includes, in `<head>` or before `</body>`:
-`styles.css?v=17` · `auth.js?v=3` · `app.js?v=4` · `chatbot.js?v=9`
+There are **14 pages**. Every page includes, in `<head>` or before `</body>`:
+`styles.css?v=19` · `auth-supabase.js?v=1` · `app.js?v=4` · `chatbot.js?v=9` (plus the Supabase SDK
++ `supabase-config.js` + `supabase-client.js`, loaded before `auth-supabase.js` on every page since
+v2.3). `supplier.html` additionally loads `data-api.js?v=1` - the first and so far only page to.
 
 ---
 
@@ -350,25 +353,18 @@ attributes. Consequences:
 
 ---
 
-### 5.3 `provider.html` - Supplier Profile
+### 5.3 `provider.html` - Legacy redirect (retired v2.4)
 
 | Field | Detail |
 |---|---|
-| **Purpose** | Full supplier profile - gallery, about, packages, reviews, similar suppliers |
+| **Purpose** | Backward-compatibility stub only. Was the single hard-coded Paandora Grand profile page (documented as limitation L6); replaced platform-wide by `supplier.html` in v2.4. |
 | **URL** | `/provider.html` |
 | **Auth** | Public |
-| **Connected pages** | `brief.html` (Send Brief for Quote), `search.html` |
+| **Behaviour** | An inline `<script>` fires `window.location.replace('supplier.html?slug=paandora-grand-udaipur')` on load (`.replace()`, so it never enters browser history); a `<noscript>` meta-refresh and a plain visible link cover the no-JS case. |
 
-**⚠️ Single-profile limitation:** This page is **hard-coded to Paandora Grand Udaipur**. Every
-supplier card on `search.html` and `index.html` links here regardless of which supplier was
-clicked. Making profiles per-supplier is a known roadmap item (§16).
-
-**Sections:** Photo gallery (lightbox) → Name/verified badge/rating/address → About → Packages
-(3 tiers: ₹4L / ₹9L / ₹18L) → Inclusions → Reviews (3, "only real customers who booked can
-review") → Similar Suppliers (Sterling Balicha, Blossom Events, Hotel Aloka).
-
-**Anti-leakage rule enforced here:** no outbound links to supplier websites, Instagram or
-YouTube. Media is displayed in-platform only. **Do not add external supplier links.**
+Kept on disk (not deleted) so old bookmarks or external links to `provider.html` still land
+somewhere correct instead of a dead page. No page in the product links to it any more - every
+supplier card now points directly at `supplier.html?slug=...` (see §5.13).
 
 ---
 
@@ -854,6 +850,92 @@ applicants with GSTIN/FSSAI/licence doc chips) · Concierge Booking · Disputes.
 
 ---
 
+### 5.13 `supplier.html` - Supplier Detail Page (dynamic, added v2.4)
+
+| Field | Detail |
+|---|---|
+| **Purpose** | One reusable, database-driven profile page for every supplier - replaces the old single hard-coded `provider.html`. |
+| **URL** | `/supplier.html?slug=<slug>` (preferred, e.g. `?slug=paandora-grand-udaipur`) or `/supplier.html?id=<uuid>` (fallback) |
+| **Auth** | Public |
+| **Connected pages** | `search.html` (every card), `index.html` (3 featured cards), `brief.html` (Request Quote / package CTAs), `compare.html` |
+
+**Architecture:** a single generic template with no supplier-specific markup or logic anywhere in
+the file. On load it reads `slug` (preferred) or `id` from the query string, calls
+`EventaraAPI.getSupplierDetail(idOrSlug)`, and renders every section from whatever the query
+returns. Adding a new supplier to Supabase (a `suppliers` row + any child rows) makes it fully
+browsable with zero front-end changes - the slug is auto-generated by a database trigger
+(`trg_set_supplier_slug`, see §19.2) from `business_name` if not supplied.
+
+**Data fetch - one round trip:** `getSupplierDetail()` (`data-api.js`) issues a single PostgREST
+query against `suppliers` with nested-resource embedding for `supplier_profiles`, `venues(*,
+venue_images(*))`, `supplier_media`, `supplier_services`, `supplier_packages`, `supplier_faqs`
+and `reviews` - no N+1 queries. Whether the URL param is a slug or a UUID is decided **client-side
+via a regex** before the query is built (`.or('slug.eq.x,id.eq.x')` was deliberately avoided -
+Postgres throws trying to cast a non-UUID slug for the `id.eq` branch, regardless of OR
+short-circuiting). `reviews` needs no explicit `status='published'` filter in the query - the
+existing `reviews_public_read` RLS policy already restricts anonymous reads to published rows.
+
+**Sections rendered (anchored continuous scroll behind a sticky in-page nav, not JS-swapped
+tabs):** Hero gallery → Info bar (name, verified badge, rating, location, tagline, quick actions)
+→ About → **Portfolio** (dynamic, see below) → Services → Pricing (`supplier_packages`, reusing
+the `.package-card` component) → Availability (derived status pill, see below) → Reviews
+(aggregate + breakdown + individual cards) → Amenities → Policies → FAQ (accordion) → Similar
+Suppliers. **A whole section (heading included) is omitted if its underlying data array is
+empty** - e.g. an event-manager supplier with no `venues` rows simply has no "Venue Spaces"
+subsection; there is no hardcoded hotel-vs-manager branch anywhere in the markup or JS.
+
+**Dynamic portfolio rendering:** `supplier_media` rows are grouped client-side by whatever
+distinct free-text `category` value each row actually has (title-cased for the subheading) - not
+a fixed per-supplier-type layout. A supplier with `venues`/`venue_images` rows (only Paandora
+Grand today) gets an extra "Venue Spaces" subsection above the media groups. This is how hotels
+end up with sections like *Banquet Halls / Rooms / Outdoor Spaces / Facilities* while event
+managers end up with *Past Events / Decor & Staging / Corporate Events* - purely from the seeded
+category labels, not code branches.
+
+**Gallery + lightbox:** a page-scoped `openGallery(images, startIndex)` function (prev/next
+buttons, `ArrowLeft`/`ArrowRight`/`Escape`), separate from `app.js`'s global `openLightbox()`
+(single-image only). Kept page-scoped deliberately so this page's added capability doesn't force
+a `?v=` bump - and therefore a full revalidation pass - across all 14 HTML files for a feature
+only this page needs.
+
+**Availability status:** derived, not stored. Fetches the next 90 days via the existing
+`EventaraAPI.availability()` call; the fraction of `blocked`/`maintenance`/`booked`/`held` days
+maps to **Available** (< 15%, `--trust-green`) / **Limited Availability** (15-60%, `--warning`) /
+**Mostly Booked** (> 60%, `--error`). No calendar widget here - that's the supplier dashboard's
+own feature.
+
+**Reviews aggregate vs. individual cards:** the score and count shown are always
+`suppliers.rating`/`review_count` (the same authoritative figure shown on every search card
+platform-wide), **not** a count of the actual `reviews` rows on file - most suppliers currently
+have 0-1 real review records seeded against a stated count in the hundreds, same as any real
+marketplace surfacing only a sample of full reviews under a trusted aggregate score. The
+star-breakdown bars are an illustrative distribution banded off the real average (see
+`estimateBreakdown()` in the page's script) since granular per-star history isn't seeded for six
+of the seven suppliers; the individual review list shows a plain "reviews will appear as bookings
+complete" note when there are zero rows, rather than fabricating cards.
+
+**Loading / error states:** a shimmer skeleton is visible by default and hidden once data
+resolves; a `.notfound-state` ("Supplier Not Found" + a link back to `search.html`) is shown
+instead whenever the URL has no `slug`/`id`, the query errors, or no row matches (including a
+non-UUID passed as `?id=`, which falls back to a `slug` lookup and simply finds nothing).
+
+**Interactive actions:** Save and Compare are `localStorage`-backed stubs
+(`eventara_saved_suppliers` / `eventara_compare_suppliers`) - **Compare is not wired further**;
+`compare.html` remains fully static and does not yet read that array, a deliberate scope
+boundary, not an oversight. Share uses `navigator.share()` with a copy-link fallback. Call /
+WhatsApp / Email build `tel:` / `https://wa.me/...` / `mailto:` links from `supplier_profiles`
+contact fields - **this is not an anti-leakage (B19) violation**, since B19 targets outbound links
+to a supplier's own website/Instagram/YouTube marketing presence, and contacting a supplier
+through an Eventara-listed channel is the same category of action as the existing "Submit Event
+Brief" button.
+
+**Not done in v2.4 (explicit scope boundary):** `search.html` and `index.html` themselves were
+**not** converted to live `search_suppliers()` queries - only each card's `href` changed, from
+`provider.html` to `supplier.html?slug=...`. The listing pages still render static HTML. Making
+search/listing itself dynamic is separate future work.
+
+---
+
 ## 6. NAVIGATION FLOW
 
 ### Global navigation (every page)
@@ -883,7 +965,7 @@ index.html  (homepage)
     │
     ├──► search.html      (browse & filter 7 suppliers)
     │        │
-    │        └──► provider.html   (profile - always Paandora Grand)
+    │        └──► supplier.html?slug=...   (dynamic profile - each card its own supplier, v2.4)
     │                  │
     └──► brief.html ◄──┘          (Get Free Quotes - multi-step form)
              │
@@ -952,8 +1034,8 @@ Any page ──► floating chat button (bottom-right) ──► assistant panel
 2. Browse suppliers          search.html
       │                      Filters by event type, guests, budget, supplier type; sorts
       ▼
-3. View a supplier           provider.html
-      │                      Gallery, packages, inclusions, reviews, similar suppliers
+3. View a supplier           supplier.html?slug=...
+      │                      Gallery, packages, services, availability, reviews, FAQ, similar suppliers
       ▼
 4. Request quotes            brief.html
       │                      One structured request → matched to 2-3 suppliers
@@ -1349,7 +1431,7 @@ component framework and no partial/include system - **markup is duplicated acros
 | **Logo** | `.logo-img` (→ `logo.svg`) | Navbar, footer, auth card, sidebars | Brand mark. Sizes: 40px nav / 44px footer / 54px auth / 34px sidebar |
 | **Mobile menu** | `.mobile-menu`, `.hamburger` | All pages | Slide-in nav; toggled by `initMobileMenu()` |
 | **Footer** | `.footer`, `.footer-grid`, `.footer-brand`, `.footer-col`, `.footer-tagline`, `.footer-bottom` | All pages | 4-column footer; tagline in royal blue |
-| **Supplier card** | `.provider-card`, `.card-image`, `.card-content`, `.provider-name`, `.provider-meta`, `.price-row` | `search.html`, `index.html`, `provider.html` | Listing tile. Needs `data-capacity` + `data-ptype` on search |
+| **Supplier card** | `.provider-card`, `.card-image`, `.card-content`, `.provider-name`, `.provider-meta`, `.price-row` | `search.html`, `index.html`, `supplier.html` (Similar Suppliers) | Listing tile. Needs `data-capacity` + `data-ptype` on search |
 | **Verified badge** | `.badge-verified` | Supplier cards & profile | Blue tick + "Verified" |
 | **Initials cover** | `.card-image` with flex-centred text | Suppliers without a photo (HA, BS, IC, LL) | The design's official no-photo treatment - **not** a placeholder |
 | **Category card** | `.category-card`, `.category-icon`, `.is-soon`, `.cat-badge`, `.cat-soon-label` | `index.html` | Phase 1 categories; `.is-soon` = non-clickable "Coming Soon" |
@@ -1366,7 +1448,8 @@ component framework and no partial/include system - **markup is duplicated acros
 | **FAQ sidebar** | `.faq-sidebar`, `.faq-navlink` | `faq.html` | Sticky category nav with scroll-spy |
 | **Breadcrumb** | `.breadcrumb` | `faq.html` | Home → Support → FAQ |
 | **Chat widget** | `.evb-fab`, `.evb-panel`, `.evb-row`, `.evb-msg`, `.evb-chip`, `.evb-typing`, `.evb-form` | All pages (injected by `chatbot.js`) | Floating assistant |
-| **Lightbox** | created by `openLightbox()` | `provider.html` gallery | Full-screen image overlay |
+| **Lightbox** | created by `openLightbox()` | legacy `provider.html` reference only (page is now a redirect stub) | Single-image full-screen overlay, no prev/next |
+| **Gallery** | page-scoped `openGallery(images, startIndex)` | `supplier.html` | Multi-image overlay with prev/next + arrow-key/Escape support; deliberately separate from `openLightbox()` (see §5.13) |
 | **Testimonial** | `.testimonial-card`, `.stars`, `.avatar-placeholder` | `index.html` | Social proof |
 | **Stat counter** | `.stat-item`, `.stat-value[data-count]` | `index.html` | Animated count-up on scroll |
 
@@ -1647,7 +1730,7 @@ Be honest about these - especially in a stakeholder demo.
 
 | # | Limitation |
 |---|---|
-| L6 | **`provider.html` is one hard-coded profile** (Paandora Grand). Every supplier card leads there. |
+| L6 | ~~`provider.html` is one hard-coded profile~~ **RESOLVED in v2.4** - replaced by dynamic `supplier.html?slug=...`, one real page per supplier. `provider.html` is now a redirect stub kept only for old links. |
 | L7 | **Forms don't submit.** `brief.html` shows a simulated confirmation; no data leaves the browser. |
 | L8 | **No real payments.** `booking.html` is a UI simulation - no gateway, no UPI mandate. |
 | L9 | **Static demo data** throughout: one booking (₹10,03,000 / ₹3,00,900 deposit), one customer (Secure Meters), fixed quotes. |
@@ -1656,7 +1739,7 @@ Be honest about these - especially in a stakeholder demo.
 | L12 | **Homepage hero search doesn't pass filters** to `search.html`. |
 | L20 | **Help Centre submissions go nowhere.** `help.html` does not POST, store, email or upload. The reference number is generated client-side and cannot be looked up. Attachments are listed for show only. |
 | L21 | **Mobile verification was engine-based, not device-based.** Layout was measured in a Chromium engine at real device widths; **no physical iPhone/Android device test has been run.** WebKit-specific behaviour (keyboard resize, momentum scrolling, notch insets) is handled defensively but unverified on hardware. |
-| L22 | **`provider.html` image gallery and `ops.html` remain desktop-oriented in density.** They fit and do not overflow on mobile, but were designed for larger screens. |
+| L22 | **`ops.html` remains desktop-oriented in density.** It fits and does not overflow on mobile, but was designed for larger screens. (`supplier.html`'s gallery, added v2.4, was built mobile-first from the start - this limitation no longer applies to the supplier profile.) |
 | L23 | **`backdrop-filter` is GPU-composited.** On low-end Android the Sign In glass card may repaint slowly while scrolling. The `@supports` fallback covers browsers without it, but not slow ones. |
 | L24 | **The Sign In page has been verified by DOM measurement, never by screenshot.** The build environment's renderer does not composite: screenshots time out, CSS animations freeze at frame 0, IntersectionObserver never fires and `window.scrollTo` is a no-op (confirmed against `faq.html` as a control). Geometry, contrast, overflow and touch targets were measured numerically; **no human has visually signed off the rendered page.** |
 | L25 | **The glass card is intentionally darker than `Sign-in-page-ui-web-idea.png`.** The mock-up's pale lavender tint measures 2.6:1 for white text over the bright bokeh - below WCAG AA. Accessibility was prioritised over pixel-matching the mock-up. |
@@ -1703,8 +1786,8 @@ analytics · admin portal · CRM · database of any kind.
 | Priority | Item | Notes |
 |---|---|---|
 | P0 | **Weddings & Related Celebrations marketplace** | The "Coming Soon" card becomes live; largest segment by value |
-| P0 | **Per-supplier profile pages** | Replace the single hard-coded `provider.html` (fixes L6) |
-| P0 | **Backend + database** | Persist requests, quotes, bookings, users (fixes L1, L7) |
+| P0 | **Convert `search.html`/`index.html` to live queries** | They still render static HTML; only the supplier-card destination is dynamic as of v2.4 (see §5.13) |
+| P0 | **Backend + database** | ~~Persist requests, quotes, bookings, users~~ Schema, RLS and RPCs are live (v2.2-v2.4); front-end pages beyond auth + supplier profiles still need binding to `EventaraAPI` (fixes remainder of L1, L7) |
 | P0 | **Server-side authentication** | Real accounts, hashed passwords, verified sessions (fixes L2, L3) |
 | P1 | **Online payments** | UPI/card gateway with genuine escrow (fixes L8) |
 | P1 | **Supplier onboarding portal** | Self-serve document upload + verification workflow |
@@ -1844,6 +1927,12 @@ prototype/
                           v_disputes_overview, v_notification_feed, v_supplier_public
       0006_storage.sql    8 storage buckets + object policies
       0007_seed.sql       demo data (Paandora Grand, Secure Meters, quote, booking, review, dispute)
+      0008_security_hardening.sql  pinned search_path + revoked public EXECUTE on internal triggers
+      0009_supplier_detail.sql     [v2.4] slug routing, tagline/hero fields, supplier_media,
+                                    supplier_packages, supplier_faqs, reviews.image_urls
+      0010_supplier_detail_seed.sql [v2.4] full detail content (packages/media/services/FAQs)
+                                    for all 7 confirmed suppliers
+      0011_supplier_public_add_slug.sql [v2.4] v_supplier_public was missing the new slug column
     APPLY_GUIDE.md        apply + connect + env-vars + test checklist
   supabase-config.js      URL + anon key (you fill in; blank = offline demo mode)
   supabase-client.js      creates window.sb only when configured
@@ -1856,7 +1945,11 @@ prototype/
 Normalized into clear domains (all keys, cascades and indexes in `0001_schema.sql`):
 - **Identity/RBAC:** `profiles` (1:1 `auth.users`), `user_preferences`, `roles`, `permissions`, `role_permissions`.
 - **Customer:** `customer_profiles`.
-- **Supplier:** `suppliers`, `supplier_profiles`, `supplier_services`, `venues`, `venue_images`.
+- **Supplier:** `suppliers` (+ `slug`/`tagline`/`years_experience`/`featured`/`logo_url`/`hero_image_url`,
+  added v2.4), `supplier_profiles` (+ `google_maps_url`/`payment_terms`/`advance_required_pct`/
+  `refund_policy`/`booking_policy`, added v2.4), `supplier_services`, `venues`, `venue_images`,
+  `supplier_media` (v2.4 - free-text `category` portfolio, not tied to a venue), `supplier_packages`
+  (v2.4 - named pricing tiers), `supplier_faqs` (v2.4).
 - **Compliance:** `kyc_verification`, `gst_details`, `bank_accounts`, `documents`.
 - **Catalog/demand:** `event_types`, `event_requests` -> `quotes` -> `quote_line_items`.
 - **Transaction:** `bookings`, `payments`, `escrow_transactions`, `wallet_ledger`, `invoices`.
@@ -1868,7 +1961,10 @@ Normalized into clear domains (all keys, cascades and indexes in `0001_schema.sq
 
 Relationship spine: `auth.users 1-1 profiles`; `profiles 1-* event_requests 1-* quotes 1-* quote_line_items`;
 `quotes 1-1 bookings 1-* payments/escrow/invoices`; `bookings 1-1 reviews`; `suppliers 1-* venues 1-* venue_images`;
-`suppliers 1-* availability`. 19 enum types model the state machines (request/quote/booking/payment/escrow/dispute/verify).
+`suppliers 1-* availability`; `suppliers 1-* supplier_media/supplier_packages/supplier_faqs` (v2.4 - all
+keyed on `supplier_id` only, no venue dependency). 19 enum types model the state machines
+(request/quote/booking/payment/escrow/dispute/verify). `suppliers.slug` (v2.4) is unique, indexed,
+and auto-filled by the `trg_set_supplier_slug` trigger if not supplied on insert/update.
 
 ### 19.3 Authentication & roles
 - **Supabase Auth**, email/password with email verification and password reset. JWT access tokens (1h) + rotating refresh tokens; sessions persisted and auto-refreshed client-side.
@@ -1877,7 +1973,8 @@ Relationship spine: `auth.users 1-1 profiles`; `profiles 1-* event_requests 1-* 
 - **Guard:** `Auth.requireRole()` reads the mirror for a fast route check; the real boundary is RLS (a faked mirror grants no data).
 
 ### 19.4 Row-Level Security (authorization model)
-RLS is enabled on all 34 data tables. Policy pattern:
+RLS is enabled on all 37 data tables (34 as of v2.2, + `supplier_media`/`supplier_packages`/
+`supplier_faqs` in v2.4, same public-read/owner-write pattern as `venues`). Policy pattern:
 - **Customers** read/write only rows where they are the `customer_id`.
 - **Suppliers** read/write only rows tied to a `suppliers` row they `own`.
 - **Admins** (`is_admin()`) see everything.
@@ -1893,8 +1990,8 @@ Upload convention: objects live under a `"<auth.uid()>/..."` folder; object poli
 ### 19.6 API surface
 - **Auto REST/Realtime** over every table (PostgREST), gated by RLS - the front-end calls `sb.from('table')...`.
 - **RPCs** (`sb.rpc(...)`) for transactions: `create_booking`, `accept_quote`, `reject_quote`, `release_escrow`, `cancel_booking`, `generate_invoice`, `update_availability`, `search_suppliers`, `supplier_dashboard_stats`, `customer_dashboard_stats`, `notify`.
-- **Views** for read models (dashboards/analytics), all `security_invoker` so RLS still applies.
-- `data-api.js` wraps these as `EventaraAPI.*`; each returns `{data,error}` and degrades gracefully offline.
+- **Views** for read models (dashboards/analytics), all `security_invoker` so RLS still applies. `v_supplier_public` (v2.4: now also exposes `slug`/`tagline`/`featured`/`hero_image_url`, used by supplier-card links platform-wide).
+- `data-api.js` wraps these as `EventaraAPI.*`; each returns `{data,error}` and degrades gracefully offline. **v2.4 additions:** `getSupplierDetail(idOrSlug)` (single nested-embed query for the whole supplier profile; slug-vs-id chosen client-side via UUID regex) and `getSimilarSuppliers(category, city, excludeId, limit)` (same-category first, cross-category fill).
 
 ### 19.7 Security & env vars
 Server secrets live only in Vercel env (`SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` [rotate], payment/email/WhatsApp keys). The browser only ever gets the **anon** key, which is safe because RLS enforces access. Passwords are hashed by Supabase (bcrypt); input is validated in RPCs and by DB constraints; audit + login events give a trail. Repo should be made **private**.
@@ -1907,6 +2004,132 @@ While `supabase-config.js` is blank the app runs in **offline demo mode** exactl
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.4 - 2026-07-29
+**Dynamic, database-driven Supplier Detail Page - replaces the single hard-coded `provider.html` for all 7 suppliers.**
+
+The last major static surface in the product: every supplier card on `search.html` and
+`index.html` linked to the same hard-coded Paandora Grand profile (limitation L6). This ships one
+reusable `supplier.html?slug=...` template (also accepts `?id=<uuid>`) that fetches and renders
+any supplier's real data from Supabase - hero, portfolio, services, pricing, availability,
+reviews, amenities, policies, FAQ and similar suppliers - following the single-template pattern
+of platforms like Airbnb/Zomato/Booking.com, as requested.
+
+- **New migrations** `0009_supplier_detail.sql` (slug routing incl. a `slugify()` fn +
+  `trg_set_supplier_slug` fill-if-null trigger mirroring `trg_set_request_ref`; new columns on
+  `suppliers`/`supplier_profiles`; new tables `supplier_media` (free-text `category` portfolio,
+  not venue-scoped), `supplier_packages`, `supplier_faqs`, all RLS'd public-read/owner-write like
+  `venues`; `reviews.image_urls` for forward-compat), `0010_supplier_detail_seed.sql` (full
+  detail content - about text, 2-3 packages, category-grouped portfolio, amenities, policies,
+  4-5 FAQs - for **all 7 confirmed suppliers**, not just Paandora Grand; the other 6 previously
+  had zero database rows at all), `0011_supplier_public_add_slug.sql` (see bugs below).
+- **Two bugs found and fixed during implementation** (both real, neither pre-existing):
+  1. `v_supplier_public` predates the `slug` column and was never updated to expose it - every
+     `?slug=` link generated from that view (e.g. Similar Suppliers cards) was silently broken
+     (`supplier.html?slug=` with nothing after the `=`). Fixed by `0011` (had to drop+recreate the
+     view - `create or replace` can't insert a column mid-position).
+  2. Paandora Grand's `rating`/`review_count` were left at their trigger-computed values (5.0 / 1
+     review, from the single seeded review row) rather than the 4.6 / 214 shown on its own search
+     card - a visible self-contradiction on its own detail page. Fixed by hardcoding the display
+     figure to match, same approach used for the other 6 suppliers (none of which have real review
+     history seeded either - inventing 6x fake completed-booking/review scaffolding was judged
+     disproportionate to this task and would have polluted `v_revenue_summary`/`v_monthly_analytics`).
+- **`data-api.js`:** added `getSupplierDetail(idOrSlug)` (one PostgREST nested-embed round trip -
+  supplier + profile + venues/venue_images + media + services + packages + faqs + reviews; no
+  N+1) and `getSimilarSuppliers(category, city, excludeId, limit)`.
+- **`search.html`** (7 cards) and **`index.html`** (3 featured cards): `href="provider.html"` ->
+  `href="supplier.html?slug=<supplier-slug>"`, nothing else changed - confirmed the filter/sort
+  JS reads only `.rating`/`.amount`/`data-capacity`, never `href`.
+- **`provider.html`** converted to a redirect stub (`location.replace()`, no history entry, plus a
+  `<noscript>` fallback) -> `supplier.html?slug=paandora-grand-udaipur`. Kept on disk for old
+  bookmarks/links; nothing in the product links to it any more.
+- **Explicit scope boundary:** `search.html`/`index.html` themselves were **not** converted to
+  live `search_suppliers()` queries - they still render static HTML; only the card destinations
+  are dynamic. That is separate future work (see §16).
+- **Sections updated:** §5.3 (rewritten as legacy stub), new §5.13, §6, §7, §12, §15 (L6 resolved,
+  L22 narrowed), §16, §19.1/§19.2/§19.4/§19.6, page-count references (13 -> 14 pages), header.
+- **Verified end-to-end in a browser** (`python -m http.server` serving `prototype/`, not `file://`):
+  - All 7 `search.html` cards and all 3 `index.html` cards carry the correct distinct
+    `supplier.html?slug=...` href; clicking Hotel Aloka's card from `search.html` navigates and
+    renders Hotel Aloka's own name/photos/packages, not Paandora Grand's - the core bug this fixes
+  - `?slug=paandora-grand-udaipur` and `?id=44444444-...` render identically (fallback path + the
+    client-side UUID-regex branch both confirmed)
+  - Manager-type supplier (`bluspring`): no "Venue Spaces" subsection (empty `venues`), portfolio
+    correctly grouped into its own categories ("Past Events", "Corporate Events"), zero console
+    errors. Hotel-type (`paandora-grand-udaipur`): "Venue Spaces" *does* render from its existing
+    `venues`/`venue_images`, four distinct portfolio category groups render from `supplier_media`
+  - Not-found states - `?slug=does-not-exist`, `?id=not-a-uuid`, and no params at all - all three
+    show `.notfound-state` cleanly with zero console errors; "Browse all suppliers" link works
+  - `provider.html` redirects cleanly with zero console errors and lands on the right supplier
+  - Save button toggles `localStorage['eventara_saved_suppliers']` and its label; Call/WhatsApp/
+    Email hrefs build correctly from seeded contact fields
+  - All 15 hotlinked/placeholder image URLs used across the 7 suppliers' portfolios return
+    HTTP 200 (checked via `fetch(..., {method:'HEAD'})` for every distinct URL)
+  - 360px viewport: `scrollWidth === clientWidth` (zero horizontal overflow), `.profile-content`
+    collapses to a single column, all interactive elements (Save button, FAQ accordion, section
+    nav links, contact-action icons) measured **>=44px**
+  - Reviews aggregate score/count now match the info bar and search card everywhere (see bug #2
+    above); zero console errors across every page touched in this change
+- **Not verified:** no physical device test, only Chromium-engine DOM measurement (same
+  build-renderer limitation noted throughout this log, see L24); the Compare button's downstream
+  `compare.html` integration (deliberately out of scope, see above).
+
+**Same-day follow-up fix - Pricing card button misalignment.** After shipping, the "Request This
+Package" buttons across the 3-column `.package-card` grid were visibly misaligned (screenshotted
+by the user) - each button just followed its own card's inclusion-list length rather than sitting
+at a shared baseline. `.package-card` had no `display: flex`, so although CSS Grid correctly
+stretched all three cards to equal height, the extra space landed as blank padding *after* each
+button instead of pushing it down to match the others. Confirmed numerically before/after
+(`getBoundingClientRect()` on all three buttons): before, `btnTop` was 3002 / 3122 / 3068px
+(cards with 6/8/7 inclusion lines); after, all three sit at 3126-3127px.
+
+- **Fix (`styles.css`):** `.package-card` gets `display: flex; flex-direction: column;`; a new
+  rule `.package-card > .btn { margin-top: auto; }` pins the CTA to the bottom regardless of
+  content length above it - the standard flex "auto margin" bottom-pin technique.
+- **Cache-bust:** `styles.css?v=17 -> v=18` across **all 14 HTML files** (this is a shared
+  stylesheet edit, so every page needed the bump per the project's cache-busting rule, even though
+  `.package-card` is currently only used on `supplier.html` - confirmed via grep before making the
+  change, so no other page's layout was at risk).
+- **Verified:** re-measured all three buttons post-fix (see above, sub-pixel aligned); confirmed
+  `.package-card` appears nowhere else in the codebase (`provider.html` no longer renders it, being
+  a redirect stub); zero console errors on reload.
+
+**Second same-day follow-up - "Most Popular" badge could wrap to two lines.**
+`.package-card.featured::before` (the pill badge reading "Most Popular") had no `white-space`
+rule, so on a narrow enough card it could wrap onto two lines instead of staying a single pill.
+Added `white-space: nowrap;` - the badge's `width: auto` now shrink-wraps to fit the text on one
+line (confirmed computed width 131px for "Most Popular") instead of constraining to the card's
+available space. Another `styles.css` edit, so cache-bust **`v=18 -> v=19`** across all 14 HTML
+files. Verified: `getComputedStyle(el, '::before').whiteSpace === 'nowrap'`, zero console errors.
+
+**Third same-day follow-up - Pricing CTA polish + removed direct-contact bypass.** Two changes,
+both scoped to `supplier.html` only (its own `<style>`/`<script>`, not the shared `styles.css` -
+no site-wide cache-bust needed this time):
+
+- **"Request This Package" button.** Diagnosed by measuring the live DOM rather than guessing:
+  at a representative card width the button rendered only ~173px wide with the base `.btn`
+  padding (13-24px per side), leaving too little room for the 16px-font label - text crowded the
+  edges, matching the screenshotted "not looking good" complaint. Also found `text-align`
+  computed to `start`, not `center` - `justify-content: center` only centers the box as a whole,
+  so a wrapped second line would render ragged-left. Added a scoped override
+  `.package-card .btn.w-full { padding: 12px 16px; font-size: var(--text-body-sm); text-align:
+  center; }` - smaller, better-proportioned label with guaranteed centering.
+- **Removed Call / WhatsApp / Email from the sidebar** (`.contact-actions` markup, its CSS, the
+  `renderContactActions()` function, and its call site) - **explicit product decision**: letting a
+  customer contact a supplier directly before submitting a quote/booking is a bypass of
+  Eventara's core value proposition (quotes flow through the platform, payment protection,
+  everyone's contact details private until booked - §11 B17). The v2.4 entry above had reasoned
+  these weren't a B19 (*anti-leakage*) violation since they used Eventara-listed contact info
+  rather than external social/website links - correct as far as it went, but B17 (customer contact
+  stays private until booking) is the rule that actually applies here, and B17 says these buttons
+  shouldn't have existed pre-booking regardless. "Submit Event Brief" / "Request This Package"
+  remain the only ways to reach a supplier from this page. Share and Compare are unaffected.
+- **Verified:** re-measured the buttons post-fix (14px font, 12px/16px padding, `text-align:
+  center` all confirmed via `getComputedStyle`); confirmed `#contactActions` no longer exists in
+  the DOM while `#shareBtn`/`#compareBtn` still do; grepped the file for any remaining
+  `tel:`/`wa.me`/`mailto:`/`contact-actions` trace - none found; zero console errors on reload.
 
 ---
 

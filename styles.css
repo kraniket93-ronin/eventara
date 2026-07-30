@@ -2194,6 +2194,15 @@ textarea.input-field {
   padding: var(--space-32);
   transition: all var(--duration-normal) var(--ease-out);
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pins the CTA to the card's bottom edge regardless of how many
+   inclusion lines precede it, so buttons align across a row of
+   grid-stretched cards instead of each following its own content. */
+.package-card > .btn {
+  margin-top: auto;
 }
 
 .package-card.featured {
@@ -2215,6 +2224,7 @@ textarea.input-field {
   font-weight: 600;
   letter-spacing: 0.3px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .package-card h3 {

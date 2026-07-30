@@ -28,6 +28,41 @@
       return sb.from("v_supplier_public").select("*").eq("id", id).single();
     },
 
+    // ---------- Supplier detail ----------
+    async getSupplierDetail(idOrSlug) {
+      const g = guard(); if (g) return g;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug || "");
+      const col = isUuid ? "id" : "slug";
+      // Single round-trip via PostgREST nested embedding - no N+1 queries.
+      // reviews(*) naturally returns only published rows for anonymous
+      // visitors because reviews_public_read RLS already filters on
+      // status='published'; no extra .eq() needed here.
+      return sb.from("suppliers")
+        .select(`*, supplier_profiles(*), venues(*, venue_images(*)),
+                  supplier_media(*), supplier_services(*), supplier_packages(*),
+                  supplier_faqs(*), reviews(*)`)
+        .eq(col, idOrSlug)
+        .eq("status", "active")
+        .order("sort", { foreignTable: "supplier_media" })
+        .order("sort", { foreignTable: "supplier_packages" })
+        .order("sort", { foreignTable: "supplier_faqs" })
+        .order("created_at", { foreignTable: "reviews", ascending: false })
+        .single();
+    },
+    async getSimilarSuppliers(category, city, excludeId, limit = 3) {
+      const g = guard(); if (g) return g;
+      const primary = await sb.from("v_supplier_public").select("*")
+        .eq("city", city).eq("category", category).neq("id", excludeId)
+        .order("rating", { ascending: false }).limit(limit);
+      if (primary.error || (primary.data || []).length >= limit) return primary;
+      const have = (primary.data || []).map(s => s.id).concat([excludeId]);
+      const fill = await sb.from("v_supplier_public").select("*")
+        .eq("city", city).not("id", "in", `(${have.join(",")})`)
+        .order("rating", { ascending: false }).limit(limit - (primary.data || []).length);
+      if (fill.error) return primary;
+      return { data: [...(primary.data || []), ...(fill.data || [])], error: null };
+    },
+
     // ---------- Dashboards (stats via RPC, lists via views) ----------
     async supplierStats(supplierId)  { const g=guard(); if(g)return g; return sb.rpc("supplier_dashboard_stats",{ p_supplier: supplierId }); },
     async customerStats(customerId)  { const g=guard(); if(g)return g; return sb.rpc("customer_dashboard_stats",{ p_customer: customerId }); },
