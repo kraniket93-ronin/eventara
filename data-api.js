@@ -49,18 +49,12 @@
         .order("created_at", { foreignTable: "reviews", ascending: false })
         .single();
     },
-    async getSimilarSuppliers(category, city, excludeId, limit = 3) {
+    async getSimilarSuppliers(supplierId, limit = 3) {
       const g = guard(); if (g) return g;
-      const primary = await sb.from("v_supplier_public").select("*")
-        .eq("city", city).eq("category", category).neq("id", excludeId)
-        .order("rating", { ascending: false }).limit(limit);
-      if (primary.error || (primary.data || []).length >= limit) return primary;
-      const have = (primary.data || []).map(s => s.id).concat([excludeId]);
-      const fill = await sb.from("v_supplier_public").select("*")
-        .eq("city", city).not("id", "in", `(${have.join(",")})`)
-        .order("rating", { ascending: false }).limit(limit - (primary.data || []).length);
-      if (fill.error) return primary;
-      return { data: [...(primary.data || []), ...(fill.data || [])], error: null };
+      // Ranking (same city/category first, then verified/featured, then
+      // closest rating/price) is computed server-side in one query - see
+      // get_similar_suppliers() in 0012_similar_suppliers_recommendations.sql.
+      return sb.rpc("get_similar_suppliers", { p_supplier_id: supplierId, p_limit: limit });
     },
 
     // ---------- Dashboards (stats via RPC, lists via views) ----------

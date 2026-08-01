@@ -16,6 +16,36 @@
     .category-card.is-soon:hover { transform: none !important; }
     .cat-badge { display: inline-block; margin-bottom: var(--space-8); padding: 3px 12px; border-radius: var(--radius-pill); background: var(--gold-light); color: var(--gold-deep); font-size: var(--text-micro); font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; }
     .cat-soon-label { display: inline-block; margin-top: var(--space-16); font-weight: 600; color: var(--ink-muted); font-size: var(--text-body-sm); }
+
+    /* EVENTS value-framework graphic. No background utility class on the
+       section, so it inherits the body canvas and flows continuously out of
+       the hero above - the white block starts at #categories below, as
+       before. Deliberately no border/card/shadow: the artwork carries its
+       own visual weight. */
+    .events-framework { padding: var(--space-56) 0 var(--space-40); }
+    /* The artwork is 1024x894, so its height is always ~0.873x its width.
+       Capping width in *vh* therefore caps the derived HEIGHT against the
+       viewport - a width-only cap (e.g. 1000px) renders 873px tall and
+       can't fit a laptop screen, forcing a scroll. 76vh wide => ~66vh
+       tall, so the whole graphic lands in one screen view. min() keeps the
+       px cap on short-but-wide windows. */
+    .events-framework-media { max-width: min(720px, 76vh); margin: 0 auto; }
+    /* aspect-ratio + width/height attrs reserve the box before the image
+       decodes, so lazy-loading this can't shift the sections below it. */
+    .events-framework-media img { width: 100%; height: auto; aspect-ratio: 1024 / 894; }
+
+    /* Desktop */
+    @media (min-width: 1200px) { .events-framework-media { max-width: min(760px, 76vh); } }
+    /* Laptop */
+    @media (min-width: 992px) and (max-width: 1199px) { .events-framework-media { max-width: min(660px, 74vh); } }
+    /* Tablet */
+    @media (min-width: 768px) and (max-width: 991px) { .events-framework-media { max-width: min(600px, 70vh); } }
+    /* Mobile - full container width; the vh cap is dropped deliberately so
+       toolbar-driven vh changes can't resize the graphic mid-scroll. */
+    @media (max-width: 767px) {
+      .events-framework { padding: var(--space-32) 0 var(--space-24); }
+      .events-framework-media { max-width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -124,6 +154,21 @@
           </div>
         </div>
 
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       EVENTS VALUE FRAMEWORK
+       ============================================================ -->
+  <section class="events-framework fade-in" id="events-framework" aria-labelledby="eventsFrameworkHeading">
+    <div class="container">
+      <h2 id="eventsFrameworkHeading" class="visually-hidden">What goes into a great event</h2>
+      <div class="events-framework-media">
+        <img src="images/events-value-framework.png"
+             width="1024" height="894"
+             loading="lazy" decoding="async"
+             alt="Eventara EVENTS framework illustrating Experience, Venue, Engage, Networking, Theme and Strategy." />
       </div>
     </div>
   </section>

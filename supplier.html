@@ -117,6 +117,29 @@
     .wishlist-btn.saved svg { fill: var(--error); stroke: var(--error); }
 
     .similar-providers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-24); }
+    /* Consistent card height across the row + CTA pinned to the bottom
+       regardless of tagline length - same fix already applied to
+       .package-card earlier, applied here proactively since these cards
+       now carry a variable-length tagline. */
+    .similar-providers-grid .provider-card { display: flex; flex-direction: column; }
+    .similar-providers-grid .card-content { display: flex; flex-direction: column; flex: 1; }
+    .similar-providers-grid .card-cta { margin-top: auto; }
+
+    .card-tagline { font-size: var(--text-caption); color: var(--ink-muted); line-height: 1.5; margin: 0 0 var(--space-12); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .card-availability { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-micro); font-weight: 600; padding: 2px 10px; border-radius: var(--radius-pill); margin-bottom: var(--space-8); width: fit-content; }
+    /* margin-top for bottom-pinning is set by the more specific
+       .similar-providers-grid .card-cta rule above (margin-top: auto) -
+       this rule only adds the visual separator/spacing above the text. */
+    .card-cta { display: flex; align-items: center; gap: var(--space-4); font-size: var(--text-body-sm); font-weight: 600; color: var(--coral); padding-top: var(--space-16); border-top: 1px solid var(--hairline-light); }
+    .card-cta svg { transition: transform var(--duration-fast) var(--ease-out); }
+    .provider-card:hover .card-cta svg { transform: translateX(3px); }
+
+    /* Priority-4 illustrated fallback: replaces the flat grey default
+       whenever a card has zero image candidates, or every candidate URL
+       fails to load - never a blank/empty box. */
+    .card-fallback { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-8); background: linear-gradient(135deg, var(--plum-50), var(--gold-light)); color: var(--plum); }
+    .card-fallback svg { width: 32px; height: 32px; opacity: 0.55; }
+    .card-fallback span { font-size: var(--text-heading-md); font-weight: 700; color: var(--ink-faint); }
 
     /* Loading skeleton */
     .skeleton { background: linear-gradient(90deg, var(--canvas-alt) 25%, var(--hairline-light) 37%, var(--canvas-alt) 63%); background-size: 400% 100%; animation: skeleton-sweep 1.4s ease-in-out infinite; border-radius: var(--radius-lg); }
@@ -675,23 +698,90 @@
       });
     }
 
+    // Category icon shown inside the fallback illustration (Priority 4 -
+    // only reached when a card has zero image candidates, or every
+    // candidate URL fails to load). Not decorative noise: it's the only
+    // visual cue distinguishing a hotel-type fallback from an event-manager
+    // one when no photo is available at all.
+    var CATEGORY_ICON_BUILDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/></svg>';
+    var CATEGORY_ICON_CALENDAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14l2 2 4-4"/></svg>';
+    function categoryIcon(cat) { return cat === 'banquet_hotel' ? CATEGORY_ICON_BUILDING : CATEGORY_ICON_CALENDAR; }
+    function initialsOf(name) { return (name || '').split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase(); }
+
+    // Swaps a failed/absent <img> for the illustrated fallback (icon +
+    // initials + soft gradient) - never a blank grey box. Shared by the
+    // zero-candidates case (built at render time) and the all-candidates-
+    // failed case (built by the onerror handler below).
+    function fallbackCardMarkup(name, category) {
+      return '<div class="card-fallback">' + categoryIcon(category) + '<span>' + esc(initialsOf(name)) + '</span></div>';
+    }
+
+    function availabilityMeta(state) {
+      if (state === 'tight') return { cls: 'avail-tight', label: 'Mostly Booked' };
+      if (state === 'limited') return { cls: 'avail-limited', label: 'Limited Availability' };
+      return { cls: 'avail-open', label: 'Available' };
+    }
+
+    // Similar Supplier cards are discovery cards, not booking cards - price
+    // and availability are intentionally suppressed here (product decision)
+    // until both are backed by a real quotation engine / live calendar
+    // rather than static/placeholder demo data. The data (starting_price,
+    // availability_state) is still fetched and computed exactly as before -
+    // only the UI output is gated, so re-enabling either is a one-flag flip,
+    // not a re-plumb. See PROJECT_HANDOUT.md §5.13 for the rationale.
+    var SIMILAR_CARD_FLAGS = { showPrice: false, showAvailability: false };
+
     async function renderSimilar(sup) {
       var section = document.getElementById('similarGrid').closest('section');
       if (!window.EventaraAPI) { section.style.display = 'none'; return; }
-      var res = await EventaraAPI.getSimilarSuppliers(sup.category, sup.city, sup.id, 3);
+      var res = await EventaraAPI.getSimilarSuppliers(sup.id, 3);
       if (res.error || !res.data || !res.data.length) { section.style.display = 'none'; return; }
-      document.getElementById('similarGrid').innerHTML = res.data.map(function (s) {
-        var img = s.cover_image ? ('background-image:url(\'' + esc(s.cover_image) + '\');background-size:cover;background-position:center;') : 'display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:700;color:var(--ink-faint);';
-        var initials = (s.business_name || '').split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join('');
-        return '<a href="supplier.html?slug=' + esc(s.slug) + '" class="provider-card"><div class="card-image" style="' + img + '">' +
-          (s.cover_image ? '' : esc(initials)) +
-          '<div class="card-badge"><span class="badge badge-verified">Verified</span></div></div>' +
-          '<div class="card-content"><h3 class="provider-name">' + esc(s.business_name) + '</h3>' +
-          '<p class="provider-type">' + esc(titleCase(s.category)) + '</p>' +
-          '<div class="provider-meta"><span class="flex items-center gap-4">' + esc(s.city) + '</span>' +
-          '<span class="rating flex items-center gap-4">' + (s.rating || 0).toFixed(1) + ' <span class="text-muted body-sm">(' + (s.review_count || 0) + ')</span></span></div>' +
-          '<div class="price-row"><span class="price">' + inr(s.starting_price) + ' <span>onwards</span></span></div></div></a>';
+      document.getElementById('similarGrid').innerHTML = res.data.map(function (s, idx) {
+        // Priority 1 hero_image_url -> Priority 2 supplier_media -> Priority 3
+        // venue_images (hotels only) - already ordered this way by
+        // v_supplier_public.cover_image, but the *raw* sources are exposed
+        // separately too so a failed image can retry the next one client-side.
+        var candidates = [s.hero_image_url, s.media_cover_url,
+          s.category === 'banquet_hotel' ? s.venue_cover_url : null].filter(Boolean);
+        var avail = availabilityMeta(s.availability_state);
+        var imageHtml = candidates.length
+          ? '<img src="' + esc(candidates[0]) + '" alt="' + esc(s.business_name) + '" loading="' + (idx === 0 ? 'eager' : 'lazy') + '" style="opacity:0;transition:opacity .4s var(--ease-out);" data-candidates="' + esc(JSON.stringify(candidates)) + '" data-idx="0" data-name="' + esc(s.business_name) + '" data-category="' + esc(s.category) + '" />'
+          : fallbackCardMarkup(s.business_name, s.category);
+        return '<a href="supplier.html?slug=' + esc(s.slug) + '" class="provider-card">' +
+          '<div class="card-image">' + imageHtml +
+            (s.verified ? '<div class="card-badge"><span class="badge badge-verified">Verified <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" stroke="#1DA1F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4" stroke="white"/></svg></span></div>' : '') +
+          '</div>' +
+          '<div class="card-content">' +
+            '<h3 class="provider-name">' + esc(s.business_name) + '</h3>' +
+            '<p class="provider-type">' + esc(titleCase(s.category)) + '</p>' +
+            (s.tagline ? '<p class="card-tagline">' + esc(s.tagline) + '</p>' : '') +
+            '<div class="provider-meta"><span class="flex items-center gap-4">' + esc(s.city) + '</span>' +
+            '<span class="rating flex items-center gap-4">' + (s.rating || 0).toFixed(1) + ' <span class="text-muted body-sm">(' + (s.review_count || 0) + ')</span></span></div>' +
+            (SIMILAR_CARD_FLAGS.showAvailability ? '<span class="card-availability ' + avail.cls + '">' + avail.label + '</span>' : '') +
+            (SIMILAR_CARD_FLAGS.showPrice ? '<div class="price-row"><span class="price">' + inr(s.starting_price) + ' <span>onwards</span></span></div>' : '') +
+            '<span class="card-cta">View Details <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>' +
+          '</div></a>';
       }).join('');
+
+      Array.prototype.forEach.call(document.querySelectorAll('#similarGrid img[data-candidates]'), function (img) {
+        img.addEventListener('load', function () { img.style.opacity = '1'; });
+        img.addEventListener('error', function () {
+          var candidates = JSON.parse(img.getAttribute('data-candidates'));
+          var next = parseInt(img.getAttribute('data-idx'), 10) + 1;
+          if (next < candidates.length) {
+            img.setAttribute('data-idx', String(next));
+            img.src = candidates[next];
+            return;
+          }
+          // Every candidate failed - swap to the illustrated fallback rather
+          // than leaving a broken/blank image in place.
+          var wrap = img.closest('.card-image');
+          var fb = document.createElement('div');
+          fb.innerHTML = fallbackCardMarkup(img.getAttribute('data-name'), img.getAttribute('data-category'));
+          wrap.insertBefore(fb.firstChild, img);
+          img.remove();
+        });
+      });
     }
 
     // ---- Save / Share / Compare ----

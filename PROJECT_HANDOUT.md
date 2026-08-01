@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.4 (see §18 Change Log) |
+| **Doc version** | 2.7 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-29 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -228,6 +228,7 @@ Project B Prototype/                  ← LOCAL project root (NOT the repo root)
     │
     ├── images/                       Local images
     │   ├── corporate.png  fest.png  hotel.png  wedding1.png  wedding2.png
+    │   ├── events-value-framework.png ★ EVENTS value graphic on the homepage (1024x894, RGBA)
     │   ├── login-bg.jpg              ★ Sign In desktop artwork (228KB, optimised)
     │   ├── login-bg-mobile.jpg       ★ Sign In mobile artwork  (228KB, optimised)
     │   ├── Login page image bg.png   2MB source for login-bg.jpg (not referenced at runtime)
@@ -273,8 +274,81 @@ v2.3). `supplier.html` additionally loads `data-api.js?v=1` - the first and so f
 | **Connected pages** | `search.html`, `brief.html`, `compare.html`, `signin.html`, `faq.html`, `provider.html` |
 
 **Sections (in order):** Navbar → Hero (headline, subtitle, event-type search bar, 3 trust items)
-→ Categories (3 cards) → How It Works (3 steps) → Featured suppliers (3 cards) → Trust (4 cards)
-→ Stats row (animated counters) → Testimonials (3) → CTA band (supplier acquisition) → Footer.
+→ **EVENTS Value Framework graphic** (added v2.7) → Categories (3 cards) → How It Works (3 steps)
+→ Featured suppliers (3 cards) → Trust (4 cards) → Stats row (animated counters) →
+Testimonials (3) → CTA band (supplier acquisition) → Footer.
+
+#### Homepage Enhancement - EVENTS Value Framework (added v2.7)
+
+**Purpose.** A marketing/brand section sitting directly between the hero's search bar and "What We
+Cover", communicating Eventara's value proposition at a glance (Experience · Venue · Engage ·
+Networking · Theme · Strategy) before the visitor reaches the category cards.
+
+**Implementation.** `<section class="events-framework fade-in" id="events-framework">` wrapping the
+standard `.container`, with a centred `.events-framework-media` box whose width is capped in
+**`vh` units** (see "Sizing" below). CSS lives in `index.html`'s existing page-scoped `<style>` block (the
+established convention for page-specific styling here) - **`styles.css` is untouched, so no `?v=`
+bump was needed across the other 13 pages.** Deliberately **no** background utility class on the
+section: it inherits the body canvas (`--canvas`) and therefore flows continuously out of the hero
+above, with the white block still starting at `#categories` below - no new colour band. Per the
+brief, no border, card, shadow or coloured background is applied; the artwork carries its own
+visual weight.
+
+**Asset.** `images/events-value-framework.png` (1024x894, RGBA/transparent). The supplied file
+arrived as `prototype/Events term value.png`; it was copied into `images/` under a hyphenated name
+to follow the folder convention **and** to avoid the percent-encoding fragility that spaces in
+image filenames caused before (same reasoning already recorded for the Sign In artwork in §5.9).
+
+**Sizing - why the width cap is in `vh`, not `px` (fixed v2.7.1).** The artwork is 1024x894, so its
+rendered **height is always ~0.873x its width**. A width-only cap therefore can't guarantee it fits
+on screen: the original 1000px cap rendered **873px tall**, taller than a typical laptop viewport,
+so the graphic was cut off and needed scrolling. The fix expresses the cap in **viewport-height
+units** - `max-width: min(720px, 76vh)` - so a 76vh-wide box derives a ~66vh-tall image and the
+whole graphic always lands in one screen view. `min()` keeps a px ceiling so it doesn't grow
+absurdly on very tall windows. This is a *sizing* change only: aspect ratio, colours, transparency
+and sharpness are all untouched.
+
+**Responsive behaviour.** Explicit breakpoints, each pairing a px ceiling with a vh cap:
+
+| Breakpoint | `max-width` | Measured render |
+|---|---|---|
+| Desktop ≥1200px | `min(760px, 76vh)` | 684x597 @1440x900 (222px headroom under the navbar) |
+| Laptop 992-1199px | `min(660px, 74vh)` | 592x517 @1100x800 |
+| Tablet 768-991px | `min(600px, 70vh)` | 600x524 @820x1024 |
+| Mobile <768px | `100%` | 328x286 @360x740, symmetric 16px gutters |
+
+Because the vh term binds on short screens, the graphic **auto-shrinks rather than overflowing** -
+e.g. at a short 1366x700 laptop it renders 532x464 with 155px of headroom still under the navbar.
+Mobile deliberately drops the vh cap and uses the container's own gutters, so a phone's
+collapsing/expanding browser toolbar (which changes `vh`) can't resize the graphic mid-scroll.
+Section padding tightens to `--space-32`/`--space-24` below 768px to avoid excess whitespace.
+`width: 100%; height: auto` throughout - never cropped, stretched or distorted at any width.
+
+**Accessibility.** Descriptive `alt` naming all six framework terms, so a screen reader conveys the
+same information a sighted user gets from the graphic. The section carries `aria-labelledby`
+pointing at a `.visually-hidden` `<h2>` ("What goes into a great event"), giving the section a
+proper accessible name and a landmark in the heading outline without adding a visible heading the
+design doesn't call for.
+
+**Performance / CLS.** `loading="lazy"` + `decoding="async"`, plus intrinsic `width="1024"
+height="894"` attributes **and** a CSS `aspect-ratio: 1024 / 894`. The box is therefore fully
+reserved before the image decodes - measured post-resize at 1440x900: **597px reserved pre-load,
+597px rendered post-load = zero layout shift**. At the current desktop size the image renders at a
+**1.50x downscale** from its natural 1024px width (up from 1.02x before the resize), so it is
+never upscaled and has extra headroom on Retina/high-DPI displays.
+
+**Animation.** Reuses the sitewide `.fade-in` class (opacity + `translateY(24px)`, 0.6s
+`--ease-out`), driven by `app.js`'s existing `IntersectionObserver` - identical entrance to every
+other homepage section. Safe here because the element is present in the static HTML at
+`DOMContentLoaded`, so the observer picks it up (unlike JS-injected nodes - the documented pitfall
+noted elsewhere in this file). It also inherits the existing `prefers-reduced-motion` handling.
+
+**Files modified:** `index.html` only (one `<style>` addition + one `<section>`), plus the new
+`images/events-value-framework.png` asset.
+
+**Future enhancements (not built):** make each of the six terms a clickable anchor into the
+relevant page section; replace the PNG with an inline SVG for crisper scaling, per-term hover
+states and animatable paths; a staggered term-by-term reveal on scroll; localised variants.
 
 **Category cards - the Phase 1 rule made visual:**
 
@@ -928,6 +1002,40 @@ contact fields - **this is not an anti-leakage (B19) violation**, since B19 targ
 to a supplier's own website/Instagram/YouTube marketing presence, and contacting a supplier
 through an Eventara-listed channel is the same category of action as the existing "Submit Event
 Brief" button.
+
+**Similar Suppliers image pipeline (added v2.5).** Each card resolves its photo through a strict
+priority chain, computed once in `v_supplier_public.cover_image` and also exposed as raw
+candidates (`media_cover_url`, `venue_cover_url`) so the front end can retry on failure:
+**1)** `suppliers.hero_image_url`, **2)** the first `supplier_media` row by `is_cover desc, sort`,
+**3)** *(banquet-hotel category only)* the first `venue_images` row the same way, **4)** an
+illustrated fallback (category icon + initials + soft gradient) - never a blank grey box. The
+card renders a real `<img loading="eager|lazy">` (not this project's usual `background-image`
+card technique - deliberately, since `background-image` has no `onerror` event and no native
+lazy-loading, both required here) whose `onerror` handler walks to the next candidate URL before
+finally swapping in the illustrated fallback. `get_similar_suppliers(p_supplier_id, p_limit)`
+(new v2.5 RPC) ranks candidates by: same city, same category, verified, featured, closest rating,
+closest starting price, then rating desc - one query, so cross-category results fill in
+automatically when a category has fewer than `p_limit` other active suppliers, and duplicates are
+structurally impossible (single `LIMIT`, no `UNION`).
+
+**Similar Suppliers are discovery cards, not booking cards (product decision, v2.6).** The cards
+deliberately do **not** show a starting price or an availability badge. Both were flagged as a
+trust problem, not a display bug: `starting_price` is demo/placeholder data with no real
+quotation engine behind it yet, and `availability_state` is a 90-day heuristic over the
+`availability` table, not a live per-date calendar check against an actual event date - showing
+either on a *recommendation* card (as opposed to the supplier's own detail page, where the same
+figures sit next to "get a real quote") risks setting an expectation Eventara can't yet back up.
+The intended flow is **card → "View Details" → the supplier's own page**, where pricing,
+packages, services and availability are shown with proper context, not a bare number floating on
+a discovery tile. Both fields are still fetched and computed exactly as before (`starting_price`
+via `v_supplier_public`, `availability_state` computed server-side in the same view) - only the
+UI output is gated, behind a small config object in `supplier.html`:
+```js
+var SIMILAR_CARD_FLAGS = { showPrice: false, showAvailability: false };
+```
+Flipping either to `true` re-enables that field with no further backend or data-fetching change
+required - the markup branches were written as `SIMILAR_CARD_FLAGS.showX ? '<markup>' : ''`, not
+deleted. Re-enable once a real quotation engine and live per-date calendar exist.
 
 **Not done in v2.4 (explicit scope boundary):** `search.html` and `index.html` themselves were
 **not** converted to live `search_suppliers()` queries - only each card's `href` changed, from
@@ -1933,6 +2041,9 @@ prototype/
       0010_supplier_detail_seed.sql [v2.4] full detail content (packages/media/services/FAQs)
                                     for all 7 confirmed suppliers
       0011_supplier_public_add_slug.sql [v2.4] v_supplier_public was missing the new slug column
+      0012_similar_suppliers_recommendations.sql [v2.5] fixes cover_image (now checks
+                                    hero_image_url/supplier_media, not just venue_images), fixes
+                                    one malformed venue_images.url, adds get_similar_suppliers RPC
     APPLY_GUIDE.md        apply + connect + env-vars + test checklist
   supabase-config.js      URL + anon key (you fill in; blank = offline demo mode)
   supabase-client.js      creates window.sb only when configured
@@ -1990,8 +2101,9 @@ Upload convention: objects live under a `"<auth.uid()>/..."` folder; object poli
 ### 19.6 API surface
 - **Auto REST/Realtime** over every table (PostgREST), gated by RLS - the front-end calls `sb.from('table')...`.
 - **RPCs** (`sb.rpc(...)`) for transactions: `create_booking`, `accept_quote`, `reject_quote`, `release_escrow`, `cancel_booking`, `generate_invoice`, `update_availability`, `search_suppliers`, `supplier_dashboard_stats`, `customer_dashboard_stats`, `notify`.
-- **Views** for read models (dashboards/analytics), all `security_invoker` so RLS still applies. `v_supplier_public` (v2.4: now also exposes `slug`/`tagline`/`featured`/`hero_image_url`, used by supplier-card links platform-wide).
-- `data-api.js` wraps these as `EventaraAPI.*`; each returns `{data,error}` and degrades gracefully offline. **v2.4 additions:** `getSupplierDetail(idOrSlug)` (single nested-embed query for the whole supplier profile; slug-vs-id chosen client-side via UUID regex) and `getSimilarSuppliers(category, city, excludeId, limit)` (same-category first, cross-category fill).
+- **Views** for read models (dashboards/analytics), all `security_invoker` so RLS still applies. `v_supplier_public` (v2.4: now also exposes `slug`/`tagline`/`featured`/`hero_image_url`; **v2.5:** `cover_image` rewritten to a real hero -> supplier_media -> venue_images(hotel-only) priority chain instead of venue_images-only, plus raw `media_cover_url`/`venue_cover_url`/`availability_state` columns for client-side image retry and no-extra-query availability badges).
+- **RPCs** gain `get_similar_suppliers(p_supplier_id, p_limit)` in v2.5 - ranked recommendation query (same city/category first, then verified/featured/closest-rating/closest-price), replacing a two-query client-side fallback with one round trip.
+- `data-api.js` wraps these as `EventaraAPI.*`; each returns `{data,error}` and degrades gracefully offline. **v2.4 additions:** `getSupplierDetail(idOrSlug)` (single nested-embed query for the whole supplier profile; slug-vs-id chosen client-side via UUID regex). **v2.5:** `getSimilarSuppliers(supplierId, limit)` signature simplified (was `(category, city, excludeId, limit)`) now that ranking lives entirely in `get_similar_suppliers()`.
 
 ### 19.7 Security & env vars
 Server secrets live only in Vercel env (`SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` [rotate], payment/email/WhatsApp keys). The browser only ever gets the **anon** key, which is safe because RLS enforces access. Passwords are hashed by Supabase (bcrypt); input is validated in RPCs and by DB constraints; audit + login events give a trail. Repo should be made **private**.
@@ -2004,6 +2116,216 @@ While `supabase-config.js` is blank the app runs in **offline demo mode** exactl
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.7 - 2026-07-29
+**Homepage: new EVENTS Value Framework graphic section between the hero search bar and "What We Cover".**
+
+A supplied brand graphic (Experience · Venue · Engage · Networking · Theme · Strategy) integrated
+as a proper marketing section rather than a bare `<img>` dropped between two sections. Full
+rationale, responsive/accessibility/performance detail and future-enhancement ideas are in the new
+**§5.1 "Homepage Enhancement - EVENTS Value Framework"** subsection; summary here.
+
+- **`index.html` only** - one addition to its existing page-scoped `<style>` block and one new
+  `<section class="events-framework fade-in" id="events-framework">`. **`styles.css` untouched**,
+  so no `?v=` bump was needed on the other 13 pages. No other homepage section was modified -
+  verified the rendered section order is still hero -> events-framework -> categories ->
+  how-it-works -> suppliers -> trust -> testimonials -> CTA, and that the 3 featured supplier card
+  links still point at their correct `supplier.html?slug=...` targets.
+- **Asset:** the supplied `prototype/Events term value.png` was copied to
+  `images/events-value-framework.png` - into the conventional `images/` folder, and renamed to
+  drop the spaces, which would otherwise need percent-encoding in the URL (the same problem
+  already documented for the Sign In artwork in §5.9). **The original file was left in place, not
+  deleted** - it can be removed once the new path is confirmed working in production.
+- **No background/border/card/shadow** per the brief. The section carries no `bg-*` utility, so it
+  inherits the body canvas and flows continuously out of the hero; the white block still begins at
+  `#categories`, so no new colour band was introduced.
+- **Verified end-to-end in a browser** (`python -m http.server` serving `prototype/`):
+  - Section renders **after the hero/search bar and before `#categories`** (asserted via
+    `compareDocumentPosition`, not by eye)
+  - **Zero cumulative layout shift**: box reserved at 873px before the image decodes, rendered at
+    exactly 873px after - the `width`/`height` attributes plus CSS `aspect-ratio: 1024 / 894` both
+    hold the space. Image renders at a 1.02x *downscale* from its natural width, so it stays sharp
+  - Aspect ratio preserved (no crop/stretch/distortion) at every width tested
+  - **360px:** 328px wide, symmetric 16px gutters, zero horizontal overflow.
+    **768px:** 721px wide, symmetric 16px gutters, zero overflow. **1265px:** 1000px capped and
+    centred
+  - `loading="lazy"`, `decoding="async"`, descriptive `alt` naming all six terms, and
+    `aria-labelledby` -> a `.visually-hidden` `<h2>` all confirmed present in the DOM; the hidden
+    heading confirmed genuinely non-visible (measured width 0)
+  - `.fade-in` class + its 0.6s opacity/transform transition confirmed applied - same entrance as
+    every other homepage section
+  - Zero console errors
+- **One bug caught before shipping:** the accessible heading was first written with `class="sr-only"`,
+  which **does not exist** in this codebase - the utility here is `.visually-hidden`. Left
+  uncorrected it would have rendered a stray visible heading above the graphic. Grepped
+  `styles.css` to confirm the real class name rather than assuming the common convention.
+- **Sections updated:** §4 (folder tree - new image), §5.1 (section order + new "Homepage
+  Enhancement - EVENTS Value Framework" subsection), header doc version.
+- **Not verified:** no physical device test - engine-measured only (see L24, as throughout this log).
+
+**Same-day follow-up (v2.7.1) - graphic was too large to fit on screen.** Reported with a
+screenshot: only part of the graphic was visible, forcing a scroll. Root cause was a **sizing
+model** error, not a CSS bug: the cap was width-only (`max-width: 1000px`), but because the
+artwork's height is a fixed ~0.873x of its width, that rendered **873px tall** - taller than a
+typical laptop viewport, so no width value could make it fit vertically.
+
+- **Fix:** express the cap in **viewport-height units** so the *derived height* is what's bounded -
+  `max-width: min(720px, 76vh)` yields a ~66vh-tall image. Added the four requested breakpoints
+  (desktop ≥1200 / laptop 992-1199 / tablet 768-991 / mobile <768), each pairing a px ceiling with
+  a vh cap. Mobile deliberately drops the vh term and uses the container's own gutters, so a
+  phone's collapsing browser toolbar (which changes `vh`) can't resize the graphic mid-scroll.
+  Section padding also tightened on mobile (`--space-32`/`--space-24`).
+- **`index.html` only** - the `<style>` block. Markup, `alt`, `aria-labelledby`, `loading="lazy"`,
+  `decoding="async"` and the `width`/`height` attributes are all unchanged. `styles.css` untouched,
+  so still no `?v=` bump anywhere.
+- **Verified by measurement at six viewport sizes:**
+
+  | Viewport | Rendered | Headroom under navbar |
+  |---|---|---|
+  | 1440x900 (desktop) | 684x597 | 222px |
+  | 1366x700 (short laptop) | 532x464 | 155px |
+  | 1100x800 (laptop) | 592x517 | 202px |
+  | 820x1024 (tablet) | 600x524 | 420px |
+  | 360x740 (mobile) | 328x286, 16px symmetric gutters | fits |
+
+  The vh cap demonstrably does its job: the same desktop breakpoint renders 684px wide at 900px
+  tall but auto-shrinks to 532px at 700px tall, rather than overflowing.
+- Aspect ratio preserved at every size (asserted numerically, not by eye); **zero horizontal
+  overflow** at all six; **zero CLS** re-confirmed (597px reserved = 597px rendered at 1440x900);
+  **sharpness improved** - downscale went from 1.02x to **1.50x**, so more high-DPI headroom than
+  before; section order and all other homepage sections unchanged; zero console errors.
+
+---
+
+### Version 2.6 - 2026-07-29
+**Similar Suppliers cards simplified to discovery cards - price and availability removed from the recommendation section (product/UX decision, not a bug fix).**
+
+Requested explicitly: the recommendation section should encourage *exploring* a supplier's own
+page, not create a purchase decision on the spot from placeholder numbers. Two fields removed
+from the card:
+
+- **Starting price** (`₹X onwards`) - `suppliers.starting_price` is demo/placeholder data with no
+  real quotation engine behind it; showing it on a *recommendation* tile (as distinct from the
+  supplier's own detail page, where the same figure sits next to an actual "Request Quote" CTA
+  and full package breakdown) risks setting a price expectation the platform can't yet honour.
+- **Availability badge** (`Available`/etc.) - `availability_state` is a 90-day heuristic over the
+  `availability` table (see v2.5), not a check against a specific event date. Real availability
+  depends on the date the customer actually wants, which isn't known on a recommendation card.
+
+- **`supplier.html`:** added `var SIMILAR_CARD_FLAGS = { showPrice: false, showAvailability:
+  false };` and wrapped the price-row/availability-chip markup in `SIMILAR_CARD_FLAGS.showX ? ... :
+  ''` ternaries rather than deleting the code - re-enabling either field later (once a real
+  quotation engine / live per-date calendar exists) is a one-line flag flip, not a re-plumb. The
+  underlying data (`starting_price`, `availability_state`) is still fetched and computed exactly
+  as it was in v2.5 - `get_similar_suppliers()` and `v_supplier_public` are **unchanged**, this is
+  a pure front-end UI change.
+- **Card reflow:** `.card-tagline` bumped from a 1-line to a 2-line clamp (`-webkit-line-clamp:
+  2`) per the requested card content list; `.card-cta` gained a top border + more top padding as
+  a visual separator now that two elements no longer sit between the meta row and the CTA. No
+  layout hacks needed for the height/reflow itself - the existing flex-column + `margin-top: auto`
+  pin on `.card-cta` (added in v2.5 for the same reason) automatically reflows and keeps cards in
+  a row equal-height with the smaller content; card height simply shrank from ~489px to ~450px
+  (measured at 1280px) with no gaps.
+- **Verified end-to-end in a browser:** all 3 Similar Supplier cards on a live page confirmed to
+  have zero `.price-row`/`.card-availability` elements in the DOM; cards remain pixel-equal height
+  within a row (450px at desktop, reflowed correctly at 360px mobile - single column, zero
+  horizontal overflow); "View Details" CTA still present and functional on every card; zero
+  console errors.
+- **Sections updated:** §5.13 (new discovery-card rationale + feature-flag paragraph), header doc
+  version.
+- **Not verified:** no physical device test (see L24, as noted throughout this log).
+
+**Same-day follow-up - blue tick icon added next to "Verified" text.** The card's badge had only
+plain text; every other `.badge-verified` usage on the site (the main info bar on this same page,
+`search.html`, `index.html`) carries the blue rosette-checkmark SVG (`fill="#1DA1F2"`) alongside
+the word. Added the identical, already-in-use markup rather than a new icon, for exact visual
+consistency. Verified: SVG present with the correct fill colour on all 3 cards, badge dimensions
+unaffected (73x21px), zero console errors.
+
+---
+
+### Version 2.5 - 2026-07-29
+**Similar Suppliers cards were showing grey boxes/initials instead of real photos - two root causes found and fixed, plus a recommendation-quality and card upgrade.**
+
+Reported by the user with a screenshot. Diagnosed with a direct DB query before writing any code
+(not guessed) - found **two distinct, unrelated bugs**, both pre-dating this fix:
+
+1. **`v_supplier_public.cover_image` only ever checked `venue_images`.** It was written before
+   `suppliers.hero_image_url` and `supplier_media` existed (both added earlier this same day, in
+   the v2.4 work) and was never updated to consider them. Every one of the 6 suppliers without
+   `venues` rows (only Paandora Grand has any, by the v2.4 seed's own design) has a perfectly good
+   photo sitting in `supplier_media` that the view simply never looked at - hence the initials
+   fallback for 6 of 7 suppliers.
+2. **Paandora Grand's own `venue_images.url` was malformed data predating this session**
+   (`0007_seed.sql`): the literal string `'supplier-images/44444444/ballroom.jpg'` - a bucket-path
+   fragment, not a URL. The browser resolved it as a relative path, 404'd, and rendered a blank box
+   with no fallback text (because `cover_image` was truthy, so the old code committed to the image
+   branch and never fell back to initials). This was the blank Paandora Grand card in the screenshot.
+
+- **New migration `0012_similar_suppliers_recommendations.sql`:** fixes the malformed
+  `venue_images.url` row (pointed at a real photo this same supplier already serves elsewhere);
+  rewrites `v_supplier_public.cover_image` as a real priority chain (`hero_image_url` ->
+  first `supplier_media` by `is_cover desc, sort` -> first `venue_images` the same way, hotel
+  category only) and exposes the raw candidates (`media_cover_url`, `venue_cover_url`) plus a
+  server-computed `availability_state` (same 90-day/15%/60% thresholds `renderAvailability()`
+  already uses on the main page, so cards don't need N extra per-card queries); adds
+  `get_similar_suppliers(p_supplier_id, p_limit)` - one ranked query (same city/category first,
+  then verified, featured, closest rating, closest price, rating desc) replacing the old two-query
+  client-side category/city fallback dance. Cross-category fill and duplicate-freedom both fall
+  out of this being a single query with one `LIMIT` - no separate fallback query needed.
+- **`data-api.js`:** `getSimilarSuppliers` signature simplified from `(category, city, excludeId,
+  limit)` to `(supplierId, limit)`, now a single RPC call. Only one call site existed
+  (`supplier.html`, added the same day) - no back-compat concern.
+- **`supplier.html` `renderSimilar()` rewritten:** cards now render a real `<img loading=eager|
+  lazy>` (first card eager, rest lazy) instead of this project's usual `background-image` div
+  technique - a deliberate, scoped deviation for this one component, because `background-image`
+  has no `onerror` event and no native lazy-loading, both required here. `onerror` walks an
+  ordered candidate list (hero -> media -> venue-if-hotel) before finally swapping in an
+  illustrated fallback (category icon + initials + soft gradient, built from existing design
+  tokens) - never a blank/grey box, even if every real URL fails. Fade-in is the image's own
+  `load` event setting inline opacity directly (not the sitewide `.fade-in`/`IntersectionObserver`
+  class, which only observes elements present at initial `DOMContentLoaded` - a documented project
+  pitfall already avoided once this same day on this same page). Cards also gained: a one-line
+  tagline, an availability chip (reusing the existing `avail-open`/`avail-limited`/`avail-tight`
+  colour classes), and a "View Details" text CTA. `.provider-card` inside `.similar-providers-grid`
+  only (search.html/index.html's own `.provider-card` usage is untouched) became a flex column
+  with the CTA pinned via `margin-top: auto` - the same bottom-pin fix already applied once to
+  `.package-card` earlier the same day, applied proactively here since cards now carry
+  variable-length taglines.
+- **User's "Quick View vs View Details" question, resolved by explicit choice:** a plain "View
+  Details" text link (same navigation as clicking the card itself), not a new Quick View modal -
+  smaller surface area, consistent with how every other card on the site already behaves.
+- **Explicit scope boundary, held again:** `search.html`/`index.html` are untouched - this only
+  touches `supplier.html`'s Similar Suppliers section, its backing RPC/view, and `data-api.js`.
+- **Sections updated:** §5.13 (new Similar Suppliers image-pipeline paragraph), §19.1, §19.6,
+  header doc version.
+- **Verified end-to-end in a browser** (`python -m http.server` serving `prototype/`, not `file://`):
+  - Re-ran the diagnostic query post-migration: all 7 suppliers now resolve a non-null,
+    real-`https://` `cover_image`; Paandora Grand's `venue_images.url` confirmed fixed
+  - Called `get_similar_suppliers()` directly in SQL for a manager-type and a hotel-type supplier:
+    same-category results rank first, cross-category fill kicks in correctly when a category has
+    fewer than 3 other members (verified for Bluspring: 2 event-managers + 1 cross-category hotel)
+  - Loaded `supplier.html` for a hotel and a manager supplier: all 3 Similar Supplier cards show
+    real photos, not initials/grey boxes - the exact bug in the screenshot, now fixed
+  - **Retry chain proven live**, not just read: forced a card's image `src` to an invalid domain,
+    confirmed the `onerror` handler advanced `data-idx` and loaded the next real candidate
+    successfully; separately forced full exhaustion (all candidates failed) and confirmed the
+    illustrated fallback (icon + initials + gradient) replaced the `<img>` - no blank box in either
+    case
+  - Mobile (360px) and desktop (1280px): zero horizontal overflow, all 3 card heights identical
+    within a row (Paandora/Sterling/etc. at 489px each on mobile), zero console errors throughout
+  - **`loading="lazy"` images could not be observed loading in this test harness** - confirmed via
+    `read_network_requests` that the browser never even issued the request. Isolated the cause:
+    manually flipping one lazy image to `loading="eager"` made it load instantly and successfully
+    (same URL, `naturalWidth` populated) - proving the URLs and the image pipeline are correct, and
+    that this specific harness doesn't perform the viewport-intersection pass native lazy-loading
+    depends on. Same category of limitation already documented for CSS transitions and
+    `IntersectionObserver` earlier this session (see L24) - not a new issue, not a regression, and
+    not something to "fix" by removing a correctly-implemented feature. Worth a real-device glance,
+    same standing caveat as everything else in this log affected by it.
+- **Not verified:** no physical device test (see L24, as above).
 
 ---
 
