@@ -22,7 +22,47 @@
        the hero above - the white block starts at #categories below, as
        before. Deliberately no border/card/shadow: the artwork carries its
        own visual weight. */
-    .events-framework { padding: var(--space-56) 0 var(--space-40); }
+    /* Full-bleed photographic backdrop. The <section> is already viewport
+       width, so putting the background here (and leaving the foreground
+       graphic inside .container) gives edge-to-edge bg + inset artwork
+       without any extra wrapper. background-attachment stays at the
+       default `scroll` on purpose - `fixed` is janky/broken on iOS Safari
+       and several Android WebViews. */
+    .events-framework {
+      position: relative;
+      padding: var(--space-56) 0 var(--space-40);
+      background-image: url("images/events-value-framework-bg.png");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    /* White scrim between the photo and the artwork. Not decoration: the
+       backdrop's darkest central pixels measure only 3.38:1 against the
+       artwork's navy labels (below WCAG AA 4.5:1), and because
+       `background-size: cover` crops differently per viewport ratio, WHICH
+       part of the photo sits behind the labels changes from screen to
+       screen. A fixed scrim makes the worst case deterministic: 0.30 lifts
+       it to ~5.1:1. Same measured-scrim approach already used for the Sign
+       In glass card (§5.9). */
+    .events-framework::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.30);
+      pointer-events: none;
+    }
+    /* Lift the artwork above the scrim. */
+    .events-framework > .container { position: relative; z-index: 1; width: 100%; }
+    /* "Cover the window pane" on laptop/desktop: fill the viewport below
+       the 80px fixed navbar, with the artwork centred in it. Deliberately
+       NOT applied on phones, where a forced 100vh block would be mostly
+       empty space around a small graphic. */
+    @media (min-width: 768px) {
+      .events-framework { min-height: calc(100vh - 80px); }
+    }
     /* The artwork is 1024x894, so its height is always ~0.873x its width.
        Capping width in *vh* therefore caps the derived HEIGHT against the
        viewport - a width-only cap (e.g. 1000px) renders 873px tall and

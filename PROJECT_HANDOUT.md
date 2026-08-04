@@ -228,7 +228,9 @@ Project B Prototype/                  ← LOCAL project root (NOT the repo root)
     │
     ├── images/                       Local images
     │   ├── corporate.png  fest.png  hotel.png  wedding1.png  wedding2.png
-    │   ├── events-value-framework.png ★ EVENTS value graphic on the homepage (1024x894, RGBA)
+    │   ├── events-value-framework.png ★ EVENTS artwork, foreground layer (1024x894, RGBA, 301KB)
+    │   ├── events-value-framework-bg.png ★ Full-bleed photo backdrop behind it (1672x941, RGB, 1.65MB)
+    │   ├── events-value-framework-with-bg.png  UNUSED pre-composited variant (1672x941, RGB, 1.5MB) - see §5.1
     │   ├── login-bg.jpg              ★ Sign In desktop artwork (228KB, optimised)
     │   ├── login-bg-mobile.jpg       ★ Sign In mobile artwork  (228KB, optimised)
     │   ├── Login page image bg.png   2MB source for login-bg.jpg (not referenced at runtime)
@@ -294,19 +296,60 @@ above, with the white block still starting at `#categories` below - no new colou
 brief, no border, card, shadow or coloured background is applied; the artwork carries its own
 visual weight.
 
-**Asset.** `images/events-value-framework.png` (1024x894, RGBA/transparent). The supplied file
-arrived as `prototype/Events term value.png`; it was copied into `images/` under a hyphenated name
-to follow the folder convention **and** to avoid the percent-encoding fragility that spaces in
+**Asset.** `images/events-value-framework.png` (1024x894, RGBA/transparent, 301KB). The supplied
+file arrived as `prototype/Events term value.png`; it was copied into `images/` under a hyphenated
+name to follow the folder convention **and** to avoid the percent-encoding fragility that spaces in
 image filenames caused before (same reasoning already recorded for the Sign In artwork in §5.9).
 
-**Sizing - why the width cap is in `vh`, not `px` (fixed v2.7.1).** The artwork is 1024x894, so its
+**Backdrop (added v2.7.4).** `images/events-value-framework-bg.png` (1672x941, RGB/no-alpha,
+1.65MB) - a heavily faded photographic collage of event scenes, **containing no text of its own**.
+It is applied as a CSS `background-image` on the `<section>`, which is already viewport-width, so
+the backdrop runs **edge to edge** while the transparent artwork stays inset inside `.container` -
+two layers, no extra wrapper markup. `background-size: cover` + `background-position: center`.
+
+> **`background-attachment` is left at the default `scroll`, not `fixed`.** A fixed/parallax
+> backdrop is a well-known rendering failure on iOS Safari and several Android WebViews (it
+> jitters, or the image detaches and jumps on scroll), which would directly contradict the "renders
+> perfectly across all devices" requirement.
+
+> **A third asset, `images/events-value-framework-with-bg.png`, sits in `images/` but is NOT used.**
+> It is a 1672x941 RGB 1.5MB variant with the artwork *already composited* onto the backdrop. It
+> was trialled in v2.7.2/v2.7.3 and reverted - see the change log. **If it is ever swapped in,
+> three things must change together:** the `src`, the intrinsic `width`/`height` attributes, and
+> the CSS `aspect-ratio` (1.145 vs 1.777 - very different). Changing only `src` renders it visibly
+> squashed, because under `height: auto` it is `aspect-ratio`, not the file, that drives box height.
+
+**Contrast scrim - a measured accessibility requirement, not decoration.** A
+`::before` overlay of `rgba(255,255,255,0.30)` sits between the backdrop and the artwork
+(`.container` is given `position: relative; z-index: 1` to ride above it). Reason, measured from
+the backdrop's actual pixels against the artwork's navy label colour:
+
+| Scrim | Worst-case contrast behind the labels | WCAG AA (4.5:1) |
+|---|---|---|
+| none | **3.38:1** | ✗ fails |
+| 0.25 | 4.81:1 | ✓ |
+| **0.30 (used)** | **~5.1:1** | ✓ |
+
+This matters *more* than a one-off measurement suggests: because `background-size: cover` crops
+differently at every viewport ratio, **which part of the photo sits behind the labels changes from
+screen to screen** - so without a fixed scrim the contrast is non-deterministic and would pass on
+some devices and fail on others. Pinning it makes the worst case constant. Same measured-scrim
+approach already recorded for the Sign In glass card in §5.9.
+
+**"Covers the window pane".** At ≥768px the section takes `min-height: calc(100vh - 80px)` (80px =
+the fixed navbar), so scrolled into view the backdrop fills the visible pane, with the artwork
+flex-centred inside it. Deliberately **not** applied below 768px, where forcing a ~100vh block
+would wrap a small graphic in mostly empty space - phones keep the natural content height instead
+(measured 342px at 360x740, vs a 740px viewport).
+
+**Sizing - why the width cap is in `vh`, not `px` (v2.7.1).** The artwork is 1024x894, so its
 rendered **height is always ~0.873x its width**. A width-only cap therefore can't guarantee it fits
 on screen: the original 1000px cap rendered **873px tall**, taller than a typical laptop viewport,
 so the graphic was cut off and needed scrolling. The fix expresses the cap in **viewport-height
 units** - `max-width: min(720px, 76vh)` - so a 76vh-wide box derives a ~66vh-tall image and the
 whole graphic always lands in one screen view. `min()` keeps a px ceiling so it doesn't grow
-absurdly on very tall windows. This is a *sizing* change only: aspect ratio, colours, transparency
-and sharpness are all untouched.
+absurdly on very tall windows. This is a *sizing* mechanism only: aspect ratio, colours,
+transparency and sharpness are all untouched.
 
 **Responsive behaviour.** Explicit breakpoints, each pairing a px ceiling with a vh cap:
 
@@ -324,6 +367,15 @@ collapsing/expanding browser toolbar (which changes `vh`) can't resize the graph
 Section padding tightens to `--space-32`/`--space-24` below 768px to avoid excess whitespace.
 `width: 100%; height: auto` throughout - never cropped, stretched or distorted at any width.
 
+> **Known trade-off - label legibility on phones.** Measured from the source pixels: the label
+> glyphs ("Networking" etc.) are ~42px tall in the 1672px-wide banner, which at a 328px mobile
+> render scales to **~8.2px** - below comfortable reading size. The retained 1024x894 transparent
+> asset scores **~12.2px** at the same 328px width, because its labels occupy a larger fraction of
+> a narrower canvas. This is inherent to putting a 16:9 banner on a narrow screen, not a CSS fault,
+> and cannot be fixed by resizing without cropping the artwork. The clean fix, if wanted, is
+> **art direction via `<picture>`**: serve the taller transparent asset below 768px and the banner
+> above it. Not implemented - flagged as a deliberate open item.
+
 **Accessibility.** Descriptive `alt` naming all six framework terms, so a screen reader conveys the
 same information a sighted user gets from the graphic. The section carries `aria-labelledby`
 pointing at a `.visually-hidden` `<h2>` ("What goes into a great event"), giving the section a
@@ -332,10 +384,18 @@ design doesn't call for.
 
 **Performance / CLS.** `loading="lazy"` + `decoding="async"`, plus intrinsic `width="1024"
 height="894"` attributes **and** a CSS `aspect-ratio: 1024 / 894`. The box is therefore fully
-reserved before the image decodes - measured post-resize at 1440x900: **597px reserved pre-load,
-597px rendered post-load = zero layout shift**. At the current desktop size the image renders at a
-**1.50x downscale** from its natural 1024px width (up from 1.02x before the resize), so it is
-never upscaled and has extra headroom on Retina/high-DPI displays.
+reserved before the image decodes - measured at 1440x900: **597px reserved pre-load, 597px rendered
+post-load = zero layout shift**. At the current desktop size the image renders at a **1.50x
+downscale** from its natural 1024px width, so it is never upscaled and has headroom on
+Retina/high-DPI displays.
+
+> **Open performance item - the backdrop is a 1.65MB PNG and, being a CSS `background-image`,
+> canNOT be lazy-loaded** the way the foreground `<img>` is; it is fetched as soon as the section's
+> styles apply. It is RGB with **no alpha**, so nothing depends on PNG: re-encoding to progressive
+> JPEG measures **q80 -> 121KB (-93%)** / q85 -> 145KB (-91%). That is the same conversion, for the
+> same reason, that §5.9 records for the Sign In artwork (2.0MB PNG -> 228KB JPEG). **Not applied**
+> - it substitutes a different file than the one supplied - but strongly recommended before any
+> real deployment, since this section currently costs ~1.95MB (backdrop + artwork) on first paint.
 
 **Animation.** Reuses the sitewide `.fade-in` class (opacity + `translateY(24px)`, 0.6s
 `--ease-out`), driven by `app.js`'s existing `IntersectionObserver` - identical entrance to every
@@ -343,8 +403,9 @@ other homepage section. Safe here because the element is present in the static H
 `DOMContentLoaded`, so the observer picks it up (unlike JS-injected nodes - the documented pitfall
 noted elsewhere in this file). It also inherits the existing `prefers-reduced-motion` handling.
 
-**Files modified:** `index.html` only (one `<style>` addition + one `<section>`), plus the new
-`images/events-value-framework.png` asset.
+**Files modified:** `index.html` only (one `<style>` addition + one `<section>`), plus the
+`images/events-value-framework.png` (foreground) and `images/events-value-framework-bg.png`
+(backdrop) assets. The unused `-with-bg` variant also sits in `images/` - see the asset note above.
 
 **Future enhancements (not built):** make each of the six terms a clickable anchor into the
 relevant page section; replace the PNG with an inline SVG for crisper scaling, per-term hover
@@ -2196,6 +2257,83 @@ typical laptop viewport, so no width value could make it fit vertically.
   overflow** at all six; **zero CLS** re-confirmed (597px reserved = 597px rendered at 1440x900);
   **sharpness improved** - downscale went from 1.02x to **1.50x**, so more high-DPI headroom than
   before; section order and all other homepage sections unchanged; zero console errors.
+
+**Same-day follow-up (v2.7.4) - added `events-value-framework-bg.png` as a full-bleed backdrop
+behind the artwork.** Requested: use it "as background below events-value-framework.png", covering
+the window pane on laptop/desktop, rendering well everywhere. This is a **two-layer composition**,
+not an asset swap - the transparent 1024x894 artwork stays exactly as it was (same `src`, same
+`min(px, vh)` caps, same inset centring); the new 1672x941 photo sits behind it.
+
+- **`index.html` (`<style>` only, no markup change):** `background-image` / `cover` / `center` on
+  the `<section>` (already viewport-width, so the backdrop is edge-to-edge for free, while
+  `.container` keeps the artwork inset - no wrapper needed); a `::before` white scrim;
+  `position: relative; z-index: 1` on `.container` to ride above it; flex column +
+  `justify-content: center`; and `min-height: calc(100vh - 80px)` gated to ≥768px.
+- **Contrast scrim is a measured fix, not styling.** Sampling the backdrop's own pixels against the
+  artwork's navy labels gave **3.38:1 worst-case - below WCAG AA (4.5:1)**. Computed the minimum
+  correction and applied `rgba(255,255,255,0.30)` -> **~5.1:1**. This is load-bearing because
+  `background-size: cover` crops differently per viewport ratio, so *which* part of the photo sits
+  behind the labels varies by device - without a fixed scrim the contrast would pass on some
+  screens and fail on others. Same approach §5.9 already records for the Sign In card.
+- **`background-attachment` deliberately left `scroll`, not `fixed`** - fixed/parallax backdrops
+  are a known jitter/detach failure on iOS Safari and several Android WebViews, which would
+  contradict "renders perfectly across all devices".
+- **`min-height` gated to ≥768px on purpose** - forcing ~100vh on a phone would wrap a 286px-tall
+  graphic in mostly empty space. Phones keep natural content height (342px at 360x740).
+- **Verified at 1440x900, 1366x700, 820x1024, 360x740:** backdrop **actually loads** (fetched the
+  resolved CSS url -> HTTP 200, 1654KB, decoded to real 1672x941 pixels - CSS background failures
+  are otherwise silent); section full-bleed (left/right edges 0) at every size; covers the pane
+  above 768px (820px section @900px viewport, 620px @700px, 944px @1024px) and correctly does *not*
+  force height on mobile (`min-height` computed `0px`); artwork centred, inside the section, and
+  unchanged at 684x597 / 532x464 / 600x524 / 328x286 with 16px symmetric gutters on mobile; scrim
+  present and correctly layered under `.container`; **zero horizontal overflow** and **zero CLS**
+  (597px reserved = 597px rendered) everywhere; `.fade-in` entrance intact; section order and all
+  other homepage sections untouched; zero console errors.
+- **Flagged, not silently absorbed:** the backdrop is **1.65MB and cannot be lazy-loaded** (CSS
+  backgrounds are fetched as soon as styles apply, unlike the foreground `<img>`), putting this
+  section at ~1.95MB on first paint. It is RGB/no-alpha, so progressive JPEG measures **q80 ->
+  121KB, a 93% saving**. Not applied (it substitutes a different file than supplied) but
+  recommended before deployment. Documented in §5.1.
+- **Not verified:** no physical device test, and the harness cannot composite, so the scrim's
+  visual result was computed from source pixels rather than sampled from a rendered screenshot
+  (see L24).
+
+**Same-day: v2.7.2 and v2.7.3 were made, then REVERTED at the user's request.** The section is back
+to its v2.7.1 state exactly - transparent `events-value-framework.png`, inset inside `.container`,
+`min(px, vh)` caps, no corner radius. Recorded here (rather than deleted) because both attempts
+produced measurements worth keeping.
+
+- **v2.7.2 - swapped to `events-value-framework-with-bg.png`, then reverted.** Checking the file
+  before editing surfaced that **the two assets have very different aspect ratios**: 1672x941
+  (16:9, ratio 1.777, RGB/no-alpha, 1.5MB) vs 1024x894 (ratio 1.145, RGBA/transparent, 301KB). Two
+  measured findings, both of which argue for the transparent original and are why the revert is
+  reasonable on the merits:
+  1. **Mobile label legibility is worse on the banner.** Its label glyphs are ~42px tall in a
+     1672px-wide canvas, so at a 328px phone render they land at **~8.2px** - vs **~12.2px** for
+     the 1024x894 asset at the same width, because that art's labels occupy a larger fraction of a
+     narrower canvas.
+  2. **Payload is 5x larger** (1.5MB vs 301KB). The banner is RGB with no alpha, so nothing needs
+     PNG - progressive JPEG measured at **q85 -> 128KB (-91%)**, the same conversion §5.9 records
+     for the Sign In artwork. Relevant only if that asset is ever adopted.
+- **v2.7.3 - made the banner full-bleed edge-to-edge, then reverted.** It worked (0px left/right
+  edges, zero overflow, zero CLS, no distortion), but confirmed that **full-bleed and
+  "whole graphic visible without scrolling" are mutually exclusive** for a 16:9 image: at full
+  width its height is 0.563 x the viewport width, so at 1366x700 it stood 760px tall against 619px
+  of usable viewport and its bottom label row fell below the fold. It also became *upscaled* (1.14x
+  at 1905px render vs the 1672px source) rather than downscaled.
+- **The one durable lesson, now recorded in §5.1:** any future swap between these two assets must
+  change **`src` + the intrinsic `width`/`height` attributes + the CSS `aspect-ratio` together**.
+  Changing `src` alone renders the image visibly squashed, since under `height: auto` it is
+  `aspect-ratio` - not the file - that drives the box height.
+- **Revert verified by measurement:** correct asset loads (`naturalWidth` 1024); 684x597 @1440x900
+  with 222px headroom and 532x464 @1366x700 with 155px headroom (i.e. the vh caps are live again
+  and still auto-shrink on short screens); 328x286 with symmetric 16px gutters and ~12.2px labels
+  @360x740; centred and inside `.container` again; `border-radius` back to 0px; zero CLS (597px
+  reserved = 597px rendered); zero horizontal overflow; zero console errors. **The unused
+  `-with-bg` PNG was left in `images/`** rather than deleted - it is nobody's to discard without
+  being asked, and it is flagged as unused in §4 and §5.1.
+- **Not verified:** no physical device test - engine-measured only, and screenshots remain
+  unavailable in this harness (see L24).
 
 ---
 
