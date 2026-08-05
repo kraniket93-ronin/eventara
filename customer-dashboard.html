@@ -11,8 +11,10 @@
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
   <script src="auth-supabase.js?v=1"></script>
+  <script src="data-api.js?v=7"></script>
+  <script src="disputes-ui.js?v=1"></script>
   <script>Auth.requireRole('customer', 'signin.html?next=customer&role=customer');</script>
-  <link rel="stylesheet" href="styles.css?v=19" />
+  <link rel="stylesheet" href="styles.css?v=20" />
   <style>
     /* --- Sidebar customer block --- */
     .sidebar-provider {
@@ -232,25 +234,25 @@
           <div class="metric-card">
             <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div>
             <div class="metric-label">Active Requests</div>
-            <div class="metric-value">2</div>
-            <div class="metric-change positive">1 awaiting quotes</div>
+            <div class="metric-value" id="coRequests">–</div>
+            <div class="metric-change positive" id="coRequestsSub">&nbsp;</div>
           </div>
           <div class="metric-card">
             <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div>
             <div class="metric-label">Quotes to Review</div>
-            <div class="metric-value">3</div>
-            <div class="metric-change positive">Ready to compare</div>
+            <div class="metric-value" id="coQuotes">–</div>
+            <div class="metric-change positive" id="coQuotesSub">&nbsp;</div>
           </div>
           <div class="metric-card">
             <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"></path></svg></div>
             <div class="metric-label">Confirmed Bookings</div>
-            <div class="metric-value">1</div>
-            <div class="metric-change positive">Annual Offsite • 22 Aug</div>
+            <div class="metric-value" id="coBookings">–</div>
+            <div class="metric-change positive" id="coBookingsSub">&nbsp;</div>
           </div>
           <div class="metric-card">
             <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
             <div class="metric-label">Deposit Held Safely</div>
-            <div class="metric-value">₹3.0L</div>
+            <div class="metric-value" id="coEscrow">–</div>
             <div class="metric-change positive">Released only on delivery</div>
           </div>
         </div>
@@ -275,39 +277,13 @@
           <!-- Needs attention -->
           <div class="card-flat">
             <h3>Needs Your Attention</h3>
-            <div class="attn-item">
-              <span class="attn-dot" style="background: var(--gold);"></span>
-              <div class="attn-body">
-                <b>3 quotes ready to compare</b>
-                <p>Leadership Town Hall (#EVT-2026-0051) - quotes from 3 suppliers are in.</p>
-              </div>
-              <a href="compare.html" class="btn btn-primary btn-sm">Compare</a>
-            </div>
-            <div class="attn-item">
-              <span class="attn-dot" style="background: var(--coral);"></span>
-              <div class="attn-body">
-                <b>Balance due before event</b>
-                <p>₹7,02,100 for Annual Offsite (#EVT-2026-0042) collected by 15 Aug.</p>
-              </div>
-              <a href="#payments" data-jump="payments" class="btn btn-secondary btn-sm">Pay</a>
-            </div>
-            <div class="attn-item">
-              <span class="attn-dot" style="background: var(--info);"></span>
-              <div class="attn-body">
-                <b>1 request awaiting quotes</b>
-                <p>Sales Kickoff (#EVT-2026-0058) - 2 of 3 suppliers have responded.</p>
-              </div>
-              <a href="#briefs" data-jump="briefs" class="btn btn-secondary btn-sm">View</a>
-            </div>
+            <div id="coAttention"><p class="caption text-muted">Loading…</p></div>
           </div>
 
           <!-- Recent activity -->
           <div class="card-flat">
             <h3>Recent Activity</h3>
-            <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">Deposit of ₹3,00,900 paid and held safely for #EVT-2026-0042.<time>13 Jul 2026, 16:05</time></div></div>
-            <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">Paandora Grand quote accepted; booking confirmed with auto-generated scope.<time>13 Jul 2026, 15:58</time></div></div>
-            <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">3 quotes received for Leadership Town Hall (#EVT-2026-0051).<time>12 Jul 2026, 09:20</time></div></div>
-            <div class="timeline-item"><span class="t-dot"></span><div class="t-body">Request sent for Sales Kickoff (#EVT-2026-0058) to 3 matched venues &amp; planners.<time>11 Jul 2026, 18:40</time></div></div>
+            <div id="coActivity"><p class="caption text-muted">Loading…</p></div>
           </div>
         </div>
       </section>
@@ -317,39 +293,39 @@
         <div class="card-flat" style="margin-bottom: var(--space-24);">
           <h3>Organisation</h3>
           <div class="grid grid-2" style="gap: var(--space-20);">
-            <div class="input-group"><label>Organisation / Institution</label><input class="input-field" value="Secure Meters Ltd"></div>
-            <div class="input-group"><label>Buyer Type</label>
-              <select class="input-field"><option selected>Corporate</option><option>Institutional / College</option></select>
+            <div class="input-group"><label for="cpOrg">Organisation / Institution</label><input id="cpOrg" class="input-field"></div>
+            <div class="input-group"><label for="cpBuyer">Buyer Type</label>
+              <select id="cpBuyer" class="input-field"><option value="corporate">Corporate</option><option value="institutional">Institutional / College</option></select>
             </div>
-            <div class="input-group"><label>Industry</label><input class="input-field" value="Electronics &amp; Metering"></div>
-            <div class="input-group"><label>City</label><select class="input-field"><option selected>Udaipur</option></select></div>
+            <div class="input-group"><label for="cpIndustry">Industry</label><input id="cpIndustry" class="input-field"></div>
+            <div class="input-group"><label for="cpCity">City</label><select id="cpCity" class="input-field"><option value="Udaipur">Udaipur</option></select></div>
           </div>
         </div>
 
         <div class="card-flat" style="margin-bottom: var(--space-24);">
           <h3>Contacts</h3>
           <div class="grid grid-2" style="gap: var(--space-20);">
-            <div class="input-group"><label>Primary Contact &amp; Role</label><input class="input-field" value="Vishwas Chhabra - Admin Head"></div>
-            <div class="input-group"><label>Work Email</label><input class="input-field" value="admin@securemeters.example"></div>
-            <div class="input-group"><label>Phone</label><input class="input-field" value="+91 294 •••• ••••"></div>
-            <div class="input-group"><label>Finance / Approver Email</label><input class="input-field" value="finance@securemeters.example"></div>
+            <div class="input-group"><label for="cpName">Primary Contact &amp; Role</label><input id="cpName" class="input-field"></div>
+            <div class="input-group"><label for="cpEmail">Work Email</label><input id="cpEmail" class="input-field" type="email" readonly></div>
+            <div class="input-group"><label for="cpPhone">Phone</label><input id="cpPhone" class="input-field" type="tel"></div>
+            <div class="input-group"><label for="cpFinanceEmail">Finance / Approver Email</label><input id="cpFinanceEmail" class="input-field" type="email"></div>
           </div>
+          <p class="caption text-muted" style="margin-top: var(--space-12);">Work email is your sign-in address - change it from Account Settings so the change can be verified.</p>
         </div>
 
         <div class="card-flat" style="margin-bottom: var(--space-24);">
           <h3>GST &amp; Billing</h3>
           <div class="grid grid-2" style="gap: var(--space-20);">
-            <div class="input-group"><label>GSTIN</label><input class="input-field" value="08XXXXX0000X1ZK"></div>
-            <div class="input-group"><label>Default reference / PO <span class="text-muted">(companies)</span></label><input class="input-field" value="PO/2026/••••"></div>
-            <div class="input-group" style="grid-column: 1 / -1;"><label>Billing Address</label><input class="input-field" value="E-Class, Pratap Nagar Industrial Area, Udaipur, Rajasthan 313003"></div>
+            <div class="input-group"><label for="cpGstin">GSTIN</label><input id="cpGstin" class="input-field"></div>
+            <div class="input-group"><label for="cpPo">Default reference / PO <span class="text-muted">(companies)</span></label><input id="cpPo" class="input-field"></div>
+            <div class="input-group" style="grid-column: 1 / -1;"><label for="cpBilling">Billing Address</label><input id="cpBilling" class="input-field"></div>
           </div>
-          <label style="display:flex; gap: var(--space-8); align-items:flex-start; margin-top: var(--space-8); font-size: var(--text-body-sm); color: var(--ink-secondary);">
-            <input type="checkbox" checked style="accent-color: var(--ink); width:18px; height:18px; margin-top:2px;">
-            Add my GSTIN and reference to every invoice automatically.
-          </label>
         </div>
 
-        <button class="btn btn-primary">Save Changes</button>
+        <div class="bp-savebar">
+          <button class="btn btn-primary" id="cpSave">Save Changes</button>
+          <span id="cpSaveMsg" class="caption" role="status" aria-live="polite"></span>
+        </div>
       </section>
 
       <!-- ============ PANEL: BRIEFS & QUOTES ============ -->
@@ -366,38 +342,7 @@
             <thead>
               <tr><th>Request</th><th>Event</th><th>Date</th><th>Guests</th><th>Budget</th><th>Matched</th><th>Status</th><th>Action</th></tr>
             </thead>
-            <tbody>
-              <tr>
-                <td><strong>#EVT-2026-0051</strong></td>
-                <td>Leadership Town Hall</td>
-                <td>14 Sep 2026</td>
-                <td>60</td>
-                <td>₹3–5L</td>
-                <td>3 matched</td>
-                <td><span class="status status-quoted">3 quotes received</span></td>
-                <td><a href="compare.html" class="btn btn-primary btn-sm">Compare</a></td>
-              </tr>
-              <tr>
-                <td><strong>#EVT-2026-0058</strong></td>
-                <td>Sales Kickoff</td>
-                <td>09 Oct 2026</td>
-                <td>200</td>
-                <td>₹10–15L</td>
-                <td>3 matched</td>
-                <td><span class="status status-new">Awaiting quotes (2/3)</span></td>
-                <td><button class="btn btn-secondary btn-sm">View Request</button></td>
-              </tr>
-              <tr>
-                <td><strong>#EVT-2026-0042</strong></td>
-                <td>Annual Offsite</td>
-                <td>22 Aug 2026</td>
-                <td>140</td>
-                <td>₹5–10L</td>
-                <td>3 matched</td>
-                <td><span class="status status-confirmed">Booked - Paandora Grand</span></td>
-                <td><a href="invoice.html" class="btn btn-secondary btn-sm">View Booking</a></td>
-              </tr>
-            </tbody>
+            <tbody id="briefsBody"><tr><td colspan="8" class="caption">Loading…</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -411,28 +356,7 @@
             <thead>
               <tr><th>Booking</th><th>Supplier</th><th>Event / Date</th><th>Total (incl. GST)</th><th>Advance (held)</th><th>Balance</th><th>Status</th><th></th></tr>
             </thead>
-            <tbody>
-              <tr>
-                <td><strong>#EVT-2026-0042</strong></td>
-                <td>Paandora Grand Udaipur</td>
-                <td>Annual Offsite<br><span class="caption text-muted">22 Aug 2026 • 140 guests</span></td>
-                <td>₹10,03,000</td>
-                <td>₹3,00,900</td>
-                <td>₹7,02,100 <span class="caption text-muted">due 15 Aug</span></td>
-                <td><span class="status status-confirmed">Upcoming</span></td>
-                <td><a href="invoice.html" class="btn btn-secondary btn-sm">Invoice</a></td>
-              </tr>
-              <tr>
-                <td><strong>#EVT-2025-0288</strong></td>
-                <td>Blossom Events</td>
-                <td>Annual Day 2025<br><span class="caption text-muted">18 Dec 2025 • 250 guests</span></td>
-                <td>₹4,95,600</td>
-                <td>-</td>
-                <td>Settled</td>
-                <td><span class="status status-delivered">Delivered • Reviewed</span></td>
-                <td><a href="invoice.html" class="btn btn-secondary btn-sm">Invoice</a></td>
-              </tr>
-            </tbody>
+            <tbody id="bookingsBody"><tr><td colspan="8" class="caption">Loading…</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -446,34 +370,7 @@
             <thead>
               <tr><th>Invoice No.</th><th>Booking</th><th>Date</th><th>Type</th><th>Amount</th><th>GST</th><th></th></tr>
             </thead>
-            <tbody>
-              <tr>
-                <td><strong>EVT/INV/2026/0042-A</strong></td>
-                <td>#EVT-2026-0042</td>
-                <td>13 Jul 2026</td>
-                <td>Advance (30%)</td>
-                <td>₹3,00,900</td>
-                <td>CGST+SGST 18%</td>
-                <td><a href="invoice.html" class="btn btn-primary btn-sm">Open / Download</a></td>
-              </tr>
-              <tr>
-                <td><span class="text-muted">EVT/INV/2026/0042-B</span></td>
-                <td>#EVT-2026-0042</td>
-                <td>Pending (on balance)</td>
-                <td>₹7,02,100</td>
-                <td>CGST+SGST 18%</td>
-                <td><button class="btn btn-secondary btn-sm" disabled style="opacity:.5; cursor:not-allowed;">Awaiting balance</button></td>
-              </tr>
-              <tr>
-                <td><strong>EVT/INV/2025/0288</strong></td>
-                <td>#EVT-2025-0288</td>
-                <td>19 Dec 2025</td>
-                <td>Full &amp; final</td>
-                <td>₹4,95,600</td>
-                <td>CGST+SGST 18%</td>
-                <td><a href="invoice.html" class="btn btn-primary btn-sm">Open / Download</a></td>
-              </tr>
-            </tbody>
+            <tbody id="invoicesBody"><tr><td colspan="6" class="caption">Loading…</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -483,40 +380,18 @@
         <h3 style="margin-bottom: var(--space-4);">Payments</h3>
         <p class="caption text-muted" style="margin-bottom: var(--space-24);">Your deposit is held safely by Eventara and released to your venue only after you confirm your event went well - never before.</p>
 
-        <div class="card-flat" style="margin-bottom: var(--space-24);">
-          <div class="flex justify-between items-center" style="margin-bottom: var(--space-8); flex-wrap: wrap; gap: var(--space-8);">
-            <h3 style="margin:0;">Annual Offsite - #EVT-2026-0042</h3>
-            <span class="status status-quoted">Deposit held • balance pending</span>
-          </div>
-          <div class="grid grid-3" style="gap: var(--space-16); margin-bottom: var(--space-24);">
-            <div><div class="caption text-muted">Deposit paid (30%)</div><div style="font-weight:700; font-size: var(--text-heading-md);">₹3,00,900</div></div>
-            <div><div class="caption text-muted">Balance due by 15 Aug</div><div style="font-weight:700; font-size: var(--text-heading-md);">₹7,02,100</div></div>
-            <div><div class="caption text-muted">Payment ref</div><div style="font-weight:600;">EVTR7C2026071301</div></div>
-          </div>
+        <div id="payCards"><p class="caption text-muted">Loading…</p></div>
 
-          <div class="escrow-timeline">
-            <div class="escrow-step completed">
-              <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-              <h5>Deposit Paid</h5><p>₹3,00,900 held safely</p>
-            </div>
-            <div class="escrow-step active">
-              <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
-              <h5>Balance Before Event</h5><p>₹7,02,100 collected by 15 Aug</p>
-            </div>
-            <div class="escrow-step">
-              <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg></div>
-              <h5>Your Event Happens</h5><p>You confirm it went well</p>
-            </div>
-            <div class="escrow-step">
-              <div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></div>
-              <h5>Venue Is Paid</h5><p>Your venue receives the payment</p>
-            </div>
-          </div>
-
-          <div class="flex gap-8" style="margin-top: var(--space-24); flex-wrap: wrap;">
-            <a href="booking.html" class="btn btn-primary btn-sm">Pay balance now</a>
-            <a href="invoice.html" class="btn btn-secondary btn-sm">View GST invoice</a>
-          </div>
+        <div class="card-flat" style="padding: var(--space-24) 0 0 0;">
+          <h3 style="padding: 0 var(--space-24);">Payment history</h3>
+          <table class="data-table">
+            <thead>
+              <tr><th>Date</th><th>Booking</th><th>Supplier</th><th>Type</th><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th></tr>
+            </thead>
+            <tbody id="payHistoryBody">
+              <tr><td colspan="8" class="caption" style="padding: var(--space-24); text-align:center;">Loading…</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -525,30 +400,57 @@
         <h3 style="margin-bottom: var(--space-4);">Disputes</h3>
         <p class="caption text-muted" style="margin-bottom: var(--space-24);">If an event doesn't go to plan, tell us within the support window afterwards. Your money stays protected until our team sorts it out - resolved or refunded. This safety net is only on Eventara.</p>
 
-        <div class="card-flat" style="margin-bottom: var(--space-24); text-align: center; padding: var(--space-40) var(--space-24);">
+        <div class="card-flat" id="dispEmpty" hidden style="margin-bottom: var(--space-24); text-align: center; padding: var(--space-40) var(--space-24);">
           <div style="width:56px; height:56px; border-radius:50%; background: var(--trust-green-light); display:flex; align-items:center; justify-content:center; margin: 0 auto var(--space-16);">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--trust-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
           </div>
           <h4 style="margin-bottom: var(--space-8);">No open disputes</h4>
           <p class="body-sm text-muted" style="max-width: 440px; margin: 0 auto var(--space-20);">All your bookings are on track. If something goes wrong, raise it against the booking and your money stays protected until it's sorted out.</p>
-          <button class="btn btn-secondary">Raise a dispute</button>
+          <button class="btn btn-secondary" onclick="DisputesUI.toggleRaise()">Raise a dispute</button>
+        </div>
+
+        <div class="flex justify-between items-center" style="margin-bottom: var(--space-16); flex-wrap: wrap; gap: var(--space-12);">
+          <div class="filter-tabs" id="dispTabs" style="margin: 0;">
+            <button class="tab-pill active" data-filter="all" onclick="filterDisp(this)">All <span class="pill-count" data-count="all">0</span></button>
+            <button class="tab-pill" data-filter="open" onclick="filterDisp(this)">Open <span class="pill-count" data-count="open">0</span></button>
+            <button class="tab-pill" data-filter="review" onclick="filterDisp(this)">Under Review <span class="pill-count" data-count="review">0</span></button>
+            <button class="tab-pill" data-filter="resolved" onclick="filterDisp(this)">Resolved <span class="pill-count" data-count="resolved">0</span></button>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="DisputesUI.toggleRaise()">Raise a dispute</button>
+        </div>
+
+        <div class="card-flat" id="dispRaise" hidden style="margin-bottom: var(--space-16);">
+          <h3 style="margin-bottom: var(--space-4);">Raise a complaint about a booking</h3>
+          <p class="caption text-muted" style="margin-bottom: var(--space-16);">Tell us what went wrong within the support window after your event. Your money stays protected in escrow until Eventara Ops decides the outcome.</p>
+          <div class="input-group"><label for="drBooking">Booking</label>
+            <select id="drBooking" class="input-field"></select></div>
+          <div class="input-group"><label for="drPriority">How serious is it?</label>
+            <select id="drPriority" class="input-field">
+              <option value="low">Low - minor, worth flagging</option>
+              <option value="medium" selected>Medium - affected the event</option>
+              <option value="high">High - significant disruption</option>
+              <option value="critical">Critical - event failed</option>
+            </select></div>
+          <div class="input-group"><label for="drSummary">What went wrong?</label>
+            <textarea id="drSummary" class="input-field" rows="3" placeholder="Describe what happened, when, and the impact on your event."></textarea></div>
+          <div class="flex" style="gap: var(--space-8); flex-wrap: wrap;">
+            <button class="btn btn-primary btn-sm" onclick="DisputesUI.submitRaise(this)">Submit case</button>
+            <button class="btn btn-secondary btn-sm" onclick="DisputesUI.toggleRaise(false)">Cancel</button>
+          </div>
         </div>
 
         <div class="card-flat" style="padding: var(--space-24) 0 0 0;">
-          <h3 style="padding: 0 var(--space-24);">Resolved history</h3>
           <table class="data-table">
-            <thead><tr><th>Case</th><th>Booking</th><th>Issue</th><th>Outcome</th><th>Closed</th></tr></thead>
-            <tbody>
-              <tr>
-                <td><strong>#D-2025-11</strong></td>
-                <td>#EVT-2025-0288</td>
-                <td>Stage AV delayed at start</td>
-                <td><span class="status status-delivered">Resolved - 5% credit</span></td>
-                <td>20 Dec 2025</td>
-              </tr>
+            <thead>
+              <tr><th>Case</th><th>Booking</th><th>Type</th><th>Priority</th><th>Status</th><th>Updated</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="dispBody">
+              <tr><td colspan="7" class="caption" style="padding: var(--space-24); text-align: center;">Loading…</td></tr>
             </tbody>
           </table>
         </div>
+
+        <div class="card-flat" id="dispDetail" hidden style="margin-top: var(--space-24);"></div>
       </section>
 
       <!-- ============ PANEL: SAVED SUPPLIERS ============ -->
@@ -556,36 +458,11 @@
         <div class="flex justify-between items-center" style="margin-bottom: var(--space-16); flex-wrap: wrap; gap: var(--space-12);">
           <div>
             <h3 style="margin:0;">Saved Suppliers</h3>
-            <p class="caption text-muted">Save up to five venues or planners and compare them side by side on price, inclusions, capacity and rating - a view you can download to share.</p>
+            <p class="caption text-muted">Shortlist venues or planners and compare them side by side on price, inclusions, capacity and rating.</p>
           </div>
-          <a href="compare.html" class="btn btn-primary btn-sm">Compare shortlist</a>
+          <a href="search.html" class="btn btn-primary btn-sm">Browse suppliers</a>
         </div>
-        <div class="saved-grid">
-          <div class="saved-card">
-            <div class="sc-img" style="background-image:url('https://pandorahotels.co.in/grand-udr/Property-with-lawn-view.webp');"></div>
-            <div class="sc-body">
-              <h4>Paandora Grand Udaipur</h4>
-              <div class="sc-meta">★ 4.6 (214) • Banquet Hotel • up to 800</div>
-              <a href="provider.html" class="btn btn-secondary btn-sm w-full">View profile</a>
-            </div>
-          </div>
-          <div class="saved-card">
-            <div class="sc-img" style="background-image:url('https://media.easemytrip.com/media/Hotel/SHL-2401311249900013/Hotel/HotelbLWLcC.png');"></div>
-            <div class="sc-body">
-              <h4>Sterling Balicha</h4>
-              <div class="sc-meta">★ 4.1 (712) • Resort &amp; Banquets</div>
-              <a href="provider.html" class="btn btn-secondary btn-sm w-full">View profile</a>
-            </div>
-          </div>
-          <div class="saved-card">
-            <div class="sc-img" style="background-image:url('https://blossomevent.com/wp-content/uploads/2025/06/AJ1A2224-1-scaled-1.webp');"></div>
-            <div class="sc-body">
-              <h4>Blossom Events</h4>
-              <div class="sc-meta">★ 4.9 (167) • Event Management</div>
-              <a href="provider.html" class="btn btn-secondary btn-sm w-full">View profile</a>
-            </div>
-          </div>
-        </div>
+        <div class="saved-grid" id="savedGrid"><p class="caption">Loading…</p></div>
       </section>
 
       <!-- ============ PANEL: ACCOUNT SETTINGS ============ -->
@@ -597,34 +474,34 @@
           <h3>Account</h3>
           <div class="setting-row">
             <div class="sr-label"><b>Password</b><span>Last changed 2 months ago</span></div>
-            <button class="btn btn-secondary btn-sm" onclick="settingsToast('Change password dialog opened')">Change</button>
+            <button class="btn btn-secondary btn-sm" onclick="changePasswordFlow()">Change</button>
           </div>
           <div class="setting-row">
-            <div class="sr-label"><b>Email address</b><span>admin@securemeters.example</span></div>
-            <button class="btn btn-secondary btn-sm" onclick="settingsToast('Email editor opened')">Edit</button>
+            <div class="sr-label"><b>Sign-in email</b><span id="stEmail">–</span></div>
+            <span class="caption text-muted">Changed by Eventara Ops</span>
           </div>
           <div class="setting-row">
-            <div class="sr-label"><b>Phone number</b><span>+91 294 •••• ••••</span></div>
-            <span class="badge badge-verified" style="font-size: 11px;">Verified ✓</span>
+            <div class="sr-label"><b>Phone number</b><span id="stPhone">–</span></div>
+            <button class="btn btn-secondary btn-sm" onclick="showPanel('profile')">Edit in profile</button>
           </div>
         </div>
 
         <div class="card-flat settings-group">
           <h3>Notification Preferences</h3>
-          <div class="setting-row"><div class="sr-label"><b>Email</b><span>Quotes, bookings, invoices</span></div><label class="switch"><input type="checkbox" checked onchange="settingsToast('Email notifications updated')"><span class="slider"></span></label></div>
-          <div class="setting-row"><div class="sr-label"><b>SMS</b><span>Payment &amp; event reminders</span></div><label class="switch"><input type="checkbox" checked onchange="settingsToast('SMS notifications updated')"><span class="slider"></span></label></div>
-          <div class="setting-row"><div class="sr-label"><b>WhatsApp</b><span>Booking confirmations</span></div><label class="switch"><input type="checkbox" onchange="settingsToast('WhatsApp notifications updated')"><span class="slider"></span></label></div>
-          <div class="setting-row"><div class="sr-label"><b>Push notifications</b><span>Browser &amp; app alerts</span></div><label class="switch"><input type="checkbox" checked onchange="settingsToast('Push notifications updated')"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Email</b><span>Quotes, bookings, invoices</span></div><label class="switch"><input type="checkbox" checked data-pref="notify_email"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>SMS</b><span>Payment &amp; event reminders</span></div><label class="switch"><input type="checkbox" checked data-pref="notify_sms"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>WhatsApp</b><span>Booking confirmations</span></div><label class="switch"><input type="checkbox" data-pref="notify_whatsapp"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Push notifications</b><span>Browser &amp; app alerts</span></div><label class="switch"><input type="checkbox" checked data-pref="notify_push"><span class="slider"></span></label></div>
         </div>
 
         <div class="card-flat settings-group">
           <h3>Privacy</h3>
-          <div class="setting-row"><div class="sr-label"><b>Share event details with matched suppliers only</b><span>Your contact stays private until you confirm a booking</span></div><label class="switch"><input type="checkbox" checked onchange="settingsToast('Privacy preference updated')"><span class="slider"></span></label></div>
-          <div class="setting-row"><div class="sr-label"><b>Product updates &amp; offers</b><span>Occasional emails from Eventara</span></div><label class="switch"><input type="checkbox" onchange="settingsToast('Marketing preference updated')"><span class="slider"></span></label></div>
-          <div class="setting-row"><div class="sr-label"><b>Data preferences</b><span>Manage how your data is used</span></div><button class="btn btn-secondary btn-sm" onclick="settingsToast('Data preferences opened')">Manage</button></div>
+          <div class="setting-row"><div class="sr-label"><b>Share event details with matched suppliers only</b><span>Your contact stays private until you confirm a booking</span></div><label class="switch"><input type="checkbox" checked data-pref="public_profile"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Product updates &amp; offers</b><span>Occasional emails from Eventara</span></div><label class="switch"><input type="checkbox" data-pref="marketing_optin"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Export or delete your data</b><span>Raise a request and Eventara Ops completes it within 30 days</span></div><a href="help.html" class="btn btn-secondary btn-sm">Contact support</a></div>
         </div>
 
-        <button class="btn btn-primary" onclick="settingsToast('Settings saved')">Save Settings</button>
+        <p class="caption text-muted">Preferences save automatically as you toggle them.</p>
       </section>
 
     </main>
@@ -655,6 +532,537 @@
     // react to hash changes (e.g. the account dropdown's My Profile / Account
     // Settings links when already on the dashboard - no reload, just switch)
     window.addEventListener('hashchange', () => { const n = (location.hash || '').replace('#', ''); if (n) showPanel(n); });
+
+    /* ==========================================================
+       CUSTOMER PROFILE / SAVED SUPPLIERS / PASSWORD  [v2.10]
+       Replaces hardcoded field values, a dead "Save Changes"
+       button (it had no handler at all), and three hardcoded
+       shortlist cards that still pointed at the retired
+       provider.html.
+       ========================================================== */
+    function cval(id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; }
+    function csetVal(id, v) { var e = document.getElementById(id); if (e) e.value = (v === null || v === undefined) ? '' : v; }
+
+    var cpLoaded = false;
+    async function loadCustomerProfile(force) {
+      if ((cpLoaded && !force) || !window.EventaraAPI) return;
+      var res = await EventaraAPI.me();
+      if (res.error || !res.data) { settingsToast('Could not load your profile'); return; }
+      var p = res.data;
+      // customer_profiles comes back as an array through the embed
+      var c = Array.isArray(p.customer_profiles) ? (p.customer_profiles[0] || {}) : (p.customer_profiles || {});
+      csetVal('cpName', p.full_name); csetVal('cpEmail', p.email); csetVal('cpPhone', p.phone);
+      var city = document.getElementById('cpCity'); if (city && p.city) city.value = p.city;
+      csetVal('cpOrg', c.org_name); csetVal('cpIndustry', c.industry);
+      csetVal('cpGstin', c.gstin); csetVal('cpPo', c.default_po);
+      csetVal('cpBilling', c.billing_address); csetVal('cpFinanceEmail', c.finance_email);
+      var buyer = document.getElementById('cpBuyer'); if (buyer && c.buyer) buyer.value = c.buyer;
+      // Header + sidebar read from the same record, so a rename shows up
+      // across the dashboard chrome without a reload.
+      var disp = p.full_name || c.org_name;
+      if (disp) {
+        document.querySelectorAll('.sidebar-provider .provider-name').forEach(function (n) { n.textContent = disp; });
+      }
+      cpLoaded = true;
+    }
+
+    async function saveCustomerProfile() {
+      var btn = document.getElementById('cpSave'), msg = document.getElementById('cpSaveMsg');
+      var email = cval('cpFinanceEmail');
+      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        msg.style.color = 'var(--error)'; msg.textContent = 'Finance email does not look valid.'; return;
+      }
+      var gstin = cval('cpGstin');
+      if (gstin && gstin.length !== 15) {
+        msg.style.color = 'var(--error)'; msg.textContent = 'GSTIN should be 15 characters.'; return;
+      }
+      btn.disabled = true; msg.style.color = 'var(--ink-muted)'; msg.textContent = 'Saving…';
+      var res = await EventaraAPI.updateMyProfile({
+        full_name: cval('cpName'), phone: cval('cpPhone') || null,
+        city: document.getElementById('cpCity').value,
+        org_name: cval('cpOrg') || null, industry: cval('cpIndustry') || null,
+        buyer: document.getElementById('cpBuyer').value,
+        gstin: gstin || null, billing_address: cval('cpBilling') || null,
+        finance_email: email || null
+      });
+      btn.disabled = false;
+      if (res.error) { msg.style.color = 'var(--error)'; msg.textContent = 'Could not save: ' + res.error.message; return; }
+      msg.style.color = 'var(--trust-green)'; msg.textContent = 'Saved.';
+      settingsToast('Profile updated');
+      loadCustomerProfile(true);
+      setTimeout(function () { msg.textContent = ''; }, 4000);
+    }
+
+    async function loadSavedSuppliers() {
+      var wrap = document.getElementById('savedGrid'); if (!wrap || !window.EventaraAPI) return;
+      var res = await EventaraAPI.savedSuppliers();
+      if (res.error) { wrap.innerHTML = '<p class="caption">Could not load your shortlist.</p>'; return; }
+      var rows = (res.data || []).filter(function (r) { return r.suppliers; });
+      if (!rows.length) {
+        wrap.innerHTML = '<p class="caption">Nothing saved yet - tap Save on any supplier to shortlist it.</p>';
+        return;
+      }
+      wrap.innerHTML = '';
+      rows.forEach(function (r) {
+        var s = r.suppliers;
+        var card = document.createElement('div'); card.className = 'saved-card';
+        var img = document.createElement('div'); img.className = 'sc-img';
+        var body = document.createElement('div'); body.className = 'sc-body';
+        var cat = String(s.category || '').split(/[-_]+/).map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+        body.innerHTML = '<h4></h4><div class="sc-meta"></div>' +
+          '<a class="btn btn-secondary btn-sm w-full" style="margin-bottom:var(--space-8);">View profile</a>' +
+          '<button class="btn btn-ghost btn-sm w-full sc-remove">Remove</button>';
+        body.querySelector('h4').textContent = s.business_name;
+        body.querySelector('.sc-meta').textContent =
+          '★ ' + (s.rating || 0).toFixed(1) + ' (' + (s.review_count || 0) + ') • ' + cat + ' • ' + (s.city || '');
+        body.querySelector('a').href = 'supplier.html?slug=' + encodeURIComponent(s.slug || '');
+        body.querySelector('.sc-remove').addEventListener('click', async function () {
+          var d = await EventaraAPI.unsaveSupplier(s.id);
+          if (d.error) { settingsToast('Could not remove'); return; }
+          settingsToast('Removed from shortlist'); loadSavedSuppliers();
+        });
+        card.appendChild(img); card.appendChild(body); wrap.appendChild(card);
+      });
+    }
+
+    // Password change - inline prompt flow rather than a fake dialog toast.
+    // changePassword() re-authenticates with the current password first, so a
+    // hijacked session can't silently reset it.
+    // Settings shows the real account identity rather than a sample address.
+    // Neither is editable here: changing a sign-in email needs a verification
+    // round trip, and the phone is edited on the Profile panel.
+    async function loadAccountRows() {
+      if (!window.EventaraAPI || !document.getElementById('stEmail')) return;
+      var me = await EventaraAPI.me();
+      if (me.error || !me.data) return;
+      setTxt('stEmail', me.data.email || '–');
+      setTxt('stPhone', me.data.phone || 'Not set');
+    }
+
+    async function changePasswordFlow() {
+      var current = prompt('For security, enter your CURRENT password:');
+      if (current === null) return;
+      var next = prompt('Enter your NEW password (at least 8 characters):');
+      if (next === null) return;
+      var confirmNext = prompt('Re-enter the new password to confirm:');
+      if (confirmNext === null) return;
+      if (next !== confirmNext) { settingsToast('New passwords do not match'); return; }
+      var res = await EventaraAPI.changePassword(current, next);
+      if (res.error) { settingsToast(res.error.message); return; }
+      settingsToast('Password updated');
+    }
+
+    // Notification/privacy toggles -> user_preferences (real persistence)
+    async function savePref(key, value) {
+      if (!window.EventaraAPI) return;
+      var patch = {}; patch[key] = value;
+      var res = await EventaraAPI.savePreferences(patch);
+      settingsToast(res.error ? ('Could not save: ' + res.error.message) : 'Preference saved');
+    }
+    async function loadPrefs() {
+      if (!window.EventaraAPI) return;
+      var res = await EventaraAPI.me();
+      if (res.error || !res.data) return;
+      var pr = res.data.user_preferences;
+      pr = Array.isArray(pr) ? (pr[0] || {}) : (pr || {});
+      Object.keys(pr).forEach(function (k) {
+        var el = document.querySelector('[data-pref="' + k + '"]');
+        if (el && typeof pr[k] === 'boolean') el.checked = pr[k];
+      });
+    }
+
+    /* ==========================================================
+       LIFECYCLE PANELS - requests -> quotes -> bookings ->
+       invoices, all rendered from the database. [Phase 4]
+       ========================================================== */
+    function inr(n) {
+      if (n === null || n === undefined) return '-';
+      var s = Math.round(n).toString(), last3 = s.slice(-3), other = s.slice(0, -3);
+      if (other !== '') last3 = ',' + last3;
+      return '₹' + other.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + last3;
+    }
+    function fmtDate(d) {
+      if (!d) return '-';
+      return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    function statusPill(s) {
+      var map = {
+        accepted: 'status-confirmed', upcoming: 'status-confirmed', completed: 'status-confirmed',
+        quoted: 'status-pending', matched: 'status-pending', submitted: 'status-pending',
+        new: 'status-pending', under_review: 'status-pending', ongoing: 'status-pending',
+        cancelled: 'status-cancelled', rejected: 'status-cancelled', expired: 'status-cancelled'
+      };
+      var cls = map[s] || 'status-pending';
+      var label = String(s || '').replace(/_/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); });
+      return '<span class="status ' + cls + '">' + label + '</span>';
+    }
+    function rowMsg(tbodyId, cols, msg) {
+      var b = document.getElementById(tbodyId);
+      if (b) b.innerHTML = '<tr><td colspan="' + cols + '" class="caption">' + msg + '</td></tr>';
+    }
+    function cell(text) { var td = document.createElement('td'); td.textContent = text; return td; }
+    function cellHTML(html) { var td = document.createElement('td'); td.innerHTML = html; return td; }
+
+    async function loadRequests() {
+      var body = document.getElementById('briefsBody');
+      if (!body || !window.EventaraAPI) return;
+      var res = await EventaraAPI.myRequestsFull();
+      if (res.error) { rowMsg('briefsBody', 8, 'Could not load your requests.'); return; }
+      var rows = res.data || [];
+      if (!rows.length) { rowMsg('briefsBody', 8, 'No requests yet - use New Request to send your first brief.'); return; }
+      body.innerHTML = '';
+      rows.forEach(function (r) {
+        var quotes = r.quotes || [];
+        var tr = document.createElement('tr');
+        tr.appendChild(cellHTML('<strong>' + (r.ref || '-') + '</strong>'));
+        tr.appendChild(cell(r.event_type || '-'));
+        tr.appendChild(cell(fmtDate(r.event_date)));
+        tr.appendChild(cell(r.guests == null ? '-' : String(r.guests)));
+        tr.appendChild(cell(r.budget_band || '-'));
+        tr.appendChild(cell(quotes.length + ' quote' + (quotes.length === 1 ? '' : 's')));
+        tr.appendChild(cellHTML(statusPill(r.status)));
+        var act = document.createElement('td');
+        if (quotes.length) {
+          var a = document.createElement('a');
+          a.href = 'compare.html'; a.className = 'btn btn-secondary btn-sm'; a.textContent = 'Compare';
+          act.appendChild(a);
+        }
+        // Cancelling is only meaningful while the request is still open.
+        if (['new', 'matched', 'quoted', 'under_review'].indexOf(r.status) !== -1) {
+          var c = document.createElement('button');
+          c.className = 'btn btn-ghost btn-sm'; c.textContent = 'Cancel';
+          c.addEventListener('click', async function () {
+            if (!confirm('Cancel request ' + (r.ref || '') + '? Matched suppliers will be notified.')) return;
+            var d = await EventaraAPI.cancelRequest(r.id);
+            if (d.error) { settingsToast('Could not cancel: ' + d.error.message); return; }
+            settingsToast('Request cancelled'); loadRequests();
+          });
+          act.appendChild(c);
+        }
+        tr.appendChild(act);
+        body.appendChild(tr);
+      });
+    }
+
+    async function loadBookings() {
+      var body = document.getElementById('bookingsBody');
+      if (!body || !window.EventaraAPI) return;
+      var res = await EventaraAPI.myBookings();
+      if (res.error) { rowMsg('bookingsBody', 8, 'Could not load your bookings.'); return; }
+      var rows = res.data || [];
+      if (!rows.length) { rowMsg('bookingsBody', 8, 'No bookings yet.'); return; }
+      body.innerHTML = '';
+      rows.forEach(function (b) {
+        var tr = document.createElement('tr');
+        tr.appendChild(cellHTML('<strong>' + (b.ref || '-') + '</strong>'));
+        tr.appendChild(cell(b.supplier_name || '-'));
+        tr.appendChild(cellHTML(fmtDate(b.event_date) + '<br><span class="caption text-muted">' +
+          (b.guests == null ? '' : b.guests + ' guests') + '</span>'));
+        tr.appendChild(cell(inr(b.amount)));
+        tr.appendChild(cell(inr(b.deposit)));
+        tr.appendChild(cell(inr(b.balance)));
+        tr.appendChild(cellHTML(statusPill(b.status)));
+        var act = document.createElement('td');
+        var t = document.createElement('button');
+        t.className = 'btn btn-ghost btn-sm'; t.textContent = 'Timeline';
+        t.addEventListener('click', function () { showTimeline(b); });
+        act.appendChild(t);
+        tr.appendChild(act);
+        body.appendChild(tr);
+      });
+    }
+
+    async function showTimeline(b) {
+      var res = await EventaraAPI.bookingTimeline(b.id);
+      var evts = (res && res.data) || [];
+      var lines = evts.length
+        ? evts.map(function (e) {
+            return '• ' + fmtDate(e.created_at) + ' - ' + e.event +
+              (e.to_state ? (' -> ' + e.to_state) : '') + (e.note ? (' (' + e.note + ')') : '');
+          }).join('\n')
+        : 'No timeline entries recorded yet for this booking.';
+      alert('Booking ' + (b.ref || '') + '\n\n' + lines);
+    }
+
+    async function loadInvoices() {
+      var body = document.getElementById('invoicesBody');
+      if (!body || !window.EventaraAPI) return;
+      var res = await EventaraAPI.invoices();
+      if (res.error) { rowMsg('invoicesBody', 6, 'Could not load invoices.'); return; }
+      var rows = res.data || [];
+      if (!rows.length) { rowMsg('invoicesBody', 6, 'No invoices yet - one is issued with each confirmed booking.'); return; }
+      body.innerHTML = '';
+      rows.forEach(function (i) {
+        var tr = document.createElement('tr');
+        tr.appendChild(cellHTML('<strong>' + (i.invoice_no || '-') + '</strong>'));
+        tr.appendChild(cell(String(i.type || '').replace(/^./, function (c) { return c.toUpperCase(); })));
+        tr.appendChild(cell(fmtDate(i.issued_at)));
+        tr.appendChild(cell(inr(i.amount)));
+        tr.appendChild(cell(inr((i.cgst || 0) + (i.sgst || 0) + (i.igst || 0))));
+        tr.appendChild(cellHTML('<a class="btn btn-secondary btn-sm" href="invoice.html">View</a>'));
+        body.appendChild(tr);
+      });
+    }
+
+    /* ============ Overview panel ============
+       Figures come from customer_overview_stats() (migration 0020) - counted
+       in the database over this customer's own rows, not typed into the HTML. */
+    function setTxt(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+    function rs(t) { return String(t == null ? '' : t).replace(/Rs\s*/g, '₹'); }
+    function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+    function inrShort(p) {
+      p = Number(p) || 0;
+      if (Math.abs(p) >= 10000000) return '₹' + (p / 10000000).toFixed(2).replace(/\.00$/, '') + 'Cr';
+      if (Math.abs(p) >= 100000)   return '₹' + (p / 100000).toFixed(2).replace(/\.00$/, '') + 'L';
+      return inr(p);
+    }
+
+    function renderAttention(hostId, items) {
+      var host = document.getElementById(hostId);
+      if (!host) return;
+      host.innerHTML = '';
+      if (!items.length) {
+        var p = document.createElement('p');
+        p.className = 'caption text-muted';
+        p.textContent = 'Nothing needs your attention right now.';
+        host.appendChild(p); return;
+      }
+      var tone = { coral: 'var(--coral)', gold: 'var(--gold)', warning: 'var(--warning)', info: 'var(--info)' };
+      items.forEach(function (it) {
+        var row = document.createElement('div'); row.className = 'attn-item';
+        var dot = document.createElement('span'); dot.className = 'attn-dot';
+        dot.style.background = tone[it.tone] || 'var(--info)';
+        var body = document.createElement('div'); body.className = 'attn-body';
+        var b = document.createElement('b'); b.textContent = it.title;
+        var p = document.createElement('p'); p.textContent = rs(it.body);
+        body.appendChild(b); body.appendChild(p);
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-secondary btn-sm'; btn.textContent = it.cta || 'View';
+        btn.addEventListener('click', function () { showPanel(it.panel); });
+        row.appendChild(dot); row.appendChild(body); row.appendChild(btn);
+        host.appendChild(row);
+      });
+    }
+
+    function renderActivity(hostId, items, limit) {
+      var host = document.getElementById(hostId);
+      if (!host) return;
+      host.innerHTML = '';
+      if (!items.length) {
+        var p = document.createElement('p');
+        p.className = 'caption text-muted';
+        p.textContent = 'No activity recorded yet.';
+        host.appendChild(p); return;
+      }
+      items.slice(0, limit || 5).forEach(function (a) {
+        var when = new Date(a.at);
+        var row = document.createElement('div');
+        row.className = 'timeline-item' + (when <= new Date() ? ' done' : '');
+        var dot = document.createElement('span'); dot.className = 't-dot';
+        var body = document.createElement('div'); body.className = 't-body';
+        // Enum values reach the feed verbatim ("under_review"); underscores
+        // never belong in a sentence.
+        body.appendChild(document.createTextNode(rs(a.text).replace(/_/g, ' ')));
+        var t = document.createElement('time');
+        t.textContent = when.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) +
+                        ', ' + when.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        body.appendChild(t);
+        row.appendChild(dot); row.appendChild(body);
+        host.appendChild(row);
+      });
+    }
+
+    async function loadOverview() {
+      if (!window.EventaraAPI) return;
+      var res = await EventaraAPI.customerOverview();
+      if (res.error || !res.data) return;
+      var s = res.data;
+
+      setTxt('coRequests', s.active_requests);
+      setTxt('coRequestsSub', s.awaiting_quotes
+        ? plural(s.awaiting_quotes, 'awaiting quotes', 'awaiting quotes') : 'All have quotes');
+      setTxt('coQuotes', s.quotes_to_review);
+      setTxt('coQuotesSub', s.quotes_to_review ? 'Ready to compare' : 'Nothing to review');
+      setTxt('coBookings', s.confirmed_bookings);
+      setTxt('coBookingsSub', s.next_event
+        ? (s.next_event.supplier + ' • ' + fmtDate(s.next_event.date))
+        : 'No upcoming events');
+      setTxt('coEscrow', inrShort(s.escrow_held));
+
+      renderAttention('coAttention', s.attention || []);
+      renderActivity('coActivity', s.activity || [], 5);
+    }
+
+    /* ============ Payments panel ============
+       One card per booking that has money attached, plus every recorded
+       movement. The escrow steps below are driven by the booking's real
+       payment_status and escrow state, not a fixed "step 2 of 4". */
+    var ESCROW_ICONS = {
+      deposit:  '<path d="M20 6 9 17l-5-5"/>',
+      balance:  '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+      event:    '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/>',
+      released: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/>'
+    };
+
+    function escrowStep(key, title, sub, state) {
+      var d = document.createElement('div');
+      d.className = 'escrow-step' + (state ? ' ' + state : '');
+      d.innerHTML = '<div class="escrow-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ESCROW_ICONS[key] + '</svg></div>';
+      var h = document.createElement('h5'); h.textContent = title;
+      var p = document.createElement('p'); p.textContent = sub;
+      d.appendChild(h); d.appendChild(p);
+      return d;
+    }
+
+    async function loadPayments() {
+      var cards = document.getElementById('payCards');
+      var body = document.getElementById('payHistoryBody');
+      if (!cards || !window.EventaraAPI) return;
+
+      var bRes = await EventaraAPI.myBookings();
+      var pRes = await EventaraAPI.myPayments();
+      if (bRes.error) { cards.innerHTML = '<p class="caption">Could not load payments.</p>'; return; }
+
+      var bookings = (bRes.data || []).filter(function (b) { return b.status !== 'cancelled'; });
+      var pays = (pRes && pRes.data) || [];
+
+      cards.innerHTML = '';
+      if (!bookings.length) {
+        cards.innerHTML = '<div class="card-flat"><p class="caption text-muted">' +
+          'No payments yet. Once you accept a quote, your deposit is held safely here until your event is delivered.</p></div>';
+      }
+
+      bookings.forEach(function (b) {
+        var mine = pays.filter(function (p) { return p.booking_ref === b.ref; });
+        var depositPaid = mine.some(function (p) { return p.kind === 'deposit' && p.state === 'paid'; });
+        var balancePaid = mine.some(function (p) { return p.kind === 'balance' && p.state === 'paid'; });
+        var released = mine.length && mine[0].escrow_state === 'released';
+        var delivered = b.status === 'completed';
+
+        var card = document.createElement('div');
+        card.className = 'card-flat';
+        card.style.marginBottom = 'var(--space-24)';
+
+        var head = document.createElement('div');
+        head.className = 'flex justify-between items-center';
+        head.style.cssText = 'margin-bottom: var(--space-8); flex-wrap: wrap; gap: var(--space-8);';
+        var h = document.createElement('h3'); h.style.margin = '0';
+        h.textContent = (b.supplier_name || 'Booking') + ' - #' + b.ref;
+        var pill = document.createElement('span');
+        var labels = {
+          pending: ['status-new', 'Awaiting deposit'],
+          deposit_held: ['status-quoted', 'Deposit held • balance pending'],
+          balance_due: ['status-quoted', 'Balance due'],
+          paid: [released ? 'status-confirmed' : 'status-delivered',
+                 released ? 'Paid in full • released to supplier' : 'Paid in full • held in escrow'],
+          refunded: ['status-cancelled', 'Refunded']
+        };
+        var lab = labels[b.payment_status] || ['status-new', b.payment_status];
+        pill.className = 'status ' + lab[0]; pill.textContent = lab[1];
+        head.appendChild(h); head.appendChild(pill);
+        card.appendChild(head);
+
+        var grid = document.createElement('div');
+        grid.className = 'grid grid-3';
+        grid.style.cssText = 'gap: var(--space-16); margin-bottom: var(--space-24);';
+        function fig(label, value) {
+          var w = document.createElement('div');
+          var l = document.createElement('div'); l.className = 'caption text-muted'; l.textContent = label;
+          var v = document.createElement('div');
+          v.style.cssText = 'font-weight:700; font-size: var(--text-heading-md);';
+          v.textContent = value;
+          w.appendChild(l); w.appendChild(v); return w;
+        }
+        grid.appendChild(fig('Booking value', inr(b.amount)));
+        grid.appendChild(fig(depositPaid ? 'Deposit paid' : 'Deposit due', inr(b.deposit)));
+        grid.appendChild(fig(balancePaid ? 'Balance paid' : 'Balance due', inr(b.balance)));
+        card.appendChild(grid);
+
+        var tl = document.createElement('div'); tl.className = 'escrow-timeline';
+        tl.appendChild(escrowStep('deposit', 'Deposit Paid',
+          depositPaid ? inr(b.deposit) + ' held safely' : inr(b.deposit) + ' to pay',
+          depositPaid ? 'completed' : 'active'));
+        // Balance is collected three weeks out, the same cut-off the
+        // Overview panel's "balance due" reminder uses.
+        var balanceBy = new Date(b.event_date);
+        balanceBy.setDate(balanceBy.getDate() - 21);
+        tl.appendChild(escrowStep('balance', 'Balance Before Event',
+          balancePaid ? inr(b.balance) + ' received' : inr(b.balance) + ' due before ' + fmtDate(balanceBy),
+          balancePaid ? 'completed' : (depositPaid ? 'active' : '')));
+        tl.appendChild(escrowStep('event', 'Your Event Happens',
+          delivered ? 'Delivered on ' + fmtDate(b.event_date) : fmtDate(b.event_date),
+          delivered ? 'completed' : (balancePaid ? 'active' : '')));
+        tl.appendChild(escrowStep('released', 'Supplier Is Paid',
+          released ? 'Released after the support window' : 'Only after you confirm it went well',
+          released ? 'completed' : (delivered ? 'active' : '')));
+        card.appendChild(tl);
+
+        var actions = document.createElement('div');
+        actions.className = 'flex gap-8';
+        actions.style.cssText = 'margin-top: var(--space-24); flex-wrap: wrap;';
+        if (!balancePaid && b.balance > 0) {
+          var pay = document.createElement('a');
+          pay.className = 'btn btn-primary btn-sm'; pay.href = 'booking.html';
+          pay.textContent = 'Pay balance now'; actions.appendChild(pay);
+        }
+        var inv = document.createElement('a');
+        inv.className = 'btn btn-secondary btn-sm'; inv.href = 'invoice.html';
+        inv.textContent = 'View GST invoice'; actions.appendChild(inv);
+        card.appendChild(actions);
+
+        cards.appendChild(card);
+      });
+
+      // Payment history table
+      if (!body) return;
+      body.innerHTML = '';
+      if (!pays.length) { rowMsg('payHistoryBody', 8, 'No payments recorded yet.'); return; }
+      pays.forEach(function (p) {
+        var tr = document.createElement('tr');
+        tr.appendChild(cell(fmtDate(p.created_at)));
+        tr.appendChild(cellHTML('<strong>' + (p.booking_ref || '-') + '</strong>'));
+        tr.appendChild(cell(p.supplier || '-'));
+        tr.appendChild(cell(String(p.kind || '').replace(/^./, function (c) { return c.toUpperCase(); })));
+        tr.appendChild(cell(inr(p.amount)));
+        tr.appendChild(cell(String(p.method || '-').replace(/_/g, ' ')));
+        tr.appendChild(cell(p.gateway_ref || '-'));
+        tr.appendChild(cellHTML('<span class="status ' +
+          (p.state === 'paid' ? 'status-confirmed' : p.state === 'refunded' ? 'status-cancelled' : 'status-new') +
+          '">' + String(p.state).replace(/^./, function (c) { return c.toUpperCase(); }) + '</span>'));
+        body.appendChild(tr);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var save = document.getElementById('cpSave');
+      if (save) save.addEventListener('click', saveCustomerProfile);
+      loadCustomerProfile(false);
+      loadSavedSuppliers();
+      loadRequests();
+      loadBookings();
+      loadInvoices();
+      loadPrefs();
+      if (document.getElementById('coAttention')) loadOverview();
+      if (document.getElementById('payCards')) loadPayments();
+      loadAccountRows();
+      document.querySelectorAll('[data-pref]').forEach(function (el) {
+        el.addEventListener('change', function () { savePref(el.getAttribute('data-pref'), el.checked); });
+      });
+
+      // Disputes render through the shared component - the same code that
+      // draws the supplier's panel, just told which side we are on.
+      if (window.DisputesUI && document.getElementById('dispBody')) {
+        DisputesUI.mount({ role: 'customer', emptyId: 'dispEmpty', toast: settingsToast });
+      }
+    });
+
+    // Filter tabs on the disputes table (buckets set by disputes-ui.js).
+    function filterDisp(btn) {
+      btn.parentElement.querySelectorAll('.tab-pill').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      DisputesUI.applyFilter();
+    }
 
     // Lightweight toast for settings actions (no backend - prototype)
     function settingsToast(msg) {

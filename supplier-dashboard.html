@@ -11,8 +11,10 @@
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
   <script src="auth-supabase.js?v=1"></script>
+  <script src="data-api.js?v=7"></script>
+  <script src="disputes-ui.js?v=1"></script>
   <script>Auth.requireRole('supplier', 'signin.html?next=dashboard&role=business');</script>
-  <link rel="stylesheet" href="styles.css?v=19" />
+  <link rel="stylesheet" href="styles.css?v=20" />
   <style>
     /* ============================================================
        SUPPLIER DASHBOARD - page-scoped styles
@@ -140,6 +142,18 @@
     .cal-tools { display: flex; flex-wrap: wrap; gap: var(--space-8); }
     .cal-view { display: none; }
     .cal-view.active { display: block; }
+    /* Business profile save bar + gallery thumb delete affordance */
+    .bp-savebar { display: flex; align-items: center; gap: var(--space-16); flex-wrap: wrap; }
+    .gallery-thumb { position: relative; }
+    .thumb-del { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 50%;
+      border: none; background: rgba(0,0,0,.55); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+    .thumb-del:hover { background: rgba(0,0,0,.8); }
+    /* Month nav header for the live availability calendar */
+    .cal-month-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); margin-bottom: var(--space-16); }
+    .cal-month-head h3 { margin: 0; text-align: center; flex: 1; }
+    .cal-month-head .btn { min-width: 44px; min-height: 44px; line-height: 1; }
+    .calendar-day[role="button"] { cursor: pointer; }
+    .calendar-day[role="button"]:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
     .calendar-day.maint { background: var(--warning-light); color: var(--gold-deep); }
     .calendar-day.tentative { position: relative; }
     .calendar-day .event-dot.tentative-dot { background: var(--gold); }
@@ -151,15 +165,34 @@
     .day-agenda .agenda-row { display: flex; gap: var(--space-16); padding: var(--space-12) 0; border-bottom: 1px solid var(--hairline-light); }
     .day-agenda .agenda-time { width: 72px; flex-shrink: 0; font-size: var(--text-body-sm); color: var(--ink-muted); font-weight: 600; }
 
-    /* --- Disputes --- */
-    .priority-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
-    .prio-low { background: var(--ink-faint); }
-    .prio-medium { background: var(--info); }
-    .prio-high { background: var(--warning); }
-    .prio-critical { background: var(--error); }
-    .status-open { background: var(--info-light); color: var(--info); }
-    .status-review { background: var(--gold-light); color: var(--gold-deep); }
-    .status-waiting { background: var(--warning-light); color: var(--gold-deep); }
+    /* --- Disputes ---
+       .priority-dot / .prio-* / .status-open|review|waiting|resolved|closed
+       moved to styles.css so the customer dashboard's disputes panel, which
+       renders through the same shared disputes-ui.js, picks them up too. */
+
+    /* --- Quotation composer --- */
+    .qe-table-wrap { overflow-x: auto; margin-top: var(--space-16); }
+    .qe-table { min-width: 620px; }
+    .qe-table td { vertical-align: middle; }
+    .qe-table .input-field { padding: 8px 10px; font-size: var(--text-body-sm); width: 100%; }
+    .qe-table input[type="number"] { text-align: right; }
+    .qe-amount { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+    .qe-del {
+      background: none; border: none; cursor: pointer; color: var(--ink-muted);
+      font-size: 18px; line-height: 1; padding: 8px; border-radius: var(--radius-sm);
+    }
+    .qe-del:hover { color: var(--error); background: var(--error-light); }
+    .qe-totals {
+      margin: var(--space-20) 0; margin-left: auto; max-width: 320px;
+      border-top: 1px solid var(--hairline); padding-top: var(--space-12);
+    }
+    .qe-totals > div { display: flex; justify-content: space-between; gap: var(--space-16); padding: 4px 0; font-size: var(--text-body-sm); }
+    .qe-totals > div span { color: var(--ink-muted); }
+    .qe-totals b { font-variant-numeric: tabular-nums; }
+    .qe-grand { border-top: 1px solid var(--hairline); margin-top: var(--space-8); padding-top: var(--space-8) !important; font-size: var(--text-body) !important; }
+    .qe-grand b { font-size: var(--text-heading-sm); color: var(--ink); }
+    .two-col-inputs { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-16); }
+    @media (max-width: 640px) { .two-col-inputs { grid-template-columns: 1fr; } }
     .status-closed { background: var(--plum-50); color: var(--plum); }
 
     /* --- Settings toggles --- */
@@ -314,32 +347,7 @@
                 <b>Notifications</b>
                 <button onclick="markAllRead()">Mark all read</button>
               </div>
-              <div class="notif-list" id="notifList">
-                <div class="notif-item" onclick="markRead(this)">
-                  <span class="ni-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg></span>
-                  <div class="ni-body"><b>New enquiry received</b><p>IIM Udaipur - Convocation Dinner, 300 guests.</p><time>18 min ago</time></div>
-                </div>
-                <div class="notif-item" onclick="markRead(this)">
-                  <span class="ni-icon" style="background: var(--warning-light); color: var(--warning);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
-                  <div class="ni-body"><b>Quote deadline reminder</b><p>Convocation Dinner quote due in 22 hours.</p><time>2 hours ago</time></div>
-                </div>
-                <div class="notif-item" onclick="markRead(this)">
-                  <span class="ni-icon" style="background: var(--trust-green-light); color: var(--trust-green);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
-                  <div class="ni-body"><b>Booking confirmed</b><p>Secure Meters - Annual Offsite, #EVT-2026-0042.</p><time>Yesterday</time></div>
-                </div>
-                <div class="notif-item" onclick="markRead(this)">
-                  <span class="ni-icon" style="background: var(--plum-50); color: var(--plum);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
-                  <div class="ni-body"><b>Payment released</b><p>₹3,29,220 net payout for Aravalli Fintech launch.</p><time>4 Aug</time></div>
-                </div>
-                <div class="notif-item read" onclick="markRead(this)">
-                  <span class="ni-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>
-                  <div class="ni-body"><b>New customer message</b><p>KCC Infra asked about AV for the Dealer Conference.</p><time>11 Jul</time></div>
-                </div>
-                <div class="notif-item read" onclick="markRead(this)">
-                  <span class="ni-icon" style="background: var(--warning-light); color: var(--warning);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
-                  <div class="ni-body"><b>Complaint update</b><p>Case #C-2026-03 moved to Under Review by Eventara.</p><time>10 Jul</time></div>
-                </div>
-              </div>
+              <div class="notif-list" id="notifList"><div class="notif-item"><div class="ni-body"><p>Loading…</p></div></div></div>
               <div class="notif-foot"><a href="#" onclick="showPanel('overview'); closeNotif(); return false;">View all notifications</a></div>
             </div>
           </div>
@@ -351,26 +359,26 @@
         <div class="metrics-grid">
           <div class="metric-card">
             <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg></div>
-            <div class="metric-label">Today's Enquiries</div>
-            <div class="metric-value">3</div>
-            <div class="metric-change positive">↑ 3 this week</div>
+            <div class="metric-label">Open Enquiries</div>
+            <div class="metric-value" id="soDraft">–</div>
+            <div class="metric-change positive" id="soDraftSub">&nbsp;</div>
           </div>
           <div class="metric-card">
             <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div>
-            <div class="metric-label">Pending Quotations</div>
-            <div class="metric-value">3</div>
-            <div class="metric-change negative">1 nearing 48h</div>
+            <div class="metric-label">Quotes Awaiting Reply</div>
+            <div class="metric-value" id="soSubmitted">–</div>
+            <div class="metric-change positive" id="soSubmittedSub">&nbsp;</div>
           </div>
           <div class="metric-card">
             <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"></path></svg></div>
             <div class="metric-label">Active Bookings</div>
-            <div class="metric-value">2</div>
-            <div class="metric-change positive">₹6.02L deposit held</div>
+            <div class="metric-value" id="soActive">–</div>
+            <div class="metric-change positive" id="soEscrow">&nbsp;</div>
           </div>
           <div class="metric-card">
             <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
             <div class="metric-label">This Month's Earnings</div>
-            <div class="metric-value">₹3.29L</div>
+            <div class="metric-value" id="soMonth">–</div>
             <div class="metric-change positive">Released 48h after delivery</div>
           </div>
         </div>
@@ -378,7 +386,7 @@
         <div class="quick-actions">
           <button class="quick-action" onclick="showPanel('enquiries')">
             <span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg></span>
-            <span><b>Answer Enquiries</b><span>3 briefs awaiting your quote</span></span>
+            <span><b>Answer Enquiries</b><span id="soQaEnq">Price and send your open quotes</span></span>
           </button>
           <button class="quick-action" onclick="showPanel('calendar')">
             <span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>
@@ -393,74 +401,36 @@
         <div class="two-col-row">
           <div class="card-flat">
             <h3>Needs Your Attention</h3>
-            <div class="attn-item">
-              <span class="attn-dot" style="background: var(--coral);"></span>
-              <div class="attn-body"><b>Quote due in 22h</b><p>IIM Udaipur - Convocation Dinner (300 guests).</p></div>
-              <button class="btn btn-primary btn-sm" onclick="showPanel('enquiries')">Build Quote</button>
-            </div>
-            <div class="attn-item">
-              <span class="attn-dot" style="background: var(--gold);"></span>
-              <div class="attn-body"><b>Quote due in 39h</b><p>KCC Infra - Dealer Conference (220 guests).</p></div>
-              <button class="btn btn-secondary btn-sm" onclick="showPanel('enquiries')">View</button>
-            </div>
-            <div class="attn-item">
-              <span class="attn-dot" style="background: var(--warning);"></span>
-              <div class="attn-body"><b>Complaint under review</b><p>Case #C-2026-03 is waiting for your response.</p></div>
-              <button class="btn btn-secondary btn-sm" onclick="showPanel('disputes')">Open</button>
-            </div>
+            <div id="soAttention"><p class="caption text-muted">Loading…</p></div>
           </div>
 
           <div class="card-flat">
             <h3>Recent Activity</h3>
-            <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">Payout of ₹3,29,220 released for Aravalli Fintech launch.<time>4 Aug 2026, 10:12</time></div></div>
-            <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">Booking confirmed - Secure Meters Annual Offsite (#EVT-2026-0042).<time>13 Jul 2026, 15:58</time></div></div>
-            <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">Quote submitted to RGCPL for their Award Night in 11h.<time>12 Jul 2026, 09:20</time></div></div>
-            <div class="timeline-item"><span class="t-dot"></span><div class="t-body">New enquiry from IIM Udaipur for a Convocation Dinner.<time>11 Jul 2026, 18:40</time></div></div>
+            <div id="soActivity"><p class="caption text-muted">Loading…</p></div>
           </div>
         </div>
 
         <div class="two-col-row">
           <div class="card-flat">
             <h3>Booking Pipeline</h3>
-            <div class="pipeline-bar">
-              <div class="pipeline-segment" style="flex: 9; background: var(--info);">9</div>
-              <div class="pipeline-segment" style="flex: 4; background: var(--gold);">4</div>
-              <div class="pipeline-segment" style="flex: 2; background: var(--trust-green);">2</div>
-              <div class="pipeline-segment" style="flex: 1; background: var(--plum);">1</div>
-              <div class="pipeline-segment" style="flex: 1; background: var(--coral);">1</div>
-            </div>
-            <div class="pipeline-legend">
-              <div class="legend-item"><span class="legend-dot" style="background: var(--info);"></span>Enquiry (9)</div>
-              <div class="legend-item"><span class="legend-dot" style="background: var(--gold);"></span>Quoted (4)</div>
-              <div class="legend-item"><span class="legend-dot" style="background: var(--trust-green);"></span>Booked (2)</div>
-              <div class="legend-item"><span class="legend-dot" style="background: var(--plum);"></span>Delivered (1)</div>
-              <div class="legend-item"><span class="legend-dot" style="background: var(--coral);"></span>Reviewed (1)</div>
-            </div>
+            <div class="pipeline-bar" id="soPipeBar"></div>
+            <div class="pipeline-legend" id="soPipeLegend"></div>
             <div style="margin-top: var(--space-24);">
               <h3 style="margin-bottom: var(--space-8);">Revenue Summary</h3>
-              <div class="perf-row"><span class="perf-label">This month (net)</span><span class="perf-value">₹3.29L</span></div>
-              <div class="perf-row"><span class="perf-label">Held safely (in escrow)</span><span class="perf-value">₹6.02L</span></div>
-              <div class="perf-row"><span class="perf-label">Year to date (net)</span><span class="perf-value green">₹41.8L</span></div>
+              <div class="perf-row"><span class="perf-label">This month (net)</span><span class="perf-value" id="soRevMonth">–</span></div>
+              <div class="perf-row"><span class="perf-label">Held safely (in escrow)</span><span class="perf-value" id="soRevEscrow">–</span></div>
+              <div class="perf-row"><span class="perf-label">Year to date (net)</span><span class="perf-value green" id="soRevYtd">–</span></div>
             </div>
           </div>
 
           <div class="card-flat">
             <h3>Your Performance</h3>
-            <div class="perf-row"><span class="perf-label">48-hour Quote Response Rate</span><span class="perf-value green">100%</span></div>
-            <div class="perf-row"><span class="perf-label">Median Time to Quote</span><span class="perf-value">11h</span></div>
-            <div class="perf-row"><span class="perf-label">Deposit Setup</span><span class="perf-value green">Active</span></div>
-            <div class="perf-row"><span class="perf-label">Delivery Rate</span><span class="perf-value green">100%</span></div>
-            <div class="perf-row"><span class="perf-label">Customer Rating</span>
-              <span class="perf-value">4.6/5
-                <span class="mini-stars">
-                  <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                  <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                  <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                  <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                  <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                </span>
-              </span>
-            </div>
+            <div class="perf-row"><span class="perf-label">Enquiries answered</span><span class="perf-value green" id="soPerfQuoted">–</span></div>
+            <div class="perf-row"><span class="perf-label">Median time to quote</span><span class="perf-value" id="soPerfMedian">–</span></div>
+            <div class="perf-row"><span class="perf-label">Payout account</span><span class="perf-value" id="soPerfPayout">–</span></div>
+            <div class="perf-row"><span class="perf-label">Verification</span><span class="perf-value" id="soPerfKyc">–</span></div>
+            <div class="perf-row"><span class="perf-label">Delivery rate</span><span class="perf-value green" id="soPerfDelivery">–</span></div>
+            <div class="perf-row"><span class="perf-label">Customer rating</span><span class="perf-value" id="soPerfRating">–</span></div>
           </div>
         </div>
       </section>
@@ -473,13 +443,12 @@
         </div>
 
         <div class="filter-tabs" role="tablist" aria-label="Enquiry status">
-          <button class="tab-pill active" data-filter="all" onclick="filterEnq(this)">All <span class="pill-count">6</span></button>
-          <button class="tab-pill" data-filter="new" onclick="filterEnq(this)">New <span class="pill-count">2</span></button>
-          <button class="tab-pill" data-filter="review" onclick="filterEnq(this)">Under Review <span class="pill-count">1</span></button>
-          <button class="tab-pill" data-filter="submitted" onclick="filterEnq(this)">Quote Submitted <span class="pill-count">1</span></button>
-          <button class="tab-pill" data-filter="accepted" onclick="filterEnq(this)">Accepted <span class="pill-count">1</span></button>
-          <button class="tab-pill" data-filter="rejected" onclick="filterEnq(this)">Rejected <span class="pill-count">0</span></button>
-          <button class="tab-pill" data-filter="expired" onclick="filterEnq(this)">Expired <span class="pill-count">1</span></button>
+          <button class="tab-pill active" data-filter="all" onclick="filterEnq(this)">All <span class="pill-count" data-ecount="all">0</span></button>
+          <button class="tab-pill" data-filter="draft" onclick="filterEnq(this)">Draft <span class="pill-count" data-ecount="draft">0</span></button>
+          <button class="tab-pill" data-filter="submitted" onclick="filterEnq(this)">Quote Submitted <span class="pill-count" data-ecount="submitted">0</span></button>
+          <button class="tab-pill" data-filter="accepted" onclick="filterEnq(this)">Accepted <span class="pill-count" data-ecount="accepted">0</span></button>
+          <button class="tab-pill" data-filter="rejected" onclick="filterEnq(this)">Rejected <span class="pill-count" data-ecount="rejected">0</span></button>
+          <button class="tab-pill" data-filter="expired" onclick="filterEnq(this)">Expired <span class="pill-count" data-ecount="expired">0</span></button>
         </div>
 
         <div class="filter-row">
@@ -492,50 +461,53 @@
         <div class="card-flat" style="padding: var(--space-24) 0 0 0;">
           <table class="data-table">
             <thead>
-              <tr><th>Customer</th><th>Event Type</th><th>Date</th><th>Guests</th><th>Budget</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Quote</th><th>Customer</th><th>Event Type</th><th>Date</th><th>Guests</th><th>Value</th><th>Status</th><th>Actions</th></tr>
             </thead>
-            <tbody>
-              <tr data-status="new">
-                <td><strong>IIM Udaipur</strong> <span class="caption text-muted">(masked)</span></td>
-                <td>Convocation Dinner</td><td>Oct 18, 2026</td><td>300</td><td>₹5–10L</td>
-                <td><span class="status status-new">New - due in 22h ⚠</span></td>
-                <td><button class="btn btn-primary btn-sm" onclick="act('Quote builder opened for IIM Udaipur')">Build Quote</button>
-                    <button class="btn btn-secondary btn-sm" onclick="act('Draft saved')">Save Draft</button></td>
-              </tr>
-              <tr data-status="new">
-                <td><strong>KCC Infra</strong> <span class="caption text-muted">(masked)</span></td>
-                <td>Dealer Conference</td><td>Sep 12, 2026</td><td>220</td><td>₹10–15L</td>
-                <td><span class="status status-new">New - due in 39h</span></td>
-                <td><button class="btn btn-primary btn-sm" onclick="act('Quote builder opened for KCC Infra')">Build Quote</button>
-                    <button class="btn btn-secondary btn-sm" onclick="act('Enquiry archived')">Archive</button></td>
-              </tr>
-              <tr data-status="review">
-                <td><strong>Zylker Retail</strong> <span class="caption text-muted">(masked)</span></td>
-                <td>Regional Meet</td><td>Sep 28, 2026</td><td>120</td><td>₹3–5L</td>
-                <td><span class="status status-quoted">Under review by customer</span></td>
-                <td><button class="btn btn-secondary btn-sm" onclick="act('Enquiry details opened')">View</button>
-                    <button class="btn btn-secondary btn-sm" onclick="act('Reply sent to customer')">Respond</button></td>
-              </tr>
-              <tr data-status="submitted">
-                <td><strong>RGCPL, Jaipur</strong> <span class="caption text-muted">(masked)</span></td>
-                <td>Award Night</td><td>Nov 6, 2026</td><td>180</td><td>₹5–10L</td>
-                <td><span class="status status-quoted">Quote submitted in 11h ✓</span></td>
-                <td><button class="btn btn-secondary btn-sm" onclick="act('Quote opened for editing')">Edit Quote</button></td>
-              </tr>
-              <tr data-status="accepted">
-                <td><strong>Secure Meters Ltd</strong> <span class="caption text-muted">(masked)</span></td>
-                <td>Annual Offsite</td><td>Aug 22, 2026</td><td>140</td><td>₹5–10L</td>
-                <td><span class="status status-confirmed">Accepted - #EVT-2026-0042</span></td>
-                <td><button class="btn btn-secondary btn-sm" onclick="showPanel('bookings')">View Booking</button></td>
-              </tr>
-              <tr data-status="expired">
-                <td><strong>Marwar Textiles</strong> <span class="caption text-muted">(masked)</span></td>
-                <td>Factory Anniversary</td><td>Jun 30, 2026</td><td>250</td><td>₹5–10L</td>
-                <td><span class="status status-cancelled">Expired - not quoted in time</span></td>
-                <td><button class="btn btn-secondary btn-sm" onclick="act('Enquiry archived')">Archive</button></td>
-              </tr>
-            </tbody>
+            <tbody id="enquiriesBody"><tr><td colspan="8" class="caption">Loading…</td></tr></tbody>
           </table>
+        </div>
+
+        <!-- ---- Quotation composer: only visible while a draft is open ---- -->
+        <div class="card-flat" id="quoteEditor" hidden style="margin-top: var(--space-24);">
+          <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: var(--space-8);">
+            <div>
+              <h3 style="margin: 0;" id="qeTitle">Build quotation</h3>
+              <p class="caption text-muted" id="qeSubtitle" style="margin-top: 2px;"></p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="closeQuoteEditor()">Close</button>
+          </div>
+
+          <div class="qe-table-wrap">
+            <table class="data-table qe-table">
+              <thead>
+                <tr><th style="width:46%;">Description</th><th style="width:14%;">Qty</th>
+                    <th style="width:20%;">Unit price (₹)</th><th style="width:16%;">Amount</th><th></th></tr>
+              </thead>
+              <tbody id="qeRows"></tbody>
+            </table>
+          </div>
+
+          <button class="btn btn-secondary btn-sm" onclick="addQuoteRow()" style="margin-top: var(--space-12);">+ Add line</button>
+
+          <div class="qe-totals">
+            <div><span>Subtotal</span><b id="qeSubtotal">₹0</b></div>
+            <div><span>GST @ 18%</span><b id="qeTax">₹0</b></div>
+            <div class="qe-grand"><span>Total</span><b id="qeTotal">₹0</b></div>
+          </div>
+
+          <div class="two-col-inputs">
+            <div class="input-group"><label for="qeValidUntil">Valid until</label>
+              <input type="date" id="qeValidUntil" class="input-field"></div>
+            <div class="input-group"><label for="qeNotes">Notes for the customer</label>
+              <input type="text" id="qeNotes" class="input-field" placeholder="Inclusions, exclusions, payment terms."></div>
+          </div>
+
+          <p class="caption text-muted" style="margin-bottom: var(--space-12);">Totals are recalculated by Eventara when you save, so the figure the customer sees always matches these lines.</p>
+
+          <div class="flex" style="gap: var(--space-8); flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" id="qeSave" onclick="saveQuoteDraft(this)">Save draft</button>
+            <button class="btn btn-primary btn-sm" id="qeSend" onclick="saveAndSendQuote(this)">Save &amp; send to customer</button>
+          </div>
         </div>
       </section>
 
@@ -559,49 +531,7 @@
             <thead>
               <tr><th>Booking</th><th>Customer</th><th>Event / Date</th><th>Value (net)</th><th>Payment</th><th>Status</th><th>Actions</th></tr>
             </thead>
-            <tbody>
-              <tr data-status="upcoming">
-                <td><strong>#EVT-2026-0042</strong></td>
-                <td>Secure Meters Ltd</td>
-                <td>Annual Offsite<br><span class="caption text-muted">22 Aug 2026 • 140 guests</span></td>
-                <td>₹7,90,500</td>
-                <td><span class="status status-quoted">Deposit held</span></td>
-                <td><span class="status status-confirmed">Upcoming</span></td>
-                <td><a href="invoice.html" class="btn btn-secondary btn-sm">Invoice</a>
-                    <button class="btn btn-secondary btn-sm" onclick="act('Customer contacted via Eventara')">Contact</button>
-                    <button class="btn btn-secondary btn-sm" onclick="act('Booking status updated')">Update</button></td>
-              </tr>
-              <tr data-status="upcoming">
-                <td><strong>#EVT-2026-0051</strong></td>
-                <td>KCC Infra</td>
-                <td>Dealer Conference<br><span class="caption text-muted">12 Sep 2026 • 220 guests</span></td>
-                <td>₹11,62,000</td>
-                <td><span class="status status-quoted">Deposit held</span></td>
-                <td><span class="status status-confirmed">Upcoming</span></td>
-                <td><a href="invoice.html" class="btn btn-secondary btn-sm">Invoice</a>
-                    <button class="btn btn-secondary btn-sm" onclick="act('Customer contacted via Eventara')">Contact</button>
-                    <button class="btn btn-secondary btn-sm" onclick="act('Booking status updated')">Update</button></td>
-              </tr>
-              <tr data-status="completed">
-                <td><strong>#EVT-2026-0039</strong></td>
-                <td>Aravalli Fintech</td>
-                <td>Product Launch<br><span class="caption text-muted">02 Aug 2026 • 90 guests</span></td>
-                <td>₹3,29,220</td>
-                <td><span class="status status-delivered">Payout released</span></td>
-                <td><span class="status status-delivered">Completed</span></td>
-                <td><a href="invoice.html" class="btn btn-secondary btn-sm">Invoice</a>
-                    <button class="btn btn-secondary btn-sm" onclick="act('Payment status: released 4 Aug')">Payment</button></td>
-              </tr>
-              <tr data-status="cancelled">
-                <td><strong>#EVT-2026-0031</strong></td>
-                <td>Marwar Textiles</td>
-                <td>Factory Anniversary<br><span class="caption text-muted">30 Jun 2026 • cancelled by customer</span></td>
-                <td>-</td>
-                <td><span class="status status-cancelled">Deposit refunded</span></td>
-                <td><span class="status status-cancelled">Cancelled</span></td>
-                <td><button class="btn btn-secondary btn-sm" onclick="act('Cancellation details opened')">Details</button></td>
-              </tr>
-            </tbody>
+            <tbody id="supBookingsBody"><tr><td colspan="8" class="caption">Loading…</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -629,53 +559,20 @@
         <!-- MONTH VIEW -->
         <div class="cal-view active" id="cal-month">
           <div class="card-flat">
-            <h3 style="margin-bottom: var(--space-16);">July 2026</h3>
+            <div class="cal-month-head">
+              <button class="btn btn-secondary btn-sm" id="calPrev" aria-label="Previous month">&lsaquo;</button>
+              <h3 id="calTitle">Loading…</h3>
+              <button class="btn btn-secondary btn-sm" id="calNext" aria-label="Next month">&rsaquo;</button>
+            </div>
             <!-- cal-scroll: on mobile the 7 columns keep a readable min-width and
                  this wrapper scrolls horizontally instead of clipping (desktop unaffected) -->
             <div class="cal-scroll">
-            <div class="calendar-grid">
-              <div class="calendar-day-header">Mon</div><div class="calendar-day-header">Tue</div><div class="calendar-day-header">Wed</div><div class="calendar-day-header">Thu</div><div class="calendar-day-header">Fri</div><div class="calendar-day-header">Sat</div><div class="calendar-day-header">Sun</div>
-
-              <div class="calendar-day empty"></div>
-              <div class="calendar-day empty"></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">1</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">2</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">3</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">4</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">5</span></div>
-
-              <div class="calendar-day today" onclick="cycleDay(this)"><span class="day-number">6</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">7</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">8</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">9</span></div>
-              <div class="calendar-day has-event" title="Confirmed booking"><span class="day-number">10</span><div class="event-dot"></div><div class="event-label">Aravalli Launch</div></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">11</span></div>
-              <div class="calendar-day tentative" title="Tentative hold" onclick="cycleDay(this)"><span class="day-number">12</span><div class="event-dot tentative-dot"></div><div class="event-label">Hold - KCC</div></div>
-
-              <div class="calendar-day blocked"><span class="day-number">13</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">14</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">15</span></div>
-              <div class="calendar-day maint" title="Maintenance"><span class="day-number">16</span><div class="event-label">Maintenance</div></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">17</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">18</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">19</span></div>
-
-              <div class="calendar-day blocked"><span class="day-number">20</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">21</span></div>
-              <div class="calendar-day has-event" title="Confirmed booking"><span class="day-number">22</span><div class="event-dot"></div><div class="event-label">Secure Meters</div></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">23</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">24</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">25</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">26</span></div>
-
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">27</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">28</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">29</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">30</span></div>
-              <div class="calendar-day" onclick="cycleDay(this)"><span class="day-number">31</span></div>
-              <div class="calendar-day empty"></div>
-              <div class="calendar-day empty"></div>
-            </div>
+              <!-- Rendered from the availability table by renderMonth(); no
+                   hardcoded days. Confirmed bookings come back as state
+                   'booked' and are deliberately not clickable. -->
+              <div class="calendar-grid" id="calGrid" aria-live="polite">
+                <div class="calendar-day-header">Mon</div><div class="calendar-day-header">Tue</div><div class="calendar-day-header">Wed</div><div class="calendar-day-header">Thu</div><div class="calendar-day-header">Fri</div><div class="calendar-day-header">Sat</div><div class="calendar-day-header">Sun</div>
+              </div>
             </div><!-- /.cal-scroll -->
           </div>
         </div>
@@ -725,13 +622,33 @@
         </div>
 
         <div class="flex justify-between items-center" style="margin-bottom: var(--space-16); flex-wrap: wrap; gap: var(--space-12);">
-          <div class="filter-tabs" style="margin: 0;">
-            <button class="tab-pill active" data-filter="all" onclick="filterDisp(this)">All <span class="pill-count">3</span></button>
-            <button class="tab-pill" data-filter="open" onclick="filterDisp(this)">Open <span class="pill-count">1</span></button>
-            <button class="tab-pill" data-filter="review" onclick="filterDisp(this)">Under Review <span class="pill-count">1</span></button>
-            <button class="tab-pill" data-filter="resolved" onclick="filterDisp(this)">Resolved <span class="pill-count">1</span></button>
+          <div class="filter-tabs" id="dispTabs" style="margin: 0;">
+            <button class="tab-pill active" data-filter="all" onclick="filterDisp(this)">All <span class="pill-count" data-count="all">0</span></button>
+            <button class="tab-pill" data-filter="open" onclick="filterDisp(this)">Open <span class="pill-count" data-count="open">0</span></button>
+            <button class="tab-pill" data-filter="review" onclick="filterDisp(this)">Under Review <span class="pill-count" data-count="review">0</span></button>
+            <button class="tab-pill" data-filter="resolved" onclick="filterDisp(this)">Resolved <span class="pill-count" data-count="resolved">0</span></button>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="act('Raise a dispute form opened')">Raise a dispute</button>
+          <button class="btn btn-primary btn-sm" onclick="DisputesUI.toggleRaise()">Raise a dispute</button>
+        </div>
+
+        <div class="card-flat" id="dispRaise" hidden style="margin-bottom: var(--space-16);">
+          <h3 style="margin-bottom: var(--space-4);">Raise a dispute against a customer</h3>
+          <p class="caption text-muted" style="margin-bottom: var(--space-16);">Use this for payment, cancellation or conduct issues. Eventara Ops reviews both sides before deciding - the booking's escrowed money stays held until then.</p>
+          <div class="input-group"><label for="drBooking">Booking</label>
+            <select id="drBooking" class="input-field"></select></div>
+          <div class="input-group"><label for="drPriority">Priority</label>
+            <select id="drPriority" class="input-field">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select></div>
+          <div class="input-group"><label for="drSummary">What went wrong?</label>
+            <textarea id="drSummary" class="input-field" rows="3" placeholder="Describe the issue, dates and amounts involved."></textarea></div>
+          <div class="flex" style="gap: var(--space-8); flex-wrap: wrap;">
+            <button class="btn btn-primary btn-sm" onclick="DisputesUI.submitRaise(this)">Submit case</button>
+            <button class="btn btn-secondary btn-sm" onclick="DisputesUI.toggleRaise(false)">Cancel</button>
+          </div>
         </div>
 
         <div class="card-flat" style="padding: var(--space-24) 0 0 0;">
@@ -739,138 +656,89 @@
             <thead>
               <tr><th>Case</th><th>Booking</th><th>Type</th><th>Priority</th><th>Status</th><th>Updated</th><th>Actions</th></tr>
             </thead>
-            <tbody>
-              <tr data-status="review">
-                <td><strong>#C-2026-03</strong></td>
-                <td>#EVT-2026-0039</td>
-                <td>Complaint against you<br><span class="caption text-muted">AV delay at start</span></td>
-                <td><span class="priority-dot prio-high"></span>High</td>
-                <td><span class="status status-waiting">Waiting for Supplier</span></td>
-                <td>10 Jul 2026</td>
-                <td><button class="btn btn-primary btn-sm" onclick="act('Response sent to Eventara support')">Respond</button>
-                    <button class="btn btn-secondary btn-sm" onclick="act('Evidence upload opened')">Upload Evidence</button></td>
-              </tr>
-              <tr data-status="open">
-                <td><strong>#D-2026-07</strong></td>
-                <td>#EVT-2026-0031</td>
-                <td>Dispute you raised<br><span class="caption text-muted">Late cancellation charge</span></td>
-                <td><span class="priority-dot prio-medium"></span>Medium</td>
-                <td><span class="status status-open">Open</span></td>
-                <td>02 Jul 2026</td>
-                <td><button class="btn btn-secondary btn-sm" onclick="act('Case timeline opened')">View Timeline</button>
-                    <button class="btn btn-secondary btn-sm" onclick="act('Evidence upload opened')">Upload Evidence</button></td>
-              </tr>
-              <tr data-status="resolved">
-                <td><strong>#C-2025-11</strong></td>
-                <td>#EVT-2025-0288</td>
-                <td>Complaint against you<br><span class="caption text-muted">Stage AV delayed</span></td>
-                <td><span class="priority-dot prio-low"></span>Low</td>
-                <td><span class="status status-delivered">Resolved - 5% credit</span></td>
-                <td>20 Dec 2025</td>
-                <td><button class="btn btn-secondary btn-sm" onclick="act('Resolution summary opened')">View</button></td>
-              </tr>
+            <tbody id="dispBody">
+              <tr><td colspan="7" class="caption" style="padding: var(--space-24); text-align: center;">Loading…</td></tr>
             </tbody>
           </table>
         </div>
 
-        <div class="card-flat" style="margin-top: var(--space-24);">
-          <h3>Resolution timeline - #C-2026-03</h3>
-          <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">Complaint raised by customer about AV delay.<time>08 Jul 2026</time></div></div>
-          <div class="timeline-item done"><span class="t-dot"></span><div class="t-body">Eventara support moved the case to Under Review.<time>10 Jul 2026</time></div></div>
-          <div class="timeline-item"><span class="t-dot"></span><div class="t-body">Waiting for your response and evidence.<time>Now</time></div></div>
-          <div class="timeline-item"><span class="t-dot"></span><div class="t-body">Resolution &amp; any credit decided by Eventara.<time>Pending</time></div></div>
-        </div>
+        <div class="card-flat" id="dispDetail" hidden style="margin-top: var(--space-24);"></div>
       </section>
 
       <!-- ================= PANEL: BUSINESS PROFILE ================= -->
       <section class="dash-panel" id="panel-profile">
         <div class="panel-head">
           <h2>Business Profile</h2>
-          <p>This is what customers see on your public listing. Keep it complete and accurate - verified, detailed profiles win more bookings.</p>
+          <p>This is what customers see on your public listing. Keep it complete and accurate - verified, detailed profiles win more bookings. Saving here updates your public supplier page, search results and recommendations immediately.</p>
         </div>
 
         <div class="card-flat" style="margin-bottom: var(--space-24);">
           <h3>Business Details</h3>
           <div class="grid grid-2" style="gap: var(--space-20);">
-            <div class="input-group"><label>Business Name</label><input class="input-field" value="Paandora Grand Udaipur"></div>
-            <div class="input-group"><label>Business Category</label><select class="input-field"><option selected>Banquet Hotel / Resort</option><option>Professional Event Manager</option></select></div>
-            <div class="input-group" style="grid-column: 1 / -1;"><label>Description</label><textarea class="input-field" rows="3">Five-star banquet hotel with lawns, pillarless ballroom and in-house catering, on the Udaipur ring road. 12 event spaces, up to 800 guests.</textarea></div>
-            <div class="input-group"><label>Event Specializations</label><input class="input-field" value="Corporate offsites, Conferences, Award nights"></div>
-            <div class="input-group"><label>Maximum Capacity</label><input class="input-field" value="800 guests"></div>
+            <div class="input-group"><label for="bpName">Business Name</label><input id="bpName" class="input-field"></div>
+            <div class="input-group"><label for="bpCategory">Business Category</label><select id="bpCategory" class="input-field">
+              <option value="banquet_hotel">Banquet Hotel / Resort</option>
+              <option value="event_manager">Professional Event Manager</option>
+              <option value="caterer">Caterer</option>
+              <option value="decorator">Decorator</option>
+              <option value="av_production">AV / Production</option>
+            </select></div>
+            <div class="input-group" style="grid-column: 1 / -1;"><label for="bpTagline">Tagline</label><input id="bpTagline" class="input-field" placeholder="One line shown under your name"></div>
+            <div class="input-group" style="grid-column: 1 / -1;"><label for="bpDescription">Description</label><textarea id="bpDescription" class="input-field" rows="3"></textarea></div>
+            <div class="input-group"><label for="bpCapacity">Maximum Capacity (guests)</label><input id="bpCapacity" class="input-field" type="number" min="0"></div>
+            <div class="input-group"><label for="bpYears">Years in Business</label><input id="bpYears" class="input-field" type="number" min="0"></div>
           </div>
         </div>
 
         <div class="card-flat" style="margin-bottom: var(--space-24);">
           <h3>Contact &amp; Address</h3>
+          <p class="caption" style="margin-bottom: var(--space-16);">Customers never see these directly - Eventara relays enquiries so your contact details stay private until a booking is confirmed.</p>
           <div class="grid grid-2" style="gap: var(--space-20);">
-            <div class="input-group"><label>Contact Person</label><input class="input-field" value="Rohit Menon - Banquet Head"></div>
-            <div class="input-group"><label>Phone</label><input class="input-field" value="+91 294 •••• ••••"></div>
-            <div class="input-group"><label>Email</label><input class="input-field" value="events@paandoragrand.example"></div>
-            <div class="input-group"><label>Website</label><input class="input-field" value="paandoragrand.example"></div>
-            <div class="input-group" style="grid-column: 1 / -1;"><label>Address</label><input class="input-field" value="NH-48 Ring Road, Balicha, Udaipur, Rajasthan 313001"></div>
+            <div class="input-group"><label for="bpContactPerson">Contact Person</label><input id="bpContactPerson" class="input-field"></div>
+            <div class="input-group"><label for="bpPhone">Phone</label><input id="bpPhone" class="input-field" type="tel"></div>
+            <div class="input-group"><label for="bpEmail">Email</label><input id="bpEmail" class="input-field" type="email"></div>
+            <div class="input-group"><label for="bpHours">Working Hours</label><input id="bpHours" class="input-field"></div>
+            <div class="input-group" style="grid-column: 1 / -1;"><label for="bpAddress">Address</label><input id="bpAddress" class="input-field"></div>
           </div>
         </div>
 
         <div class="card-flat" style="margin-bottom: var(--space-24);">
           <h3>Compliance &amp; Licences</h3>
+          <p class="caption" style="margin-bottom: var(--space-16);">Read-only. These underpin your Verified badge, so changes go through the Eventara verification team rather than self-service - contact support to update them.</p>
           <div class="grid grid-2" style="gap: var(--space-20);">
-            <div class="input-group"><label>GSTIN</label><input class="input-field" value="08AAAAA0000A1Z5"></div>
-            <div class="input-group"><label>PAN</label><input class="input-field" value="AAACP••••C"></div>
-            <div class="input-group"><label>FSSAI (in-house catering)</label><input class="input-field" value="123••••••••012"></div>
-            <div class="input-group"><label>Cancellation Policy</label><select class="input-field"><option selected>Moderate - 50% refund up to 30 days</option><option>Flexible - full refund up to 15 days</option><option>Strict - 25% refund up to 45 days</option></select></div>
+            <div class="input-group"><label for="bpGstin">GSTIN</label><input id="bpGstin" class="input-field" readonly></div>
+            <div class="input-group"><label for="bpPan">PAN</label><input id="bpPan" class="input-field" readonly></div>
+            <div class="input-group"><label for="bpFssai">FSSAI (in-house catering)</label><input id="bpFssai" class="input-field" readonly></div>
+            <div class="input-group"><label for="bpKycStatus">Verification Status</label><input id="bpKycStatus" class="input-field" readonly></div>
           </div>
         </div>
 
         <div class="card-flat" style="margin-bottom: var(--space-24);">
           <h3>Amenities &amp; Pricing</h3>
-          <div class="input-group" style="margin-bottom: var(--space-16);"><label>Amenities (comma separated)</label><input class="input-field" value="Valet parking, In-house catering, AV &amp; stage, Power backup, Bridal room, Wi-Fi"></div>
+          <div class="input-group" style="margin-bottom: var(--space-16);"><label for="bpAmenities">Amenities (comma separated)</label><input id="bpAmenities" class="input-field"></div>
           <div class="grid grid-3" style="gap: var(--space-16);">
-            <div class="input-group"><label>Starting Price (per plate)</label><input class="input-field" value="₹1,850"></div>
-            <div class="input-group"><label>Hall Rental (from)</label><input class="input-field" value="₹1,25,000"></div>
-            <div class="input-group"><label>Min. Guarantee</label><input class="input-field" value="150 guests"></div>
+            <div class="input-group"><label for="bpStartingPrice">Starting Price (per plate, ₹)</label><input id="bpStartingPrice" class="input-field" type="number" min="0"></div>
+            <div class="input-group"><label for="bpHallRental">Hall Rental from (₹)</label><input id="bpHallRental" class="input-field" type="number" min="0"></div>
+            <div class="input-group"><label for="bpMinGuarantee">Min. Guarantee (guests)</label><input id="bpMinGuarantee" class="input-field" type="number" min="0"></div>
           </div>
+          <div class="input-group" style="margin-top: var(--space-16);"><label for="bpCancellation">Cancellation Policy</label><input id="bpCancellation" class="input-field"></div>
         </div>
 
         <div class="card-flat" style="margin-bottom: var(--space-24);">
-          <h3>Media</h3>
-          <div class="grid grid-2" style="gap: var(--space-20);">
-            <div>
-              <label style="font-size: var(--text-body-sm); font-weight: 500; display:block; margin-bottom: var(--space-8);">Logo</label>
-              <div class="upload-zone" onclick="act('Logo upload opened')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <div>Upload logo (PNG/SVG)</div>
-              </div>
-            </div>
-            <div>
-              <label style="font-size: var(--text-body-sm); font-weight: 500; display:block; margin-bottom: var(--space-8);">Promotional Video</label>
-              <div class="upload-zone" onclick="act('Video upload opened')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-                <div>Upload video (MP4, up to 100MB)</div>
-              </div>
-            </div>
-          </div>
-          <label style="font-size: var(--text-body-sm); font-weight: 500; display:block; margin: var(--space-20) 0 var(--space-8);">Gallery</label>
-          <div class="upload-zone" onclick="act('Gallery upload opened')">
+          <h3>Gallery</h3>
+          <p class="caption" style="margin-bottom: var(--space-16);">Uploads go straight to your public portfolio. Images appear on your supplier page immediately.</p>
+          <label class="upload-zone" for="bpGalleryInput" style="cursor:pointer;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-            <div>Drag images here or click to upload</div>
-          </div>
-          <div class="gallery-grid">
-            <div class="gallery-thumb" style="background-image:url('https://pandorahotels.co.in/grand-udr/Property-with-lawn-view.webp');"></div>
-            <div class="gallery-thumb" style="background-image:url('https://media.easemytrip.com/media/Hotel/SHL-2401311249900013/Hotel/HotelbLWLcC.png');"></div>
-            <div class="gallery-thumb"></div>
-            <div class="gallery-thumb"></div>
-          </div>
+            <div id="bpUploadLabel">Click to upload images (JPG/PNG/WebP, up to 5MB each)</div>
+          </label>
+          <input id="bpGalleryInput" type="file" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
+          <div class="gallery-grid" id="bpGallery"></div>
         </div>
 
-        <div class="card-flat" style="margin-bottom: var(--space-24);">
-          <h3>Social Links</h3>
-          <div class="grid grid-2" style="gap: var(--space-20);">
-            <div class="input-group"><label>Instagram</label><input class="input-field" value="@paandoragrand"></div>
-            <div class="input-group"><label>Facebook</label><input class="input-field" value="/paandoragrandudaipur"></div>
-          </div>
+        <div class="bp-savebar">
+          <button class="btn btn-primary" id="bpSave">Save Profile</button>
+          <span id="bpSaveMsg" class="caption" role="status" aria-live="polite"></span>
         </div>
-
-        <button class="btn btn-primary" onclick="act('Profile saved')">Save Profile</button>
       </section>
 
       <!-- ================= PANEL: SETTINGS ================= -->
@@ -883,58 +751,60 @@
         <div class="card-flat settings-group">
           <h3>Account</h3>
           <div class="setting-row">
-            <div class="sr-label"><b>Password</b><span>Last changed 3 months ago</span></div>
-            <button class="btn btn-secondary btn-sm" onclick="act('Change password dialog opened')">Change</button>
+            <div class="sr-label"><b>Password</b><span>Used to sign in to your supplier portal</span></div>
+            <button class="btn btn-secondary btn-sm" onclick="changePasswordFlow()">Change</button>
           </div>
           <div class="setting-row">
-            <div class="sr-label"><b>Email preferences</b><span>events@paandoragrand.example</span></div>
-            <button class="btn btn-secondary btn-sm" onclick="act('Email preferences opened')">Edit</button>
+            <div class="sr-label"><b>Sign-in email</b><span id="stEmail">–</span></div>
+            <span class="caption text-muted">Changed by Eventara Ops</span>
           </div>
           <div class="setting-row">
-            <div class="sr-label"><b>Phone verification</b><span>+91 294 •••• ••••</span></div>
-            <span class="badge badge-verified" style="font-size: 11px;">Verified ✓</span>
+            <div class="sr-label"><b>Contact phone</b><span id="stPhone">–</span></div>
+            <a href="#profile" class="btn btn-secondary btn-sm" onclick="showPanel('profile'); return false;">Edit in profile</a>
           </div>
         </div>
 
         <div class="card-flat settings-group">
           <h3>Business</h3>
           <div class="setting-row">
-            <div class="sr-label"><b>Working hours</b><span>Mon–Sun, 9:00 AM – 9:00 PM</span></div>
-            <button class="btn btn-secondary btn-sm" onclick="act('Working hours editor opened')">Edit</button>
+            <div class="sr-label"><b>Working hours</b><span>When you take enquiries and calls</span></div>
+            <input type="text" id="stWorkingHours" class="input-field" style="max-width: 260px;"
+                   placeholder="Mon-Sun, 9:00 AM - 9:00 PM">
           </div>
           <div class="setting-row">
-            <div class="sr-label"><b>Availability default</b><span>Open unless blocked</span></div>
-            <label class="switch"><input type="checkbox" checked onchange="toast('Availability default updated')"><span class="slider"></span></label>
+            <div class="sr-label"><b>Availability default</b><span>Dates count as open unless you block them</span></div>
+            <label class="switch"><input type="checkbox" id="stAvailabilityDefault"><span class="slider"></span></label>
           </div>
           <div class="setting-row">
             <div class="sr-label"><b>Auto-response to new enquiries</b><span>Send an instant acknowledgement</span></div>
-            <label class="switch"><input type="checkbox" checked onchange="toast('Auto-response updated')"><span class="slider"></span></label>
+            <label class="switch"><input type="checkbox" id="stAutoResponse"><span class="slider"></span></label>
           </div>
         </div>
 
         <div class="card-flat settings-group">
           <h3>Notifications</h3>
-          <div class="setting-row"><div class="sr-label"><b>Email</b><span>Enquiries, bookings, payouts</span></div><label class="switch"><input type="checkbox" checked onchange="toast('Email notifications updated')"><span class="slider"></span></label></div>
-          <div class="setting-row"><div class="sr-label"><b>SMS</b><span>Time-sensitive quote reminders</span></div><label class="switch"><input type="checkbox" checked onchange="toast('SMS notifications updated')"><span class="slider"></span></label></div>
-          <div class="setting-row"><div class="sr-label"><b>WhatsApp</b><span>Booking confirmations &amp; updates</span></div><label class="switch"><input type="checkbox" onchange="toast('WhatsApp notifications updated')"><span class="slider"></span></label></div>
-          <div class="setting-row"><div class="sr-label"><b>Push notifications</b><span>Browser &amp; app alerts</span></div><label class="switch"><input type="checkbox" checked onchange="toast('Push notifications updated')"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Email</b><span>Enquiries, bookings, payouts</span></div><label class="switch"><input type="checkbox" checked data-pref="notify_email"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>SMS</b><span>Time-sensitive quote reminders</span></div><label class="switch"><input type="checkbox" checked data-pref="notify_sms"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>WhatsApp</b><span>Booking confirmations &amp; updates</span></div><label class="switch"><input type="checkbox" data-pref="notify_whatsapp"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Push notifications</b><span>Browser &amp; app alerts</span></div><label class="switch"><input type="checkbox" checked data-pref="notify_push"><span class="slider"></span></label></div>
         </div>
 
         <div class="card-flat settings-group">
           <h3>Payment</h3>
-          <div class="setting-row"><div class="sr-label"><b>Bank account</b><span>HDFC •••• 4821 - payouts</span></div><button class="btn btn-secondary btn-sm" onclick="act('Bank account editor opened')">Edit</button></div>
-          <div class="setting-row"><div class="sr-label"><b>UPI</b><span>paandoragrand@hdfcbank</span></div><button class="btn btn-secondary btn-sm" onclick="act('UPI editor opened')">Edit</button></div>
-          <div class="setting-row"><div class="sr-label"><b>GST settings</b><span>08AAAAA0000A1Z5 - added to every invoice</span></div><button class="btn btn-secondary btn-sm" onclick="act('GST settings opened')">Edit</button></div>
+          <p class="caption text-muted" style="margin: calc(-1 * var(--space-12)) 0 var(--space-16);">Payout and tax details are verified records. They are shown here as held on file - to change them, raise a request with Eventara Ops so the new account can be verified before any money moves.</p>
+          <div class="setting-row"><div class="sr-label"><b>Payout account</b><span id="stBank">–</span></div><span class="caption text-muted">Verified</span></div>
+          <div class="setting-row"><div class="sr-label"><b>UPI</b><span id="stUpi">–</span></div><span class="caption text-muted">Verified</span></div>
+          <div class="setting-row"><div class="sr-label"><b>GSTIN</b><span id="stGstin">–</span></div><span class="caption text-muted" id="stGstinState">–</span></div>
         </div>
 
         <div class="card-flat settings-group">
           <h3>Privacy</h3>
-          <div class="setting-row"><div class="sr-label"><b>Public profile</b><span>Visible in search results</span></div><label class="switch"><input type="checkbox" checked onchange="toast('Public profile visibility updated')"><span class="slider"></span></label></div>
-          <div class="setting-row"><div class="sr-label"><b>Show ratings publicly</b><span>Display your 4.6★ rating</span></div><label class="switch"><input type="checkbox" checked onchange="toast('Rating visibility updated')"><span class="slider"></span></label></div>
-          <div class="setting-row"><div class="sr-label"><b>Data preferences</b><span>Manage how your data is used</span></div><button class="btn btn-secondary btn-sm" onclick="act('Data preferences opened')">Manage</button></div>
+          <div class="setting-row"><div class="sr-label"><b>Public profile</b><span>Visible in search results</span></div><label class="switch"><input type="checkbox" checked data-pref="public_profile"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Show ratings publicly</b><span id="stRatingLabel">Display your rating on your listing</span></div><label class="switch"><input type="checkbox" checked data-pref="show_ratings"><span class="slider"></span></label></div>
+          <div class="setting-row"><div class="sr-label"><b>Marketing emails</b><span>Product news and seasonal demand tips</span></div><label class="switch"><input type="checkbox" data-pref="marketing_optin"><span class="slider"></span></label></div>
         </div>
 
-        <button class="btn btn-primary" onclick="act('Settings saved')">Save Settings</button>
+        <p class="caption text-muted">Every setting on this page saves the moment you change it - there is no separate save step.</p>
       </section>
 
     </main>
@@ -982,9 +852,606 @@
       const badge = document.getElementById('notifCount');
       if (unread === 0) { badge.style.display = 'none'; } else { badge.style.display = 'flex'; badge.textContent = unread; }
     }
-    function markRead(item) { item.classList.add('read'); updateNotifCount(); }
-    function markAllRead() { document.querySelectorAll('#notifList .notif-item').forEach(i => i.classList.add('read')); updateNotifCount(); toast('All notifications marked read'); }
-    updateNotifCount();
+    /* Notifications are database-driven (the `notifications` table via
+       v_notification_feed). Read state persists, so it survives a reload
+       instead of resetting like the previous class-toggle version. */
+    function timeAgo(iso) {
+      var s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+      if (s < 60) return 'just now';
+      if (s < 3600) return Math.floor(s / 60) + ' min ago';
+      if (s < 86400) return Math.floor(s / 3600) + ' hr ago';
+      var d = Math.floor(s / 86400);
+      return d === 1 ? 'yesterday' : d + ' days ago';
+    }
+    var BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>';
+
+    async function loadNotifications() {
+      var list = document.getElementById('notifList');
+      if (!list || !window.EventaraAPI) return;
+      var res = await EventaraAPI.notifications();
+      if (res.error) { list.innerHTML = '<div class="notif-item"><div class="ni-body"><p>Could not load notifications.</p></div></div>'; return; }
+      var rows = res.data || [];
+      if (!rows.length) { list.innerHTML = '<div class="notif-item"><div class="ni-body"><p>No notifications yet.</p></div></div>'; updateNotifCount(); return; }
+      list.innerHTML = '';
+      rows.forEach(function (n) {
+        var item = document.createElement('div');
+        item.className = 'notif-item' + (n.read ? ' read' : '');
+        item.setAttribute('data-id', n.id);
+        var icon = document.createElement('span'); icon.className = 'ni-icon'; icon.innerHTML = BELL;
+        var body = document.createElement('div'); body.className = 'ni-body';
+        var b = document.createElement('b'); b.textContent = n.title || '';
+        var pEl = document.createElement('p'); pEl.textContent = n.body || '';
+        var t = document.createElement('time'); t.textContent = timeAgo(n.created_at);
+        body.appendChild(b); body.appendChild(pEl); body.appendChild(t);
+        item.appendChild(icon); item.appendChild(body);
+        item.addEventListener('click', function () { markRead(item, n); });
+        list.appendChild(item);
+      });
+      updateNotifCount();
+    }
+
+    async function markRead(item, n) {
+      if (item.classList.contains('read')) { if (n && n.link) location.href = n.link; return; }
+      item.classList.add('read'); updateNotifCount();
+      var r = await EventaraAPI.markRead(item.getAttribute('data-id'));
+      if (r && r.error) { item.classList.remove('read'); updateNotifCount(); toast('Could not mark read'); return; }
+      if (n && n.link) setTimeout(function () { location.href = n.link; }, 250);
+    }
+
+    async function markAllRead() {
+      var items = document.querySelectorAll('#notifList .notif-item[data-id]');
+      if (!items.length) return;
+      items.forEach(function (i) { i.classList.add('read'); });
+      updateNotifCount();
+      var r = await EventaraAPI.markAllRead();
+      toast(r && r.error ? 'Could not mark all read' : 'All notifications marked read');
+    }
+
+    /* Settings toggles -> user_preferences (real persistence). */
+    async function savePref(key, value) {
+      if (!window.EventaraAPI) return;
+      var patch = {}; patch[key] = value;
+      var res = await EventaraAPI.savePreferences(patch);
+      toast(res.error ? ('Could not save: ' + res.error.message) : 'Preference saved');
+    }
+    async function loadPrefs() {
+      if (!window.EventaraAPI) return;
+      var res = await EventaraAPI.me();
+      if (res.error || !res.data) return;
+      var pr = res.data.user_preferences;
+      pr = Array.isArray(pr) ? (pr[0] || {}) : (pr || {});
+      Object.keys(pr).forEach(function (k) {
+        var el = document.querySelector('[data-pref="' + k + '"]');
+        if (el && typeof pr[k] === 'boolean') el.checked = pr[k];
+      });
+    }
+
+    /* ============ Account settings ============
+       The rows that can be changed here write to supplier_profiles; the rows
+       that cannot (sign-in email, payout account, GSTIN) display the verified
+       record rather than pretending to be editable. */
+    async function changePasswordFlow() {
+      var current = prompt('For security, enter your CURRENT password:');
+      if (current === null) return;
+      var next = prompt('Enter your NEW password (at least 8 characters):');
+      if (next === null) return;
+      var confirmNext = prompt('Re-enter the new password to confirm:');
+      if (confirmNext === null) return;
+
+      if (next !== confirmNext) { toast('The two new passwords do not match.'); return; }
+      if (next.length < 8) { toast('Pick a password of at least 8 characters.'); return; }
+
+      var res = await EventaraAPI.changePassword(current, next);
+      toast(res && res.error ? ('Could not change password: ' + res.error.message)
+                             : 'Password changed. Use it next time you sign in.');
+    }
+
+    async function loadSupplierSettings() {
+      if (!window.EventaraAPI || !document.getElementById('stWorkingHours')) return;
+
+      var me = await EventaraAPI.me();
+      if (me.data) {
+        setTxt('stEmail', me.data.email || '–');
+        setTxt('stPhone', me.data.phone || 'Not set');
+      }
+
+      var sup = await EventaraAPI.mySupplier();
+      if (sup.data) {
+        var pr = sup.data.supplier_profiles;
+        pr = Array.isArray(pr) ? (pr[0] || {}) : (pr || {});
+        document.getElementById('stWorkingHours').value = pr.working_hours || '';
+        document.getElementById('stAvailabilityDefault').checked = pr.availability_default !== false;
+        document.getElementById('stAutoResponse').checked = pr.auto_response !== false;
+        if (pr.contact_phone) setTxt('stPhone', pr.contact_phone);
+        if (sup.data.rating) {
+          setTxt('stRatingLabel', 'Display your ' + sup.data.rating + '★ rating on your listing');
+        }
+      }
+
+      var bank = await EventaraAPI.myBankAccount();
+      if (bank.data) {
+        setTxt('stBank', (bank.data.bank || 'Bank') + ' ' + (bank.data.account_masked || '') +
+                         (bank.data.ifsc ? ' (' + bank.data.ifsc + ')' : ''));
+        setTxt('stUpi', bank.data.upi || 'Not set');
+      } else {
+        setTxt('stBank', 'No payout account on file');
+        setTxt('stUpi', 'Not set');
+      }
+
+      var kyc = await EventaraAPI.myKyc();
+      if (kyc.data) {
+        setTxt('stGstin', kyc.data.gstin || 'Not provided');
+        setTxt('stGstinState', kyc.data.gstin_status === 'verified' ? 'Verified'
+                               : String(kyc.data.gstin_status || 'pending').replace(/_/g, ' '));
+      } else {
+        setTxt('stGstin', 'Not provided'); setTxt('stGstinState', 'Not started');
+      }
+    }
+
+    // supplier_profiles fields save on change, same as the preference toggles.
+    async function saveSupplierSetting(field, value, label) {
+      var patch = {}; patch[field] = value;
+      var res = await EventaraAPI.updateMySupplier({}, patch);
+      toast(res && res.error ? ('Could not save: ' + res.error.message) : (label + ' saved'));
+    }
+
+    /* ==========================================================
+       LIFECYCLE PANELS - enquiries (quotes against this
+       supplier) and bookings, rendered from the database and
+       with real state transitions. [Phase 4]
+       ========================================================== */
+    function inr(n) {
+      if (n === null || n === undefined) return '-';
+      var s = Math.round(n).toString(), last3 = s.slice(-3), other = s.slice(0, -3);
+      if (other !== '') last3 = ',' + last3;
+      return '₹' + other.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + last3;
+    }
+    function fmtDate(d) {
+      if (!d) return '-';
+      return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    function statusPill(s) {
+      var map = {
+        accepted: 'status-confirmed', upcoming: 'status-confirmed', completed: 'status-confirmed',
+        submitted: 'status-pending', draft: 'status-pending', ongoing: 'status-pending',
+        cancelled: 'status-cancelled', rejected: 'status-cancelled', expired: 'status-cancelled'
+      };
+      var cls = map[s] || 'status-pending';
+      var label = String(s || '').replace(/_/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); });
+      return '<span class="status ' + cls + '">' + label + '</span>';
+    }
+    function sCell(t) { var td = document.createElement('td'); td.textContent = t; return td; }
+    function sCellHTML(h) { var td = document.createElement('td'); td.innerHTML = h; return td; }
+    function sRowMsg(id, cols, msg) {
+      var b = document.getElementById(id);
+      if (b) b.innerHTML = '<tr><td colspan="' + cols + '" class="caption">' + msg + '</td></tr>';
+    }
+
+    async function loadEnquiries() {
+      var body = document.getElementById('enquiriesBody');
+      if (!body || !window.EventaraAPI) return;
+      var res = await EventaraAPI.myEnquiries();
+      if (res.error) { sRowMsg('enquiriesBody', 8, 'Could not load enquiries.'); return; }
+      var rows = res.data || [];
+      if (!rows.length) { sRowMsg('enquiriesBody', 8, 'No enquiries yet.'); return; }
+      body.innerHTML = '';
+      var counts = { all: rows.length, draft: 0, submitted: 0, accepted: 0, rejected: 0, expired: 0 };
+
+      rows.forEach(function (q) {
+        var r = q.event_requests || {};
+        var cust = r.profiles || {};
+        if (counts[q.status] !== undefined) counts[q.status]++;
+
+        var tr = document.createElement('tr');
+        tr.setAttribute('data-status', q.status);
+        tr.appendChild(sCellHTML('<strong>' + (q.ref || r.ref || '-') + '</strong>'));
+        // B17: the customer's identity stays private until a booking is
+        // confirmed, so this shows the organisation, never personal contact.
+        tr.appendChild(sCell(cust.full_name || 'Customer'));
+        tr.appendChild(sCell(r.event_type || '-'));
+        tr.appendChild(sCell(fmtDate(r.event_date)));
+        tr.appendChild(sCell(r.guests == null ? '-' : String(r.guests)));
+        tr.appendChild(sCell(q.total ? inr(q.total) : (r.budget_band || '-')));
+        tr.appendChild(sCellHTML(statusPill(q.status)));
+
+        var act = document.createElement('td');
+        if (q.status === 'draft') {
+          var edit = document.createElement('button');
+          edit.className = 'btn btn-primary btn-sm';
+          edit.textContent = q.total ? 'Edit quote' : 'Build quote';
+          edit.addEventListener('click', function () { openQuoteEditor(q); });
+          act.appendChild(edit);
+        } else if (q.status === 'submitted') {
+          var wd = document.createElement('button');
+          wd.className = 'btn btn-secondary btn-sm'; wd.textContent = 'Withdraw';
+          wd.addEventListener('click', async function () {
+            if (!confirm('Withdraw this quote? It returns to draft and the customer can no longer accept it.')) return;
+            var d = await EventaraAPI.withdrawQuote(q.id);
+            if (d.error) { toast('Could not withdraw: ' + d.error.message); return; }
+            toast('Quote withdrawn to draft'); loadEnquiries();
+          });
+          act.appendChild(wd);
+        } else {
+          var view = document.createElement('button');
+          view.className = 'btn btn-secondary btn-sm'; view.textContent = 'View lines';
+          view.addEventListener('click', function () { openQuoteEditor(q, true); });
+          act.appendChild(view);
+        }
+        tr.appendChild(act);
+        body.appendChild(tr);
+      });
+
+      // Tab counts come from the loaded quotes, never hardcoded.
+      Object.keys(counts).forEach(function (k) {
+        var s = document.querySelector('#panel-enquiries [data-ecount="' + k + '"]');
+        if (s) s.textContent = counts[k];
+      });
+      var activeTab = document.querySelector('#panel-enquiries .tab-pill.active');
+      if (activeTab) filterEnq(activeTab);
+    }
+
+    /* ============ Overview panel ============
+       Every figure comes from supplier_overview_stats() (migration 0020),
+       which aggregates the supplier's own rows in the database. Nothing on
+       this panel is typed into the HTML any more. */
+    function setTxt(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+
+    // The RPC phrases money inside sentences as "Rs 3.29 L" (ASCII, so the
+    // SQL stays encoding-safe); the UI swaps in the rupee sign.
+    function rs(t) { return String(t == null ? '' : t).replace(/Rs\s*/g, '₹'); }
+    function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+    // Abbreviated money for metric cards, where ₹9,32,790 is too wide.
+    function inrShort(p) {
+      p = Number(p) || 0;
+      if (Math.abs(p) >= 10000000) return '₹' + (p / 10000000).toFixed(2).replace(/\.00$/, '') + 'Cr';
+      if (Math.abs(p) >= 100000)   return '₹' + (p / 100000).toFixed(2).replace(/\.00$/, '') + 'L';
+      return inr(p);
+    }
+
+    function renderAttention(hostId, items, onJump) {
+      var host = document.getElementById(hostId);
+      if (!host) return;
+      host.innerHTML = '';
+      if (!items.length) {
+        var p = document.createElement('p');
+        p.className = 'caption text-muted';
+        p.textContent = 'Nothing needs your attention right now.';
+        host.appendChild(p); return;
+      }
+      var tone = { coral: 'var(--coral)', gold: 'var(--gold)', warning: 'var(--warning)', info: 'var(--info)' };
+      items.forEach(function (it) {
+        var row = document.createElement('div'); row.className = 'attn-item';
+        var dot = document.createElement('span'); dot.className = 'attn-dot';
+        dot.style.background = tone[it.tone] || 'var(--info)';
+        var body = document.createElement('div'); body.className = 'attn-body';
+        var b = document.createElement('b'); b.textContent = it.title;
+        var p = document.createElement('p'); p.textContent = rs(it.body);
+        body.appendChild(b); body.appendChild(p);
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-secondary btn-sm'; btn.textContent = it.cta || 'View';
+        btn.addEventListener('click', function () { onJump(it.panel); });
+        row.appendChild(dot); row.appendChild(body); row.appendChild(btn);
+        host.appendChild(row);
+      });
+    }
+
+    function renderActivity(hostId, items, limit) {
+      var host = document.getElementById(hostId);
+      if (!host) return;
+      host.innerHTML = '';
+      if (!items.length) {
+        var p = document.createElement('p');
+        p.className = 'caption text-muted';
+        p.textContent = 'No activity recorded yet.';
+        host.appendChild(p); return;
+      }
+      items.slice(0, limit || 5).forEach(function (a) {
+        var when = new Date(a.at);
+        var row = document.createElement('div');
+        row.className = 'timeline-item' + (when <= new Date() ? ' done' : '');
+        var dot = document.createElement('span'); dot.className = 't-dot';
+        var body = document.createElement('div'); body.className = 't-body';
+        // Enum values reach the feed verbatim ("under_review"); underscores
+        // never belong in a sentence.
+        body.appendChild(document.createTextNode(rs(a.text).replace(/_/g, ' ')));
+        var t = document.createElement('time');
+        t.textContent = when.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) +
+                        ', ' + when.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        body.appendChild(t);
+        row.appendChild(dot); row.appendChild(body);
+        host.appendChild(row);
+      });
+    }
+
+    async function loadOverview() {
+      if (!window.EventaraAPI) return;
+      var res = await EventaraAPI.supplierOverview();
+      if (res.error || !res.data) { setTxt('soDraft', '–'); return; }
+      var s = res.data;
+
+      setTxt('soDraft', s.draft_quotes);
+      setTxt('soDraftSub', s.new_this_week ? '↑ ' + plural(s.new_this_week, 'new this week', 'new this week') : 'Nothing new this week');
+      setTxt('soSubmitted', s.submitted_quotes);
+      setTxt('soSubmittedSub', s.submitted_quotes ? 'Waiting on the customer' : 'All caught up');
+      setTxt('soActive', s.active_bookings);
+      setTxt('soEscrow', inrShort(s.escrow_held) + ' deposit held');
+      setTxt('soMonth', inrShort(s.month_net));
+      setTxt('soQaEnq', s.draft_quotes
+        ? plural(s.draft_quotes, 'brief awaiting your quote', 'briefs awaiting your quote')
+        : 'Nothing waiting on you');
+
+      setTxt('soRevMonth',  inr(s.month_net));
+      setTxt('soRevEscrow', inr(s.escrow_held));
+      setTxt('soRevYtd',    inr(s.ytd_net));
+
+      setTxt('soPerfQuoted',   s.quoted_rate == null ? 'No enquiries yet' : s.quoted_rate + '%');
+      setTxt('soPerfMedian',   s.median_quote_hours == null ? 'No quotes sent yet' : s.median_quote_hours + 'h');
+      setTxt('soPerfPayout',   s.payout_ready ? 'Active' : 'Not set up');
+      setTxt('soPerfKyc',      s.kyc_state === 'verified' ? 'Verified' : String(s.kyc_state || '').replace(/_/g, ' '));
+      setTxt('soPerfDelivery', s.delivery_rate == null ? 'No completed events yet' : s.delivery_rate + '%');
+      setTxt('soPerfRating',   s.rating ? (s.rating + '/5 (' + plural(s.review_count || 0, 'review', 'reviews') + ')') : 'No reviews yet');
+
+      renderPipeline(s.pipeline);
+      renderAttention('soAttention', s.attention || [], showPanel);
+      renderActivity('soActivity', s.activity || [], 5);
+    }
+
+    function renderPipeline(p) {
+      var bar = document.getElementById('soPipeBar'), leg = document.getElementById('soPipeLegend');
+      if (!bar || !leg) return;
+      var stages = [
+        { k: 'enquiry',   label: 'Enquiry',   colour: 'var(--info)' },
+        { k: 'quoted',    label: 'Quoted',    colour: 'var(--gold)' },
+        { k: 'booked',    label: 'Booked',    colour: 'var(--trust-green)' },
+        { k: 'delivered', label: 'Delivered', colour: 'var(--plum)' },
+        { k: 'reviewed',  label: 'Reviewed',  colour: 'var(--coral)' }
+      ];
+      bar.innerHTML = ''; leg.innerHTML = '';
+      stages.forEach(function (st) {
+        var n = (p && p[st.k]) || 0;
+        if (n > 0) {
+          var seg = document.createElement('div');
+          seg.className = 'pipeline-segment';
+          seg.style.flex = String(n); seg.style.background = st.colour;
+          seg.textContent = n;
+          bar.appendChild(seg);
+        }
+        var li = document.createElement('div'); li.className = 'legend-item';
+        var d = document.createElement('span'); d.className = 'legend-dot'; d.style.background = st.colour;
+        li.appendChild(d); li.appendChild(document.createTextNode(st.label + ' (' + n + ')'));
+        leg.appendChild(li);
+      });
+      if (!bar.children.length) {
+        var empty = document.createElement('div');
+        empty.className = 'pipeline-segment';
+        empty.style.flex = '1'; empty.style.background = 'var(--hairline-light)';
+        empty.style.color = 'var(--ink-muted)';
+        empty.textContent = 'No enquiries yet';
+        bar.appendChild(empty);
+      }
+    }
+
+    /* ============ Quotation composer ============
+       Line rows are held in memory while editing and sent in one RPC call.
+       Amounts shown here are a live preview; the authoritative subtotal/tax/
+       total are recomputed by save_quote_line_items (migration 0019) so the
+       customer can never be shown a total that disagrees with its lines. */
+    var qeQuote = null, qeLines = [], qeReadOnly = false;
+
+    function qeAmount(l) {
+      var n = (Number(l.qty) || 0) * (Number(l.unit_price) || 0);
+      return Math.round(n);
+    }
+
+    function renderQuoteRows() {
+      var tb = document.getElementById('qeRows');
+      tb.innerHTML = '';
+      if (!qeLines.length) {
+        var tr0 = document.createElement('tr');
+        var td0 = document.createElement('td');
+        td0.colSpan = 5; td0.className = 'caption text-muted';
+        td0.style.textAlign = 'center'; td0.style.padding = 'var(--space-20)';
+        td0.textContent = qeReadOnly ? 'This quote has no line items.' : 'No lines yet - add the first one below.';
+        tr0.appendChild(td0); tb.appendChild(tr0);
+      }
+      qeLines.forEach(function (l, i) {
+        var tr = document.createElement('tr');
+
+        var tdD = document.createElement('td');
+        var inD = document.createElement('input');
+        inD.type = 'text'; inD.className = 'input-field'; inD.value = l.description || '';
+        inD.placeholder = 'e.g. Plenary hall hire (2 days)';
+        inD.setAttribute('aria-label', 'Line ' + (i + 1) + ' description');
+        inD.addEventListener('input', function () { qeLines[i].description = inD.value; });
+        tdD.appendChild(inD); tr.appendChild(tdD);
+
+        var tdQ = document.createElement('td');
+        var inQ = document.createElement('input');
+        inQ.type = 'number'; inQ.min = '0.01'; inQ.step = 'any';
+        inQ.className = 'input-field'; inQ.value = l.qty;
+        inQ.setAttribute('aria-label', 'Line ' + (i + 1) + ' quantity');
+        inQ.addEventListener('input', function () { qeLines[i].qty = inQ.value; refreshQuoteTotals(); });
+        tdQ.appendChild(inQ); tr.appendChild(tdQ);
+
+        var tdP = document.createElement('td');
+        var inP = document.createElement('input');
+        inP.type = 'number'; inP.min = '0'; inP.step = '1';
+        inP.className = 'input-field'; inP.value = l.unit_price;
+        inP.setAttribute('aria-label', 'Line ' + (i + 1) + ' unit price in rupees');
+        inP.addEventListener('input', function () { qeLines[i].unit_price = inP.value; refreshQuoteTotals(); });
+        tdP.appendChild(inP); tr.appendChild(tdP);
+
+        var tdA = document.createElement('td');
+        tdA.className = 'qe-amount'; tdA.textContent = inr(qeAmount(l));
+        tr.appendChild(tdA);
+
+        var tdX = document.createElement('td');
+        if (!qeReadOnly) {
+          var del = document.createElement('button');
+          del.className = 'qe-del'; del.innerHTML = '&times;';
+          del.title = 'Remove this line';
+          del.setAttribute('aria-label', 'Remove line ' + (i + 1));
+          del.addEventListener('click', function () { qeLines.splice(i, 1); renderQuoteRows(); });
+          tdX.appendChild(del);
+        }
+        tr.appendChild(tdX);
+
+        if (qeReadOnly) { inD.disabled = true; inQ.disabled = true; inP.disabled = true; }
+        tb.appendChild(tr);
+      });
+      refreshQuoteTotals();
+    }
+
+    function refreshQuoteTotals() {
+      var sub = qeLines.reduce(function (a, l) { return a + qeAmount(l); }, 0);
+      var tax = Math.round(sub * 0.18);
+      document.getElementById('qeSubtotal').textContent = inr(sub);
+      document.getElementById('qeTax').textContent = inr(tax);
+      document.getElementById('qeTotal').textContent = inr(sub + tax);
+      // keep the visible per-line amounts in step with the inputs
+      var cells = document.querySelectorAll('#qeRows .qe-amount');
+      qeLines.forEach(function (l, i) { if (cells[i]) cells[i].textContent = inr(qeAmount(l)); });
+    }
+
+    function addQuoteRow() {
+      qeLines.push({ description: '', qty: 1, unit_price: 0 });
+      renderQuoteRows();
+      var inputs = document.querySelectorAll('#qeRows input[type="text"]');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    }
+
+    async function openQuoteEditor(q, readOnly) {
+      qeQuote = q;
+      qeReadOnly = !!readOnly;
+      var box = document.getElementById('quoteEditor');
+      var r = q.event_requests || {};
+
+      document.getElementById('qeTitle').textContent =
+        (qeReadOnly ? 'Quotation ' : 'Build quotation ') + (q.ref || '');
+      document.getElementById('qeSubtitle').textContent =
+        (r.event_type || 'Event') + ' - ' + fmtDate(r.event_date) +
+        (r.guests ? ' - ' + r.guests + ' guests' : '') +
+        (r.budget_band ? ' - customer budget ' + r.budget_band : '');
+
+      var res = await EventaraAPI.quoteLineItems(q.id);
+      qeLines = ((res && res.data) || []).map(function (l) {
+        return { description: l.description, qty: l.qty, unit_price: l.unit_price };
+      });
+      if (!qeLines.length && !qeReadOnly) qeLines.push({ description: '', qty: 1, unit_price: 0 });
+
+      document.getElementById('qeNotes').value = q.notes || '';
+      document.getElementById('qeValidUntil').value = q.valid_until || '';
+      document.getElementById('qeNotes').disabled = qeReadOnly;
+      document.getElementById('qeValidUntil').disabled = qeReadOnly;
+      document.getElementById('qeSave').hidden = qeReadOnly;
+      document.getElementById('qeSend').hidden = qeReadOnly;
+      box.querySelector('button[onclick="addQuoteRow()"]').hidden = qeReadOnly;
+
+      renderQuoteRows();
+      box.hidden = false;
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function closeQuoteEditor() {
+      document.getElementById('quoteEditor').hidden = true;
+      qeQuote = null; qeLines = [];
+    }
+
+    // Shared by "Save draft" and "Save & send" - returns the saved quote, or
+    // null when the server rejected it (message already shown).
+    async function persistQuote(btn, label) {
+      var clean = qeLines.filter(function (l) { return (l.description || '').trim() !== ''; });
+      if (!clean.length) { toast('Add at least one line with a description.'); return null; }
+      var bad = clean.filter(function (l) { return !(Number(l.qty) > 0); });
+      if (bad.length) { toast('Every line needs a quantity greater than zero.'); return null; }
+
+      btn.disabled = true;
+      var prev = btn.textContent; btn.textContent = label;
+      var res = await EventaraAPI.setQuoteLineItems(
+        qeQuote.id,
+        clean.map(function (l) {
+          return { description: String(l.description).trim(),
+                   qty: Number(l.qty), unit_price: Math.round(Number(l.unit_price) || 0) };
+        }),
+        document.getElementById('qeNotes').value,
+        document.getElementById('qeValidUntil').value || null
+      );
+      btn.disabled = false; btn.textContent = prev;
+
+      if (res && res.error) { toast('Could not save: ' + res.error.message); return null; }
+      return res.data;
+    }
+
+    async function saveQuoteDraft(btn) {
+      var saved = await persistQuote(btn, 'Saving…');
+      if (!saved) return;
+      toast('Draft saved - total ' + inr(saved.total));
+      qeQuote.total = saved.total; qeQuote.notes = saved.notes; qeQuote.valid_until = saved.valid_until;
+      loadEnquiries();
+    }
+
+    async function saveAndSendQuote(btn) {
+      var saved = await persistQuote(btn, 'Saving…');
+      if (!saved) return;
+      if (!confirm('Send this quote to the customer for ' + inr(saved.total) + '?')) {
+        toast('Saved as draft - not sent.'); loadEnquiries(); return;
+      }
+      btn.disabled = true; var prev = btn.textContent; btn.textContent = 'Sending…';
+      var sent = await EventaraAPI.sendQuote(qeQuote.id);
+      btn.disabled = false; btn.textContent = prev;
+      if (sent && sent.error) { toast('Could not send: ' + sent.error.message); return; }
+      toast('Quote ' + (saved.ref || '') + ' sent to the customer.');
+      closeQuoteEditor();
+      loadEnquiries();
+    }
+
+    async function loadSupplierBookings() {
+      var body = document.getElementById('supBookingsBody');
+      if (!body || !window.EventaraAPI) return;
+      var res = await EventaraAPI.supplierBookings();
+      if (res.error) { sRowMsg('supBookingsBody', 8, 'Could not load bookings.'); return; }
+      var rows = res.data || [];
+      if (!rows.length) { sRowMsg('supBookingsBody', 8, 'No bookings yet.'); return; }
+      body.innerHTML = '';
+      rows.forEach(function (b) {
+        var tr = document.createElement('tr');
+        tr.appendChild(sCellHTML('<strong>' + (b.ref || '-') + '</strong>'));
+        tr.appendChild(sCell(b.customer_name || '-'));
+        tr.appendChild(sCell(b.event_label || '-'));
+        tr.appendChild(sCell(fmtDate(b.event_date)));
+        tr.appendChild(sCell(b.guests == null ? '-' : String(b.guests)));
+        tr.appendChild(sCell(inr(b.net_payout)));
+        tr.appendChild(sCellHTML(statusPill(b.status)));
+        var act = document.createElement('td');
+        // Only forward transitions a supplier legitimately owns. Cancelling
+        // and refunds run through cancel_booking() (money + escrow), not here.
+        var next = b.status === 'upcoming' ? 'ongoing' : (b.status === 'ongoing' ? 'completed' : null);
+        if (next) {
+          var btn = document.createElement('button');
+          btn.className = 'btn btn-secondary btn-sm';
+          btn.textContent = next === 'ongoing' ? 'Mark ongoing' : 'Mark completed';
+          btn.addEventListener('click', async function () {
+            var d = await EventaraAPI.setBookingStatus(b.id, next);
+            if (d.error) { toast('Could not update: ' + d.error.message); return; }
+            toast('Booking marked ' + next); loadSupplierBookings();
+          });
+          act.appendChild(btn);
+        }
+        tr.appendChild(act);
+        body.appendChild(tr);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      loadNotifications();
+      loadEnquiries();
+      loadSupplierBookings();
+      loadPrefs();
+      document.querySelectorAll('[data-pref]').forEach(function (el) {
+        el.addEventListener('change', function () { savePref(el.getAttribute('data-pref'), el.checked); });
+      });
+    });
     // close on outside click / Escape
     document.addEventListener('click', e => { if (!e.target.closest('.notif-wrap')) closeNotif(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNotif(); });
@@ -1027,22 +1494,275 @@
       const label = mode === 'block' ? 'Block' : mode === 'maint' ? 'Maintenance' : 'Reopen';
       toast(label + ' mode - click a day to apply');
     }
-    function cycleDay(day) {
-      // apply the current tool mode to the clicked open day
-      day.classList.remove('blocked', 'maint');
-      const existing = day.querySelector('.event-label.mode-label');
-      if (existing) existing.remove();
-      if (calMode === 'block') {
-        day.classList.add('blocked');
-        toast('Day blocked - shown as unavailable');
-      } else if (calMode === 'maint') {
-        day.classList.add('maint');
-        const l = document.createElement('div'); l.className = 'event-label mode-label'; l.textContent = 'Maintenance'; day.appendChild(l);
-        toast('Marked as a maintenance day');
-      } else {
-        toast('Day reopened - now available');
-      }
+    /* ==========================================================
+       AVAILABILITY CALENDAR - live, backed by the `availability`
+       table. Was previously a hardcoded July 2026 grid whose
+       cycleDay() only toggled CSS classes.
+
+       Writes go through EventaraAPI.setMyDay -> the
+       update_availability RPC, which re-checks supplier ownership
+       server-side (SECURITY DEFINER), so a tampered client cannot
+       edit another supplier's calendar. Reads come straight from
+       the same table the public supplier page reads, which is why
+       a block here shows up there with no extra sync step.
+       ========================================================== */
+    var calCursor = new Date(); calCursor.setDate(1);   // first of the shown month
+    var calDays = {};                                    // 'YYYY-MM-DD' -> availability row
+
+    function isoDay(d) {
+      // Local-date ISO, NOT toISOString() - that converts to UTC and can
+      // shift the date by one day for anyone east/west of GMT (IST is +5:30,
+      // so toISOString() on a late-evening date silently rolls back a day).
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
+    var STATE_META = {
+      blocked:     { cls: 'blocked',   label: 'Blocked' },
+      maintenance: { cls: 'maint',     label: 'Maintenance' },
+      booked:      { cls: 'has-event', label: 'Booked' },
+      held:        { cls: 'tentative', label: 'Hold' }
+    };
+
+    async function loadMonth() {
+      var y = calCursor.getFullYear(), m = calCursor.getMonth();
+      var first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
+      document.getElementById('calTitle').textContent =
+        first.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+      calDays = {};
+      if (window.EventaraAPI) {
+        var res = await EventaraAPI.myAvailability(isoDay(first), isoDay(last));
+        if (res.error) {
+          toast('Could not load availability: ' + res.error.message);
+        } else {
+          (res.data || []).forEach(function (r) { calDays[r.day] = r; });
+        }
+      }
+      renderMonth(first, last);
+    }
+
+    function renderMonth(first, last) {
+      var grid = document.getElementById('calGrid');
+      // keep the 7 weekday headers, drop previously rendered day cells
+      Array.prototype.slice.call(grid.querySelectorAll('.calendar-day')).forEach(function (n) { n.remove(); });
+      var todayIso = isoDay(new Date());
+      // JS getDay() is Sun=0; this grid starts Monday, so shift.
+      var lead = (first.getDay() + 6) % 7;
+      var frag = document.createDocumentFragment();
+      for (var i = 0; i < lead; i++) {
+        var e = document.createElement('div'); e.className = 'calendar-day empty'; frag.appendChild(e);
+      }
+      for (var d = 1; d <= last.getDate(); d++) {
+        var date = new Date(first.getFullYear(), first.getMonth(), d);
+        var iso = isoDay(date);
+        var row = calDays[iso];
+        var state = row ? row.state : 'open';
+        var meta = STATE_META[state];
+        var cell = document.createElement('div');
+        cell.className = 'calendar-day' + (meta ? ' ' + meta.cls : '') + (iso === todayIso ? ' today' : '');
+        cell.setAttribute('data-day', iso);
+        cell.setAttribute('role', 'button');
+        cell.setAttribute('tabindex', '0');
+        cell.setAttribute('aria-label', iso + ' - ' + (meta ? meta.label : 'Available'));
+        cell.innerHTML = '<span class="day-number">' + d + '</span>' +
+          (meta ? '<div class="event-label mode-label">' + meta.label + '</div>' : '');
+        // A confirmed booking is not the supplier's to casually clear from a
+        // calendar click - it has money and a customer attached. Cancelling
+        // belongs in the Bookings panel.
+        if (state === 'booked') {
+          cell.title = 'Confirmed booking - manage from the Bookings panel';
+          cell.style.cursor = 'not-allowed';
+        } else {
+          cell.addEventListener('click', function () { applyMode(this); });
+          cell.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); applyMode(this); }
+          });
+        }
+        frag.appendChild(cell);
+      }
+      grid.appendChild(frag);
+    }
+
+    async function applyMode(cell) {
+      var iso = cell.getAttribute('data-day');
+      var target = calMode === 'block' ? 'blocked' : (calMode === 'maint' ? 'maintenance' : 'open');
+      if (!window.EventaraAPI) { toast('Offline - cannot save'); return; }
+      // Optimistic paint, reverted if the write fails, so the grid never
+      // shows a state the database did not accept.
+      var prev = cell.className;
+      var prevLabel = cell.querySelector('.mode-label');
+      var meta = STATE_META[target];
+      cell.className = 'calendar-day' + (meta ? ' ' + meta.cls : '') + (iso === isoDay(new Date()) ? ' today' : '');
+      if (prevLabel) prevLabel.remove();
+      if (meta) cell.insertAdjacentHTML('beforeend', '<div class="event-label mode-label">' + meta.label + '</div>');
+
+      var res = await EventaraAPI.setMyDay(iso, target);
+      if (res.error) {
+        cell.className = prev;
+        toast('Could not save: ' + res.error.message);
+        return;
+      }
+      if (target === 'open') { delete calDays[iso]; } else { calDays[iso] = { day: iso, state: target }; }
+      toast(target === 'blocked' ? 'Day blocked - saved' :
+            target === 'maintenance' ? 'Maintenance day - saved' : 'Day reopened - saved');
+    }
+
+    /* ==========================================================
+       BUSINESS PROFILE - live read/write against suppliers +
+       supplier_profiles, and gallery uploads to Supabase Storage.
+       Every public surface (search.html, supplier.html, Similar
+       Suppliers, booking pages) reads these same rows, so saving
+       here propagates with no extra sync step.
+       ========================================================== */
+    var bpLoaded = false;
+
+    function val(id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; }
+    function setVal(id, v) { var e = document.getElementById(id); if (e) e.value = (v === null || v === undefined) ? '' : v; }
+    // Number fields come back as '' when blank; '' would be written as 0 and
+    // silently zero out a real price, so blank must stay null.
+    function numOrNull(id) { var v = val(id); return v === '' ? null : Number(v); }
+
+    async function loadBusinessProfile(force) {
+      if (bpLoaded && !force) return;
+      if (!window.EventaraAPI) return;
+      var res = await EventaraAPI.mySupplier();
+      if (res.error || !res.data) { toast('Could not load business profile'); return; }
+      var s = res.data;
+      var p = s.supplier_profiles || {};
+      setVal('bpName', s.business_name); setVal('bpTagline', s.tagline);
+      setVal('bpDescription', s.description); setVal('bpCapacity', s.capacity);
+      setVal('bpYears', s.years_experience);
+      setVal('bpStartingPrice', s.starting_price); setVal('bpHallRental', s.hall_rental);
+      setVal('bpMinGuarantee', s.min_guarantee); setVal('bpCancellation', s.cancellation_policy);
+      setVal('bpAmenities', (s.amenities || []).join(', '));
+      var cat = document.getElementById('bpCategory'); if (cat) cat.value = s.category || 'banquet_hotel';
+      setVal('bpContactPerson', p.contact_person); setVal('bpPhone', p.contact_phone);
+      setVal('bpEmail', p.contact_email); setVal('bpAddress', p.address);
+      setVal('bpHours', p.working_hours);
+
+      var kyc = await EventaraAPI.myKyc();
+      if (kyc.data) {
+        setVal('bpGstin', kyc.data.gstin); setVal('bpPan', kyc.data.pan);
+        setVal('bpFssai', kyc.data.fssai);
+        setVal('bpKycStatus', (kyc.data.status || 'pending').replace(/^./, function (c) { return c.toUpperCase(); }));
+      } else {
+        setVal('bpKycStatus', 'Not submitted');
+      }
+      renderGallery(s.supplier_media || []);
+      bpLoaded = true;
+    }
+
+    function renderGallery(media) {
+      var wrap = document.getElementById('bpGallery'); if (!wrap) return;
+      var rows = (media || []).slice().sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); });
+      if (!rows.length) { wrap.innerHTML = '<p class="caption">No images yet - upload a few to build your portfolio.</p>'; return; }
+      // Built via DOM rather than an innerHTML string: the URL goes through
+      // .style.backgroundImage, so a quote or paren in a filename can't break
+      // out of the CSS value (and can't break the surrounding JS string).
+      wrap.innerHTML = '';
+      rows.forEach(function (m) {
+        var cell = document.createElement('div');
+        cell.className = 'gallery-thumb';
+        cell.style.backgroundImage = 'url("' + String(m.url).replace(/"/g, '%22') + '")';
+        var del = document.createElement('button');
+        del.className = 'thumb-del';
+        del.setAttribute('aria-label', 'Remove image');
+        del.innerHTML = '&times;';
+        del.addEventListener('click', async function () {
+          if (!confirm('Remove this image from your portfolio?')) return;
+          var r = await EventaraAPI.deleteSupplierImage(m.id);
+          if (r.error) { toast('Could not remove: ' + r.error.message); return; }
+          toast('Image removed'); loadBusinessProfile(true);
+        });
+        cell.appendChild(del);
+        wrap.appendChild(cell);
+      });
+    }
+
+    async function saveBusinessProfile() {
+      var btn = document.getElementById('bpSave'), msg = document.getElementById('bpSaveMsg');
+      if (!val('bpName')) { msg.textContent = 'Business name is required.'; msg.style.color = 'var(--error)'; return; }
+      var cap = numOrNull('bpCapacity');
+      if (cap !== null && cap < 0) { msg.textContent = 'Capacity cannot be negative.'; msg.style.color = 'var(--error)'; return; }
+      btn.disabled = true; msg.style.color = 'var(--ink-muted)'; msg.textContent = 'Saving…';
+      var supplierFields = {
+        business_name: val('bpName'),
+        category: document.getElementById('bpCategory').value,
+        tagline: val('bpTagline') || null,
+        description: val('bpDescription') || null,
+        capacity: cap,
+        years_experience: numOrNull('bpYears'),
+        starting_price: numOrNull('bpStartingPrice'),
+        hall_rental: numOrNull('bpHallRental'),
+        min_guarantee: numOrNull('bpMinGuarantee'),
+        cancellation_policy: val('bpCancellation') || null,
+        amenities: val('bpAmenities') ? val('bpAmenities').split(',').map(function (a) { return a.trim(); }).filter(Boolean) : []
+      };
+      var profileFields = {
+        contact_person: val('bpContactPerson') || null,
+        contact_phone: val('bpPhone') || null,
+        contact_email: val('bpEmail') || null,
+        address: val('bpAddress') || null,
+        working_hours: val('bpHours') || null
+      };
+      var res = await EventaraAPI.updateMySupplier(supplierFields, profileFields);
+      btn.disabled = false;
+      if (res.error) { msg.style.color = 'var(--error)'; msg.textContent = 'Could not save: ' + res.error.message; return; }
+      msg.style.color = 'var(--trust-green)';
+      msg.textContent = 'Saved - your public listing is updated.';
+      toast('Profile saved');
+      setTimeout(function () { msg.textContent = ''; }, 4000);
+    }
+
+    async function handleGalleryUpload(files) {
+      var label = document.getElementById('bpUploadLabel');
+      var list = Array.prototype.slice.call(files);
+      if (!list.length) return;
+      var ok = 0, failed = [];
+      for (var i = 0; i < list.length; i++) {
+        var f = list[i];
+        if (f.size > 5 * 1024 * 1024) { failed.push(f.name + ' (over 5MB)'); continue; }
+        label.textContent = 'Uploading ' + (i + 1) + ' of ' + list.length + '…';
+        var r = await EventaraAPI.uploadSupplierImage(f, 'gallery', f.name.replace(/\.[^.]+$/, ''));
+        if (r.error) { failed.push(f.name + ' (' + r.error.message + ')'); } else { ok++; }
+      }
+      label.textContent = 'Click to upload images (JPG/PNG/WebP, up to 5MB each)';
+      if (ok) { toast(ok + ' image' + (ok === 1 ? '' : 's') + ' uploaded'); loadBusinessProfile(true); }
+      if (failed.length) toast('Failed: ' + failed.join('; '));
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var prev = document.getElementById('calPrev'), next = document.getElementById('calNext');
+      if (prev) prev.addEventListener('click', function () { calCursor.setMonth(calCursor.getMonth() - 1); loadMonth(); });
+      if (next) next.addEventListener('click', function () { calCursor.setMonth(calCursor.getMonth() + 1); loadMonth(); });
+      if (document.getElementById('calGrid')) loadMonth();
+
+      var save = document.getElementById('bpSave');
+      if (save) save.addEventListener('click', saveBusinessProfile);
+      var gi = document.getElementById('bpGalleryInput');
+      if (gi) gi.addEventListener('change', function () { handleGalleryUpload(this.files); this.value = ''; });
+      if (document.getElementById('panel-profile')) loadBusinessProfile(false);
+
+      if (document.getElementById('soAttention')) loadOverview();
+
+      loadSupplierSettings();
+      var wh = document.getElementById('stWorkingHours');
+      if (wh) wh.addEventListener('change', function () {
+        saveSupplierSetting('working_hours', wh.value.trim(), 'Working hours');
+      });
+      var ad = document.getElementById('stAvailabilityDefault');
+      if (ad) ad.addEventListener('change', function () {
+        saveSupplierSetting('availability_default', ad.checked, 'Availability default');
+      });
+      var ar = document.getElementById('stAutoResponse');
+      if (ar) ar.addEventListener('change', function () {
+        saveSupplierSetting('auto_response', ar.checked, 'Auto-response');
+      });
+
+      // Disputes render through the shared component (same code path as the
+      // customer dashboard's panel - see disputes-ui.js).
+      if (window.DisputesUI && document.getElementById('dispBody')) {
+        DisputesUI.mount({ role: 'supplier', toast: toast });
+      }
+    });
   </script>
   <script src="chatbot.js?v=9"></script>
 </body>

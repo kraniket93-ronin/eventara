@@ -1989,6 +1989,25 @@ textarea.input-field {
 .status-delivered { background: var(--plum-50); color: var(--plum); }
 .status-cancelled { background: var(--error-light); color: var(--error); }
 
+/* --- Dispute case states + priority dots ---
+   Shared by both dashboards (disputes-ui.js renders the same markup for the
+   customer and supplier panels), so these live here rather than in either
+   page's scoped block. */
+.status-open { background: var(--info-light); color: var(--info); }
+.status-review { background: var(--gold-light); color: var(--gold-deep); }
+.status-waiting { background: var(--warning-light); color: var(--gold-deep); }
+.status-resolved { background: var(--trust-green-light); color: var(--trust-green); }
+.status-closed { background: var(--hairline-light); color: var(--ink-muted); }
+
+.priority-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; margin-right: 6px; vertical-align: middle;
+}
+.prio-low { background: var(--ink-faint); }
+.prio-medium { background: var(--info); }
+.prio-high { background: var(--warning); }
+.prio-critical { background: var(--error); }
+
 /* ============================================================
    22. MULTI-STEP FORM
    ============================================================ */

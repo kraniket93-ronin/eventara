@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.7 (see §18 Change Log) |
+| **Doc version** | 2.12 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-29 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -53,6 +53,8 @@
 15. [Known Limitations](#15-known-limitations)
 16. [Future Roadmap](#16-future-roadmap)
 17. [AI Agent Instructions](#17-ai-agent-instructions)
+19. [Backend Architecture (Supabase)](#19-backend-architecture-supabase--added-v22)
+20. [Data Model, Security Matrix & Test Plan](#20-data-model-security-matrix--test-plan--added-v212)
 18. [Change Log](#18-change-log)
 
 ---
@@ -2105,6 +2107,32 @@ prototype/
       0012_similar_suppliers_recommendations.sql [v2.5] fixes cover_image (now checks
                                     hero_image_url/supplier_media, not just venue_images), fixes
                                     one malformed venue_images.url, adds get_similar_suppliers RPC
+      0013_dashboard_backing_tables.sql   [v2.6] saved_suppliers, booking_events, support_tickets
+      0014_fix_customer_profile_seed.sql  [v2.6] backfills customer_profiles fields that
+                                    handle_new_user had silently pre-empted (ON CONFLICT DO NOTHING)
+      0015_set_booking_status_rpc.sql     [v2.7] atomic status + timeline + notification,
+                                    forward-only booking lifecycle enforced server-side
+      0016_fix_rls_recursion_requests_quotes.sql [v2.7] breaks an event_requests <-> quotes
+                                    policy cycle (Postgres 42P17) with SECURITY DEFINER helpers
+      0017_supplier_can_read_booked_customer.sql [v2.7] supplier may read the customer profile
+                                    of a confirmed booking only (business rule B17)
+      0018_disputes_dashboard.sql         [v2.12] closes a missing INSERT policy on
+                                    dispute_events, adds raise_dispute / add_dispute_event /
+                                    get_my_disputes / disputable_bookings, seeds 2 more cases
+      0019_quote_line_items.sql           [v2.12] save_quote_line_items / submit_quote /
+                                    withdraw_quote - totals computed server-side, atomically
+      0020_dashboard_overview_stats.sql   [v2.12] supplier_overview_stats, customer_overview_stats,
+                                    my_payments; backfills the completed booking's money trail
+      0021_seed_timeline_realism.sql      [v2.12] corrective: seed rows carried now() timestamps,
+                                    so a January complaint looked like it was raised today
+      0022_quote_submitted_at.sql         [v2.12] adds quotes.submitted_at (updated_at moved on
+                                    every edit, inflating "median time to quote")
+      0023_payment_status_recompute.sql   [v2.12] trg_payment_after derived a booking's payment
+                                    status from whichever row fired last - now recomputed from
+                                    the whole payment set
+      0024_rpc_execute_hardening.sql      [v2.12] revokes anon EXECUTE on every session-required
+                                    RPC (notify() was callable with just the anon key, allowing
+                                    spoofed notifications), pins search_path on 2 helpers
     APPLY_GUIDE.md        apply + connect + env-vars + test checklist
   supabase-config.js      URL + anon key (you fill in; blank = offline demo mode)
   supabase-client.js      creates window.sb only when configured
@@ -2174,9 +2202,565 @@ While `supabase-config.js` is blank the app runs in **offline demo mode** exactl
 
 ---
 
+## 20. DATA MODEL, SECURITY MATRIX & TEST PLAN  [added v2.12]
+
+Three deliverables that were outstanding from the dashboard work: an entity-relationship
+diagram, a policy-by-policy RLS matrix, and a repeatable test checklist. Everything below
+describes the schema **as applied** (migrations `0001`-`0023`), not an intended design.
+
+### 20.1 ER diagram - transactional spine
+
+The full schema is 38 tables. This diagram covers the spine that carries a booking from
+enquiry to payout; the peripheral tables (RBAC lookups, comms, ops logs) are listed in
+§20.2 rather than drawn, to keep the diagram readable.
+
+```mermaid
+erDiagram
+    auth_users        ||--|| profiles              : "handle_new_user()"
+    profiles          ||--o| customer_profiles     : "billing identity"
+    profiles          ||--o| user_preferences      : "notification + privacy"
+    profiles          ||--o{ suppliers             : owns
+
+    suppliers         ||--o| supplier_profiles     : "contact, policies, hours"
+    suppliers         ||--o| kyc_verification      : "GSTIN / PAN state"
+    suppliers         ||--o{ bank_accounts         : "payout destination"
+    suppliers         ||--o{ supplier_services     : offers
+    suppliers         ||--o{ supplier_packages     : "priced tiers"
+    suppliers         ||--o{ supplier_media        : portfolio
+    suppliers         ||--o{ supplier_faqs         : answers
+    suppliers         ||--o{ venues                : "has (hotels only)"
+    venues            ||--o{ venue_images          : shows
+    suppliers         ||--o{ availability          : "PK (supplier_id, day)"
+
+    profiles          ||--o{ event_requests        : raises
+    event_requests    ||--o{ quotes                : "answered by"
+    quotes            ||--o{ quote_line_items      : "priced by"
+    suppliers         ||--o{ quotes                : sends
+
+    quotes            ||--o| bookings              : "accepted -> becomes"
+    bookings          ||--o{ payments              : "deposit / balance / payout"
+    bookings          ||--o{ escrow_transactions   : "held -> released"
+    bookings          ||--o{ invoices              : "advance / balance"
+    bookings          ||--o{ booking_events        : timeline
+    bookings          ||--o| reviews               : "one per booking"
+    bookings          ||--o{ disputes              : "may be contested"
+    disputes          ||--o{ dispute_events        : timeline
+
+    profiles          ||--o{ saved_suppliers       : shortlists
+    suppliers         ||--o{ saved_suppliers       : "shortlisted by"
+    profiles          ||--o{ notifications         : receives
+    profiles          ||--o{ support_tickets       : opens
+```
+
+**Cardinality notes that matter in practice**
+
+| Relationship | Rule | Enforced by |
+|---|---|---|
+| `bookings` -> `reviews` | At most one review per booking | `unique (booking_id)` |
+| `suppliers` -> `availability` | One row per supplier per day | Composite PK `(supplier_id, day)` |
+| `profiles` -> `saved_suppliers` | A supplier can be shortlisted once | Composite PK `(profile_id, supplier_id)` |
+| `quotes` -> `bookings` | A quote converts to at most one booking | FK + `accept_quote()` guard |
+| `quotes.total` | Always equals the sum of its line items + 18% GST | `save_quote_line_items()` recomputes; client value ignored |
+| `bookings.payment_status` | Derived from **all** payments on the booking | `trg_payment_after` (rewritten in `0023`) |
+
+### 20.2 Tables not on the diagram
+
+| Domain | Tables | Why they are peripheral |
+|---|---|---|
+| RBAC lookups | `roles`, `permissions`, `role_permissions` | Static reference data; authorization actually runs through `current_role()` / `is_admin()` |
+| Catalog lookups | `event_types` | Static reference data |
+| Compliance docs | `gst_details`, `documents` | Attachments to `suppliers`, no downstream joins |
+| Comms | `conversations`, `messages` | Not surfaced by either dashboard in this prototype |
+| Money ledger | `wallet_ledger` | Reserved for supplier wallet; the prototype pays out directly |
+| Ops | `audit_logs`, `activity_logs`, `login_events` | Write-only trails, admin-read |
+
+### 20.3 RLS policy matrix
+
+RLS is enabled on **all 38 data tables**. `is_admin()` short-circuits to full access on every
+policy in the table below and is omitted from each row for brevity.
+
+Legend: **Own** = rows the caller owns · **Party** = either side of a shared record ·
+**Public** = world-readable · **-** = no policy (therefore no access)
+
+| Table | SELECT | INSERT | UPDATE | DELETE | Notes |
+|---|---|---|---|---|---|
+| `profiles` | Own + supplier-of-a-confirmed-booking | via trigger | Own | - | Cross-read added in `0017` for B17 |
+| `customer_profiles` | Own | Own | Own | - | |
+| `user_preferences` | Own | Own | Own | - | |
+| `suppliers` | Public (`status='active'`) | Own | Own | - | |
+| `supplier_profiles` / `_services` / `_media` / `_packages` / `_faqs` | Public | Owner | Owner | Owner | Public-read/owner-write |
+| `venues`, `venue_images` | Public | Owner | Owner | Owner | |
+| `availability` | Public | Owner | Owner | Owner | Public so the detail page can show a badge |
+| `kyc_verification`, `bank_accounts`, `gst_details`, `documents` | Owner | Owner | Owner | - | Never public |
+| `event_requests` | Own, or supplier who quoted | Own | Own | - | Supplier arm routed via `supplier_quoted_on_request()` (`0016`) |
+| `quotes` | Party | Supplier | Supplier | - | Customer arm via `customer_owns_request()` (`0016`) |
+| `quote_line_items` | Party | Supplier | Supplier | Supplier | Reads routed via `can_read_quote()` (`0016`) |
+| `bookings` | Party | via RPC | via RPC | - | Status changes only through `set_booking_status()` |
+| `booking_events` | Party | via RPC | - | - | Timeline is append-only |
+| `payments`, `escrow_transactions`, `invoices` | Party | via RPC | via RPC | - | Money never written directly from the browser |
+| `reviews` | Public (published) | Customer of the booking | Own | - | Rating rolls up via trigger |
+| `disputes` | Party | Own (`raised_by = auth.uid()`) | **Admin only** | - | Parties cannot self-resolve (B19) |
+| `dispute_events` | Party | Party, and only while the case is open | - | - | INSERT policy added in `0018` |
+| `saved_suppliers` | Own | Own | - | Own | |
+| `notifications` | Own | via `notify()` | Own (`read` flag) | - | |
+| `support_tickets` | Own | Own | - | - | |
+| `audit_logs` | Admin | via trigger | - | - | |
+| `activity_logs`, `login_events` | Own | via trigger | - | - | |
+
+**The two RLS bugs this work uncovered**, both recorded here because they are the kind that
+fail silently rather than loudly:
+
+1. **Policy recursion (`0016`).** `event_requests`' policy subqueried `quotes`, whose policy
+   subqueried `event_requests`. Postgres raised `42P17` and a signed-in customer could read
+   **no** requests or quotes at all - `select *` returned an *error*, not an empty set, so
+   the UI just showed an empty table. Broken by moving each side's lookup into a
+   `SECURITY DEFINER` helper that does not re-enter the other policy.
+
+2. **Missing INSERT policy (`0018`).** `dispute_events` had a SELECT policy and RLS enabled,
+   but no INSERT policy - so every write was denied. Nothing had ever exercised the path,
+   because the Disputes panel was static HTML until v2.12.
+
+### 20.4 State machines
+
+**Booking** - forward-only, enforced by `set_booking_status()` (`0015`). An illegal
+transition raises server-side; the client cannot skip or reverse a step.
+
+```
+upcoming ──▶ ongoing ──▶ completed
+    │            │
+    └────────────┴──────▶ cancelled
+```
+
+**Quote** - `submit_quote()` refuses a draft with no line items or a zero total;
+`withdraw_quote()` refuses anything the customer has already accepted (`0019`).
+
+```
+draft ──submit_quote()──▶ submitted ──accept_quote()──▶ accepted ──▶ booking
+  ▲                           │                   └──▶ rejected
+  └───withdraw_quote()────────┘                        expired (valid_until passed)
+```
+
+**Dispute** - a response from the party a case is waiting on hands it back to Ops;
+only Ops resolves, so neither side can close a case and release the escrowed money (`0018`).
+
+```
+                  ┌──────────────── add_dispute_event('response') ───────────────┐
+                  ▼                                                              │
+raise_dispute() ──▶ waiting_supplier / waiting_customer ──▶ under_review ──▶ resolved ──▶ closed
+                                    │                                            ▲
+                                    └────── add_dispute_event('withdraw') ────────┘
+```
+
+**Escrow** - the platform's core promise: money is held from deposit until *after*
+delivery, and a live dispute holds it longer.
+
+```
+deposit paid ──▶ held ──▶ (event delivered) ──▶ (support window, no open dispute) ──▶ released
+                   └──────────────────────────────────────────────────────▶ refunded
+```
+
+### 20.5 Testing checklist
+
+Run against a browser signed in as each demo account. Every item below was executed for
+v2.12; results are recorded in §18. Restore demo data afterwards - several steps write.
+
+**Setup**
+
+- [ ] `supabase-config.js` has a URL + anon key; console shows `window.EVENTARA_LIVE === true`
+- [ ] Sign in as `hotel@eventara.in` and `customer@eventara.in` (password `udaipur@2026`)
+
+**Static analysis (no browser needed)**
+
+- [ ] `node --check` passes on `data-api.js`, `disputes-ui.js`, `app.js`, `chatbot.js`
+- [ ] `node --check` passes on every inline `<script>` block of both dashboards
+      (a stray quote in an `innerHTML` string once killed an entire script block silently)
+- [ ] No `onclick="(act|toast|settingsToast)('` handlers remain in either dashboard
+- [ ] Every panel contains at least one live-data hook (see the audit script in §18, v2.12)
+
+**Authorization - the important half**
+
+- [ ] Customer cannot read another customer's `event_requests` / `quotes` / `bookings`
+- [ ] `raise_dispute()` on a booking you are not a party to -> *"you are not a party to this booking"*
+- [ ] `add_dispute_event()` on a case you are not a party to -> *"case not found"*
+- [ ] `save_quote_line_items()` on another supplier's quote -> *"this quote does not belong to you"*
+- [ ] Supplier sees a customer's contact only for a **confirmed booking** (B17)
+- [ ] A tampered client sending its own `amount`/`subtotal`/`total` to
+      `save_quote_line_items()` is ignored - the server recomputes from qty x unit_price
+
+**Business rules**
+
+- [ ] `set_booking_status()` rejects a reverse transition (`ongoing -> upcoming`)
+- [ ] `submit_quote()` rejects a draft with zero line items, and a zero total
+- [ ] `withdraw_quote()` rejects an accepted quote
+- [ ] `add_dispute_event('withdraw')` is refused for the party who did **not** raise the case
+- [ ] Neither party can UPDATE a `disputes` row directly (admin-only policy)
+- [ ] Password change rejects: mismatch, under 8 characters, wrong current password
+
+**Cross-platform synchronisation** (the claim the prototype is really making)
+
+- [ ] Supplier blocks dates -> customer-facing `supplier.html` availability pill changes
+- [ ] Supplier edits tagline/amenities -> appears on the public page **and** on Similar
+      Supplier cards rendered on a *different* supplier's page
+- [ ] Supplier sends a quote -> customer's Requests panel, Overview count, and notification
+      bell all update; the request advances to `quoted`
+- [ ] Either party posts to a dispute -> the other party sees the entry and gets notified
+- [ ] The same case reads *"Complaint against you"* to the supplier and *"Complaint you
+      raised"* to the customer
+
+**Data integrity**
+
+- [ ] Sum of a quote's line items + 18% = `quotes.total`, on every quote
+- [ ] `bookings.payment_status` agrees with the payments actually recorded
+- [ ] `bookings.deposit + bookings.balance = bookings.amount`
+- [ ] No escrow row is `released` with a `released_at` earlier than its booking's `event_date`
+- [ ] Every `event_requests.created_at` precedes its quotes' `submitted_at`
+
+**Responsive** - 360x740, 768x1024, 1440x900
+
+- [ ] All 16 panels: zero horizontal page overflow (`scrollWidth === innerWidth`)
+- [ ] Wide tables and the quotation composer scroll inside their own box, not the page
+- [ ] `.two-col-inputs` and `.two-col-row` collapse to one column under 640px / 1024px
+- [ ] Zero console errors on a **fresh** tab (the console buffer survives reloads - a
+      cumulative count from earlier deliberate-rejection tests is not a regression)
+
+**Known deviations, accepted**
+
+- Filter `.tab-pill` controls are 28px tall, under the 44px touch-target guideline. They are
+  a site-wide component used identically on every panel; making the Disputes pills uniquely
+  taller would break that consistency. Flagged rather than silently changed.
+- Sign-in email change and GDPR export/delete are deliberate stubs routed to support - both
+  need a verification round trip that this prototype does not implement. Faking either would
+  be worse than an obvious hand-off.
+- Payout bank details are read-only in Settings for the same reason: changing where money
+  lands must be verified before any transfer.
+
+---
+
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.12 - 2026-08-05
+**The remaining 5 static panels made live (16/16), a quotation composer, the last 10 stub handlers removed, and four latent data/logic bugs found and fixed. Plus the ER diagram, RLS matrix and test checklist that v2.11 had left unwritten.**
+
+**Correcting the v2.11 record first.** v2.11's task list marked Phases 5 and 6 complete. They
+were not. Phase 5 shipped notifications and settings but **not** disputes; Phase 6 shipped the
+responsive sweep but **not** the documentation. An audit of the two dashboards found **11 of 16
+panels live, 5 static** (both Overviews, customer Payments, both Disputes) and 10 leftover
+`act()`/`toast()` stub handlers. This entry closes all of it.
+
+**Panels made live**
+
+| Panel | What it now reads from |
+|---|---|
+| Supplier Disputes | `get_my_disputes()` - cases + nested timeline, one round trip |
+| Customer Disputes | the same RPC, same component, opposite framing |
+| Supplier Overview | `supplier_overview_stats()` - metrics, pipeline, performance, attention, activity |
+| Customer Overview | `customer_overview_stats()` |
+| Customer Payments | `my_payments()` + `v_customer_dashboard`, escrow steps driven by real state |
+
+**New capability**
+
+- **Quotation composer** (supplier Enquiries). Previously `setQuoteLineItems()` existed but had
+  no UI, so a draft quote's total could only be set through the API - the "create a quotation"
+  step of the lifecycle was unreachable from the dashboard. Now a line-item editor with a live
+  total preview, backed by `save_quote_line_items()`.
+- **`disputes-ui.js`** - one shared component renders the Disputes panel on *both* dashboards.
+  The panels show the same case from opposite sides, so the logic exists once, not twice.
+
+**Bugs found - all four were invisible while the panels were static HTML**
+
+1. **`dispute_events` had no INSERT policy** (`0018`). RLS was enabled and a SELECT policy
+   existed, so every write through `addDisputeEvent()` was denied. Nothing had ever exercised
+   the path. Fixed with a parties-only, open-cases-only INSERT policy.
+2. **Quote totals were computed in the browser** (`0019`). `setQuoteLineItems()` did
+   delete -> insert -> update as three separate PostgREST calls: not atomic (a failed insert
+   after a successful delete lost every line item), and it wrote a client-supplied `total`.
+   A modified client could show the customer a total that disagreed with its own line items.
+   Now one `SECURITY DEFINER` function recomputes qty x unit_price server-side and ignores any
+   amount the client sends. **Verified** by calling the RPC with a deliberately falsified
+   `amount` - the server's figure won.
+3. **`trg_payment_after` was order-dependent** (`0023`). It set `bookings.payment_status` from
+   whichever payment row fired last, not from what had been paid. A fully settled booking whose
+   deposit row was written after its balance row ended up flagged `deposit_held` - the customer
+   would be shown a balance owing on an event they had already paid for in full. Now recomputed
+   from every payment on the booking.
+4. **`quotes.updated_at` was standing in for "when was this sent"** (`0022`). It is maintained
+   by the `set_updated_at` trigger and moves on *any* later edit, so editing a quote's notes
+   months later silently inflated the supplier's "median time to quote". Added a dedicated
+   `submitted_at`, stamped by `submit_quote()`.
+5. **Every RPC was callable by the `anon` role** (`0024`, found by Supabase's security
+   advisor). `0008_security_hardening.sql` revoked public EXECUTE on the *trigger* functions
+   but left the default PUBLIC grant on the callable ones, and PostgREST exposes each at
+   `/rest/v1/rpc/<name>`. Most fail closed on their own `auth.uid()` check - **`notify()` did
+   not.** It is `SECURITY DEFINER` and takes the recipient as a parameter, so anyone holding
+   the (deliberately public) anon key could push an arbitrary notification into any user's
+   feed, rendered identically to a genuine platform message. EXECUTE is now revoked from
+   `anon` on all 25 session-required RPCs and from every role on the four internal-only
+   helpers. `search_suppliers` and `get_similar_suppliers` keep anon access because the public
+   search and supplier pages call them while signed out. **Verified both directions**: an
+   anonymous `notify()` call is refused (`permission denied for function notify`), while the
+   signed-out supplier page still loads its detail and 3 Similar Supplier cards, and every
+   write path still works - the internal `notify()` calls run as the function owner, so
+   revoking the caller's grant does not break the chain.
+
+**Seed inconsistencies exposed by wiring metrics to real aggregates** (`0020`, `0021`, `0023`)
+
+Nothing agreed with anything while the numbers were hardcoded. Once they were derived:
+
+- Booking `EVT-2025-0288` was `completed` and `paid` but had **no** rows in `payments`,
+  `escrow_transactions` or `invoices` - the money it claimed to have moved existed nowhere.
+- The same booking carried `deposit = 0` and `balance = 0` against an `amount` of Rs 4,95,600,
+  so its own payment schedule summed to nothing.
+- Seeded disputes and their timeline entries all carried `now()`, so a January complaint
+  appeared raised today and its four entries shared one instant - "resolved" could sort before
+  "raised".
+- Every `event_request` shared a `created_at` with its quote, making "median time to quote" 0h.
+- The first backfill attempt dated the payout and escrow release **before** the event they paid
+  for, which inverts the platform's core promise. Corrected in `0021`; `0020` was also fixed at
+  source so a from-scratch migration run produces the right state without needing `0021`.
+
+**Settings - the last 10 stub handlers**
+
+`supplier_profiles` already had `working_hours`, `availability_default` and `auto_response`
+columns, so those three rows are now genuinely editable and persist. Sign-in email, payout
+account, UPI and GSTIN now **display the verified record** instead of invented sample values
+(the panel previously showed `HDFC •••• 4821` while the database held a different account).
+Password change was ported from the customer dashboard. The redundant "Save Settings" button
+was removed - every row saves on change.
+
+Three rows are deliberately **not** made editable, and say so on screen: sign-in email and
+GDPR export/delete need a verification round trip; payout bank details must be verified before
+any money moves. An honest hand-off to support beats a button that pretends.
+
+**Documentation** - new §20: ER diagram (mermaid) of the transactional spine, a table-by-table
+RLS matrix covering all 38 tables, the four state machines (booking, quote, dispute, escrow),
+and a repeatable testing checklist including the authorization and data-integrity assertions.
+
+**Verified**: 16/16 panels live, 0 stub handlers, `node --check` clean on every inline script,
+zero console errors on a fresh tab, zero horizontal overflow at 360x740. Cross-platform sync
+re-proved end to end: a quote sent by the supplier reaches the customer's Requests panel,
+Overview count and notification bell, and advances the request to `quoted`; a dispute reply by
+either side appears to the other, framed from their point of view. All write tests were
+reverted and the demo data restored to exactly the state a fresh migration run produces.
+
+**Files**: `disputes-ui.js` (new), `data-api.js`, `supplier-dashboard.html`,
+`customer-dashboard.html`, `styles.css` (`?v=20`), migrations `0018`-`0023`, both handout copies.
+
+---
+
+### Version 2.11 - 2026-08-05
+**Dashboard productionisation, Phases 1-6: backing tables, service layer, live availability calendar, supplier business profile + gallery, customer profile + password + saved suppliers, database-driven notifications + settings, the request-quote-booking lifecycle, and two latent RLS bugs found and fixed.**
+
+Brief: convert both dashboards from placeholder UI into a real Supabase-backed SaaS. **Audited
+first rather than assuming** - the finding materially changed the plan:
+
+- **The schema was already ~90% there.** Of the ~30 tables requested, 34 of the concepts already
+  existed (portfolio -> `supplier_media`, settings -> `user_preferences`, blocked/maintenance dates
+  -> `availability.state`, media/documents -> `documents`, activity history -> `activity_logs`,
+  and so on). Only **three** were genuinely missing.
+- **The real gap was the front end, and it was total.** Both dashboards were 100% static markup -
+  `customer-dashboard.html` had **zero** `EventaraAPI` references, `supplier-dashboard.html` had
+  zero as well and 19 `toast()`-only stubs, and **neither page even loaded `data-api.js`**.
+
+- **New migration `0013_dashboard_backing_tables.sql`:** `saved_suppliers` (composite PK
+  `(customer_id, supplier_id)` - dedupe for free; replaces the `localStorage` wishlist),
+  `booking_events` (booking timeline/status history), `support_tickets` (with a `SUP-`/`CMP-`
+  ref-generating trigger, so `help.html`'s client-invented reference number becomes a real
+  look-up-able record). All three RLS-enabled: `saved_suppliers` strictly owner-only,
+  `booking_events` readable by both booking parties but writable only by admin (writes belong to
+  RPCs), `support_tickets` raiser-or-admin.
+- **`data-api.js` grew a dashboard service layer** (149 -> 405 lines): `me()`, `mySupplier()`,
+  `updateMyProfile()`, `changePassword()`, request CRUD, `savedSuppliers()`/`saveSupplier()`/
+  `unsaveSupplier()`, `bookingTimeline()`, `updateMySupplier()`, availability read/write
+  (`myAvailability`/`setMyDay`/`setMyDays`), enquiries + quote lifecycle, `uploadSupplierImage()`
+  (Supabase Storage, writing under `<auth.uid()>/...` exactly as the `0006_storage.sql` object
+  policies require), disputes, and tickets. Added `uid()` and a cached `mySupplierId()` helper so
+  the inline `getSession()` repetition of the older methods is not propagated.
+
+**Phase 1 delivered - the availability calendar (flagged in the brief as highest priority):**
+
+- `supplier-dashboard.html` now loads `data-api.js`. The month view's **hardcoded "July 2026" grid
+  and ~50 static day cells were deleted** and replaced with a container rendered from the
+  `availability` table, with working prev/next month navigation.
+- `cycleDay()` - which only toggled CSS classes and fired a toast - was replaced by `applyMode()`,
+  which writes through `EventaraAPI.setMyDay` -> the existing `update_availability` RPC. That RPC
+  is `SECURITY DEFINER` and **re-checks supplier ownership server-side**, so a tampered client
+  cannot edit another supplier's calendar. The UI paints optimistically and **reverts on failure**,
+  so the grid can never show a state the database rejected.
+- Two correctness details worth recording: dates are serialised with a **local-date** helper, not
+  `toISOString()` (which converts to UTC and, from IST +5:30, silently rolls an evening date back a
+  day); and **confirmed bookings (`state='booked'`) are deliberately not clickable** - a booking has
+  money and a customer attached and does not belong to a stray calendar click. Keyboard operable
+  (`role="button"`, `tabindex`, Enter/Space) with a visible focus ring.
+- **Verified end-to-end, against the database rather than the UI's own claims:** blocked 14 Aug and
+  marked 19 Aug maintenance through the dashboard, then queried Postgres directly - both rows
+  present with correct states; **reloaded the page** and the states re-rendered from the DB;
+  reopened 14 Aug and confirmed the row flipped to `open`.
+- **Cross-platform synchronisation proven, not asserted:** bulk-blocked 20 days via the dashboard's
+  own authenticated path, then loaded the *customer-facing* `supplier.html` - its availability pill
+  changed from **"Available" to "Limited Availability"** with no other change anywhere. One write,
+  every surface updated, because both read the same table. Test data was then cleaned back to a
+  realistic 1-blocked + 1-maintenance demo state.
+- **Mobile (360x740):** 31 day cells render, states shown, month-nav buttons 47x44 (>=44px),
+  calendar scrolls **inside** `.cal-scroll` with **zero page-level horizontal overflow**; zero
+  console errors.
+
+**Phase 2 delivered - supplier Business Profile + gallery:**
+
+- The panel's ~20 hardcoded `value="..."` inputs (no ids, unreadable by JS) were replaced with an
+  id'd form populated from `suppliers` + `supplier_profiles` on load, and **Save Profile** - which
+  previously called `act('Profile saved')` and did nothing - now writes through
+  `EventaraAPI.updateMySupplier()`.
+- **Gallery uploads are real**: a file input feeds `uploadSupplierImage()`, which puts the object in
+  the `supplier-images` bucket under `<auth.uid()>/...` (exactly what the `0006_storage.sql` object
+  policy checks), takes the public URL and inserts a `supplier_media` row - so it appears on the
+  public supplier page immediately. Per-file 5MB guard, progress in the label, per-file failures
+  reported rather than swallowed, and a delete affordance on each thumbnail.
+- **GSTIN / PAN / FSSAI are deliberately read-only** with the verification status shown beside them.
+  They underpin the Verified badge (§11 B16); letting a supplier silently rewrite their own GSTIN
+  while keeping the badge would hollow out the trust model. Changes route through Eventara ops.
+- Blank numeric fields save as `null`, not `0` - otherwise clearing a price would silently write a
+  real "₹0" rather than "not set".
+- **Verified against the database, then across the platform:** edited tagline, capacity 800->850 and
+  added an "EV charging" amenity in the dashboard -> confirmed the row in Postgres -> the **public
+  `supplier.html` showed the new tagline and 7 amenities**, and the **Similar Suppliers card on a
+  *different* supplier's page** showed the new tagline too (that path reads `v_supplier_public`).
+  One write, three surfaces, no manual edit anywhere. Test values were then restored (search.html
+  still hardcodes "up to 800 guests", so leaving 850 would have desynced the static card).
+- Mobile 360x740: profile loads, Save button 138x44, upload zone >=44px tap target, **zero inputs
+  below 16px** (iOS zoom guard), 6 gallery thumbs, zero horizontal overflow, zero console errors.
+
+> **Process note - a self-inflicted bug worth recording.** The first pass at `renderGallery()` built
+> thumbnails with an `innerHTML` string containing `url(\\'...\\')`; that emitted a literal backslash
+> and terminated the JS string, a **syntax error that silently killed the page's entire script
+> block** - `showPanel` and every other handler became undefined. Fixed by building the elements via
+> DOM and setting `.style.backgroundImage` (no escaping surface at all). A repeatable
+> `node --check` pass over every page's inline `<script>` blocks was added to the verification
+> routine so an inline-script syntax error is caught mechanically rather than by noticing the
+> dashboard has stopped responding.
+
+**Phase 3 delivered - customer profile, password, saved suppliers:**
+
+- `customer-dashboard.html` now loads `data-api.js`. The Profile panel's hardcoded values became an
+  id'd form bound to `profiles` + `customer_profiles`; **its "Save Changes" button previously had no
+  handler at all** (not even a toast) and now writes through `updateMyProfile()`, with GSTIN-length
+  and email-format validation blocking the write. Work email is read-only - it is the sign-in
+  identity and changing it needs a verification round-trip.
+- **Saved Suppliers moved off `localStorage` onto the `saved_suppliers` table.** The panel was three
+  hardcoded cards; it now renders the real shortlist with Remove. `supplier.html`'s Save button
+  writes to the table for signed-in customers (so a shortlist follows the user across devices and
+  shows in their dashboard) and keeps the `localStorage` path only for signed-out visitors, so the
+  button is never dead before sign-in.
+- **Password change is real**, via `changePassword()`: it re-authenticates with the current password
+  before calling `updateUser`, because Supabase has no "verify current password" endpoint and
+  without that check a hijacked session could silently reset the password.
+- **A latent seed bug surfaced by this wiring** - fixed in `0014_fix_customer_profile_seed.sql`.
+  `handle_new_user()` creates the `customer_profiles` row at signup with only
+  `(profile_id, org_name)`; `0007_seed.sql` then did `insert ... on conflict (profile_id) do
+  nothing`, which therefore **silently no-opped**, so `industry`/`gstin`/`billing_address`/
+  `default_po`/`finance_email` never landed. The dashboard showed blanks because the data really
+  was blank - the old hardcoded HTML had been displaying values that existed nowhere in the
+  database. Backfilled idempotently (only fills NULLs).
+- **Verified against the database:** bad GSTIN blocked with "GSTIN should be 15 characters";
+  a real save persisted `industry` and `phone`; saving Blossom Events from `supplier.html` created
+  the `saved_suppliers` row and it appeared in the dashboard shortlist with a correct
+  `supplier.html?slug=` link. **All three password guards confirmed** - mismatch, <8 characters,
+  and (the security-critical one) **wrong current password rejected** - without altering the demo
+  credentials. Mobile 360px: profile loads, Save 157x44, **zero inputs under 16px**, shortlist
+  single-column, zero horizontal overflow.
+- Fixed a stale link found while auditing: `booking.html` still pointed at the retired
+  `provider.html`; now `supplier.html?slug=paandora-grand-udaipur`. No live `provider.html` links
+  remain anywhere.
+
+**Phase 5 delivered - notifications + settings persistence (disputes deferred, see below):**
+
+- **Supplier notifications are database-driven.** The panel's four hardcoded items were replaced
+  with a render from `v_notification_feed`; `markRead()`/`markAllRead()` previously only added a CSS
+  class (state reset on every reload) and now write to the `notifications` table. Relative
+  timestamps are computed from `created_at`. Verified: read state persisted to Postgres and the
+  unread badge fell 3 -> 2.
+- **Every settings toggle persists** on both dashboards - 6 supplier + 6 customer toggles remapped
+  from `toast('… updated')` stubs to `data-pref` keys writing to `user_preferences`, and the panels
+  now load their saved state on open. Verified both directions against the database. The customer
+  dashboard's separate "Save Settings" button was replaced with a note that preferences save as you
+  toggle, since a button that saves nothing is worse than no button.
+
+**Phase 4 delivered - the request -> quote -> booking lifecycle, and TWO serious latent RLS bugs
+found and fixed in the process.**
+
+Wiring these panels was what finally executed the schema's cross-table RLS policies as a real
+signed-in user, and both broke immediately. Neither was introduced here; both had been latent since
+`0002_rls.sql` because nothing had ever read those tables through a user session.
+
+> **Bug 1 - `42P17` infinite recursion between `event_requests` and `quotes`
+> (`0016_fix_rls_recursion_requests_quotes.sql`).** `event_requests.req_supplier_read` subqueried
+> `quotes`; `quotes.quotes_parties` subqueried `event_requests`. Each policy triggered the other's
+> RLS, and Postgres aborted the statement. The effect was total: a signed-in customer could not read
+> **any** request or quote row - `select *` returned an *error*, not an empty set. Fixed by moving
+> each cross-table check into a `SECURITY DEFINER` helper (`supplier_quoted_on_request`,
+> `customer_owns_request`, `can_read_quote`), which runs with owner rights and so does not re-enter
+> the other table's RLS. Same technique the schema already used for `is_admin()`/`owns_supplier()`,
+> and it does not widen access - each helper answers exactly the question its policy asked.
+> Verified by impersonating the customer's JWT in SQL: 1 request / 1 quote / 4 line items now
+> visible, previously an error.
+
+> **Bug 2 - supplier Bookings panel silently empty
+> (`0017_supplier_can_read_booked_customer.sql`).** `v_supplier_dashboard` does
+> `join profiles p on p.id = b.customer_id`, but `profiles`' only SELECT policy was
+> `id = auth.uid()`. The view is `security_invoker`, so for a supplier that join matched nothing and
+> the **INNER JOIN silently dropped every row** - the panel said "no bookings" while two existed.
+> This one is a *product* question, not just a plumbing one, and §11 **B17** already answers it:
+> customer contact stays private *until a booking is confirmed*. So a supplier may now read the
+> profile of a customer they **share a booking with**, and nobody else - via a definer helper
+> (`shares_booking_with_profile`) so it cannot reintroduce Bug 1's recursion.
+
+- **New RPC `set_booking_status` (`0015`)** - status change + `booking_events` timeline row +
+  counterparty notification in **one server-side transaction**, so they cannot drift apart. It is
+  `SECURITY DEFINER`, re-checks that the caller owns the supplier (or is the customer/admin), and
+  **enforces a forward-only lifecycle**; cancellation is deliberately excluded because it moves
+  money and belongs to `cancel_booking()`. `booking_events` stays admin-write-only precisely
+  because a timeline the actors can rewrite is not an audit trail. The migration also backfills a
+  `created` event for pre-existing bookings so no timeline is mysteriously empty.
+- **Panels wired:** customer **Requests & Quotes** (with real Cancel, only offered while the
+  request is still open), **Bookings** (with a timeline view), **Invoices**; supplier
+  **Enquiries** (Send quote / Withdraw, with a guard against sending a ₹0 quote) and **Bookings**
+  (Mark ongoing / Mark completed).
+- **Verified end-to-end:** all three customer tables render live rows; supplier enquiries and
+  bookings render with the customer's name; a real `upcoming -> ongoing` transition succeeded, and
+  the **illegal reverse transition was rejected by Postgres** (`illegal transition ongoing ->
+  upcoming`). Confirmed in SQL that the status, both timeline entries and the customer notification
+  were all written. Test artifacts restored afterwards.
+
+**Phase 6 - responsive re-verification:** every panel on both dashboards swept at 360x740 -
+**16/16 panels report zero horizontal overflow**, data tables scroll inside their own container,
+and a fresh-tab load shows **zero console errors**.
+
+> **Deployment note (local-dev artifact, worth knowing).** Several times during this work the
+> browser served a **cached HTML copy** and the panels looked broken until a cache-buster query was
+> added. The project cache-busts *assets* (`?v=`) but the HTML files themselves have no such
+> mechanism, and `python -m http.server` sends `Last-Modified`, so the browser reuses stale HTML.
+> Vercel normally serves HTML `no-cache` so this should not bite in production - but if a dashboard
+> ever looks stale after a deploy, hard-reload before assuming a code fault. `data-api.js` was
+> bumped to `?v=3` as part of this phase.
+
+**Still remaining and NOT claimed to work:**
+
+| Area | Status |
+|---|---|
+| Customer: Overview, Payments; Supplier: Overview | still static placeholder markup |
+| Disputes create/reply/evidence (both roles) | static - `myDisputes()`/`addDisputeEvent()` exist and are tested, unwired to UI |
+| Quote **line-item editor** (compose a quotation) | `setQuoteLineItems()` exists; no builder UI, so a draft quote's total can only be set via API |
+| Customer: change sign-in email, data export/delete | intentionally still stubs - both need verification / GDPR flows that should not be faked |
+| ER diagram, formal RLS matrix, full testing checklist | not written |
+
+**Panel score: 11 of 16 dashboard panels are now genuinely live** - supplier Calendar, Business
+Profile, Settings, Notifications, Enquiries, Bookings; customer Profile, Saved Suppliers, Settings,
+Requests & Quotes, Bookings, Invoices.
+
+**Not verified:** no physical device test (engine-measured only, see L24).
 
 ---
 

@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title id="pageTitle">Supplier Profile - Eventara</title>
   <meta name="description" id="pageDescription" content="Browse a verified venue or event planner on Eventara - gallery, packages, availability and reviews, all without leaving the platform." />
-  <link rel="stylesheet" href="styles.css?v=19" />
+  <link rel="stylesheet" href="styles.css?v=20" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
   <script src="auth-supabase.js?v=1"></script>
-  <script src="data-api.js?v=1"></script>
+  <script src="data-api.js?v=7"></script>
   <style>
     /* === Supplier Profile - Page-Specific Styles (shared shape with the
        legacy provider.html, plus new dynamic-page additions) === */
@@ -791,18 +791,43 @@
       function writeArr(key, arr) { try { localStorage.setItem(key, JSON.stringify(arr)); } catch (e) {} }
 
       var saveBtn = document.getElementById('saveBtn'), saveLabel = document.getElementById('saveBtnLabel');
-      function syncSaveBtn() {
-        var saved = readArr(SAVE_KEY).indexOf(sup.id) !== -1;
-        saveBtn.classList.toggle('saved', saved);
-        saveLabel.textContent = saved ? 'Saved' : 'Save';
+      var isSaved = false;
+      function paintSaveBtn() {
+        saveBtn.classList.toggle('saved', isSaved);
+        saveLabel.textContent = isSaved ? 'Saved' : 'Save';
       }
-      syncSaveBtn();
-      saveBtn.addEventListener('click', function () {
-        var arr = readArr(SAVE_KEY);
-        var i = arr.indexOf(sup.id);
-        if (i === -1) { arr.push(sup.id); toast('Saved to your shortlist'); } else { arr.splice(i, 1); toast('Removed from shortlist'); }
-        writeArr(SAVE_KEY, arr);
-        syncSaveBtn();
+      // Signed-in customers persist to the saved_suppliers table (so the
+      // shortlist follows them across devices and shows in their dashboard).
+      // Signed-out visitors still get the localStorage behaviour, so the
+      // button is not dead before sign-in.
+      function signedInCustomer() {
+        var s = window.Auth && Auth.getSession ? Auth.getSession() : null;
+        return !!(s && s.role === 'customer' && window.EventaraAPI);
+      }
+      (async function initSaveState() {
+        if (signedInCustomer()) {
+          var r = await EventaraAPI.isSupplierSaved(sup.id);
+          isSaved = !!(r && r.data);
+        } else {
+          isSaved = readArr(SAVE_KEY).indexOf(sup.id) !== -1;
+        }
+        paintSaveBtn();
+      })();
+      saveBtn.addEventListener('click', async function () {
+        if (signedInCustomer()) {
+          var want = !isSaved;
+          var r = want ? await EventaraAPI.saveSupplier(sup.id) : await EventaraAPI.unsaveSupplier(sup.id);
+          if (r.error) { toast('Could not update shortlist'); return; }
+          isSaved = want;
+          toast(want ? 'Saved to your shortlist' : 'Removed from shortlist');
+        } else {
+          var arr = readArr(SAVE_KEY), i = arr.indexOf(sup.id);
+          if (i === -1) { arr.push(sup.id); toast('Saved on this device - sign in to sync'); }
+          else { arr.splice(i, 1); toast('Removed from shortlist'); }
+          writeArr(SAVE_KEY, arr);
+          isSaved = i === -1;
+        }
+        paintSaveBtn();
       });
 
       document.getElementById('shareBtn').addEventListener('click', function () {
