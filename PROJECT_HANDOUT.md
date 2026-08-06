@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.13 (see §18 Change Log) |
+| **Doc version** | 2.14 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-29 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -2504,8 +2504,46 @@ This project has email confirmation **enabled**, so `signUp()` returns
 `session: null`. The client reads that (`r.needsVerification`) rather than
 assuming either way, and shows a "confirm your email" view with a resend
 button - so the flow stays correct if that project setting is ever changed.
-Verified links return to `signin.html?verified=1`; expired or invalid ones
-arrive with `error_description` in the URL fragment and are shown as a banner.
+
+**The confirmation link lands on `verified.html`**, not the sign-in form. The
+link carries a live session in the URL fragment (`#access_token=…`), which
+`supabase-client.js` consumes automatically (`detectSessionInUrl: true`) - so
+the user arrives already signed in. Sending them to a sign-in form would ask
+for the password they set sixty seconds earlier.
+
+**The page is scoped to signup confirmation only.** It keys off `type=signup` in
+the link, so it cannot congratulate someone who did not just verify. Every other
+arrival is routed to the flow that owns it:
+
+| Arrival | Behaviour |
+|---|---|
+| `type=signup` + session | **Verified** - green tick, "Your Email Address is verified", **Take me to My Profile** → `supplier-dashboard.html#profile` or `customer-dashboard.html#profile`, chosen from `profiles.role` |
+| `type=signup`, no session | "Already used" - the token was spent by an earlier click; the account is fine, offers sign-in |
+| `error_description` in the link | **Expired** - amber icon, "That link has expired", **Get a new link** |
+| `type=recovery` | Redirected to `signin.html?recovery=1` - the reset flow, not a verification message |
+| `type=email_change` | Redirected to `signin.html?verified=1` (changing a sign-in address is a separate confirmation, not yet implemented) |
+| No auth fragment, signed in | Redirected to their own dashboard via `Auth.landingUrl()` - an existing user opening the URL directly must not be told they "just verified" |
+| No auth fragment, signed out | Redirected to `signin.html` |
+
+**The fragment is snapshotted in `<head>` before supabase-js loads.**
+`detectSessionInUrl` consumes the fragment and strips it with
+`history.replaceState`, so reading `location.hash` from the page script is a
+race that is usually lost - and losing it would misclassify a genuine signup
+link as a direct visit. An inline script captures `location.hash` and
+`location.search` into `window.__authHash` / `window.__authQuery` first.
+
+It calls `ensure_account_records()` before offering the button, so the dashboard
+it hands over to cannot land on a missing provisioning row. The fragment is
+cleared with `history.replaceState` so a refresh never re-shows a stale error.
+
+**Site URL is load-bearing.** Supabase only honours `emailRedirectTo` when the
+URL matches its **Redirect URLs** allow-list. On a mismatch it silently
+substitutes the project's **Site URL** - it does not error. During testing a
+confirmation link generated on `eventara.co.in` arrived pointing at
+`http://localhost:3000` (`ERR_CONNECTION_REFUSED`) for exactly this reason:
+Site URL was still the local dev default. The account *was* confirmed - the
+token is consumed server-side before the redirect - but the user saw a browser
+error instead of a confirmation. See §21.10.
 
 ### 21.5 Password management
 
@@ -2569,12 +2607,31 @@ edits propagate the same way, because every surface reads the same tables.
 
 ### 21.10 Deployment notes
 
-1. **Custom SMTP is not configured.** Supabase's built-in mailer is rate-limited
-   (this was hit during testing after two signups: `email rate limit exceeded`).
-   Verification and password-reset mail will throttle almost immediately in real
-   use. Configure SMTP under *Authentication → Settings* before launch.
-2. Set **Site URL** and **Redirect URLs** to the deployed origin, or the links in
-   verification and recovery emails will point at the wrong host.
+1. **Custom SMTP: done.** Brevo is connected and verified working
+   (`smtp-relay.brevo.com:587`, sender `help@eventara.co.in`). Supabase's auth
+   log recorded the changeover - the email rate limit moved from `2/1h` to `30`,
+   which is the concrete signal that custom SMTP took effect. Before this, the
+   built-in mailer throttled after two signups.
+   - Brevo free plan: **300 emails/day**.
+   - Authenticate the **domain** `eventara.co.in` in Brevo (DKIM + DMARC), not
+     just the individual sender, or mail will send but land in spam.
+   - Consider disabling **click tracking** for transactional mail. Supabase's
+     confirmation and reset links are single-use; corporate scanners
+     (Outlook Safe Links and similar) pre-fetch links to check them, which
+     consumes the token before the user clicks. Verify by copying the link out
+     of a received email: if it starts with the Supabase project host it is not
+     being rewritten and there is nothing to fix.
+
+2. **Site URL and Redirect URLs - the one that actually broke.** Set:
+   - **Site URL** → `https://www.eventara.co.in`
+   - **Redirect URLs** → `https://www.eventara.co.in/**`, `https://eventara.co.in/**`,
+     and `http://localhost:8791/**` for local work.
+
+   Supabase falls back to Site URL *silently* when a requested redirect is not
+   allow-listed, so the symptom is a confirmation link pointing at the wrong
+   host rather than an error anywhere. Note `eventara.co.in` 308-redirects to
+   `www.`, so the `www.` form is the canonical Site URL.
+
 3. Email confirmation is currently **on**. Leaving it on is the right call for
    production; the client handles either setting.
 4. `verify_status` gained `under_review`. Enum values cannot be added and used in
@@ -2585,6 +2642,73 @@ edits propagate the same way, because every surface reads the same tables.
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.14 - 2026-08-07
+**Email confirmation landing page, and the Site URL misconfiguration it exposed.**
+
+A real customer signup was tested end to end against the newly connected Brevo
+SMTP. The email arrived correctly from `help@eventara.co.in`, but clicking
+**Confirm email address** landed on `http://localhost:3000/#access_token=…` →
+`ERR_CONNECTION_REFUSED`.
+
+**Root cause, and it is not in the code.** Supabase honours `emailRedirectTo`
+only when the URL is in its **Redirect URLs** allow-list. On a mismatch it
+**silently substitutes the project's Site URL** - no error, no warning. Site URL
+was still `http://localhost:3000` from early development, so every link
+generated on the live site pointed at a dev server that was not running. The
+account itself was confirmed - the token is consumed server-side before the
+redirect - which is why signing in on another tab worked. The user simply had no
+way to know that.
+
+**Built: `verified.html`.** Confirmation links now land on a dedicated page
+rather than the sign-in form, because the link carries a live session in the URL
+fragment - the user arrives already signed in, and asking for the password they
+set a minute ago is pointless. It resolves one of three states from the real
+session rather than assuming success:
+
+- **Verified** - animated green tick, "Your Email Address is verified", and a
+  **Take me to My Profile** button routed by `profiles.role` to
+  `supplier-dashboard.html#profile` or `customer-dashboard.html#profile`.
+- **Link expired** - amber icon and a route to request a fresh link.
+- **Already used** - the token was spent by an earlier click; the account is
+  fine and the page says so instead of showing an error.
+
+It calls `ensure_account_records()` before offering the button, so the dashboard
+cannot land on a missing provisioning row, and clears the URL fragment so a
+refresh never re-shows a stale error.
+
+Also added `siteUrl()` in `auth-supabase.js` - one helper building the redirect
+base from `location.origin`, replacing three copies of the same expression.
+
+**Scoped to signup only.** The first cut of this page showed the "Your Email
+Address is verified" celebration to *any* signed-in visitor, so an existing user
+opening `/verified.html` - from a bookmark, browser history, or a re-forwarded
+email - would be congratulated for something they did months ago. It now keys off
+`type=signup` in the link and routes everything else to the flow that owns it:
+recovery links to the password-reset view, email-change links onward, a signed-in
+direct visit to that user's own dashboard, a signed-out one to sign-in.
+
+Fixing that exposed a second defect: `detectSessionInUrl` consumes the URL
+fragment and strips it via `history.replaceState` **before** the page script
+runs, so reading `location.hash` there is a race - and losing it would
+misclassify a real signup link as a direct visit. The fragment is now
+snapshotted by an inline script in `<head>`, ahead of the supabase-js load.
+
+**Verified** - all six arrival paths exercised in the browser: signup link
+(supplier and customer, each routing to its own dashboard), already-used token,
+expired-link fragment, recovery hand-off (reset view opens), email-change
+hand-off, signed-in direct visit (bounced to dashboard), signed-out direct visit
+(bounced to sign-in). 360px with no horizontal overflow and a 53px primary
+button; zero console errors throughout.
+
+**Still required in the Supabase dashboard** (no API exists for it): set Site URL
+to `https://www.eventara.co.in` and allow-list both apex and `www` plus
+localhost. Until then, confirmation links from production keep pointing at
+localhost. See §21.10.
+
+**Files**: `verified.html` (new), `auth-supabase.js` (`?v=3`), both handout copies.
 
 ---
 

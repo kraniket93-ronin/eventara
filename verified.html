@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Your Eventara email address is confirmed.">
+  <meta name="robots" content="noindex">
+  <title>Email Verified - Eventara</title>
+  <link rel="stylesheet" href="styles.css?v=22">
+  <!-- Snapshot the auth fragment BEFORE supabase-js loads.
+       detectSessionInUrl consumes the fragment and strips it from the URL with
+       history.replaceState, so reading location.hash later is a race we would
+       usually lose. This page's whole behaviour keys off `type=signup`, so the
+       snapshot has to happen first - synchronously, before any other script. -->
+  <script>
+    window.__authHash  = location.hash || '';
+    window.__authQuery = location.search || '';
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="auth-supabase.js?v=3"></script>
+  <style>
+    /* ==========================================================
+       EMAIL CONFIRMATION LANDING
+
+       Supabase sends the user here from the "Confirm email address"
+       link. The link carries the session in the URL *fragment*
+       (#access_token=...), which supabase-client.js consumes
+       automatically (detectSessionInUrl: true) - so by the time this
+       page's script runs, the user is usually already signed in.
+
+       The page therefore has three states, and picks one from the
+       real session rather than assuming success: confirmed,
+       link-expired, and already-confirmed-but-signed-out.
+       ========================================================== */
+    body.verify-page {
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: var(--canvas-alt);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-24);
+    }
+
+    .verify-wrap { width: 100%; max-width: 480px; }
+
+    .verify-brand {
+      display: flex; justify-content: center;
+      margin-bottom: var(--space-24);
+    }
+    .verify-brand img { height: 44px; width: auto; }
+
+    .verify-card {
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-3xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-48) var(--space-32);
+      text-align: center;
+    }
+
+    /* The tick: a ring that scales in, then the stroke draws itself.
+       Both are wrapped in prefers-reduced-motion below. */
+    .verify-mark {
+      width: 96px; height: 96px; margin: 0 auto var(--space-24);
+      border-radius: 50%;
+      background: var(--trust-green-light);
+      display: flex; align-items: center; justify-content: center;
+      animation: markPop 0.45s var(--ease-out) both;
+    }
+    .verify-mark svg { width: 48px; height: 48px; color: var(--trust-green); }
+    .verify-mark svg path {
+      stroke-dasharray: 32;
+      stroke-dashoffset: 32;
+      animation: tickDraw 0.5s var(--ease-out) 0.28s forwards;
+    }
+    @keyframes markPop { from { transform: scale(0.7); } to { transform: scale(1); } }
+    @keyframes tickDraw { to { stroke-dashoffset: 0; } }
+
+    .verify-mark.is-error { background: var(--warning-light); }
+    .verify-mark.is-error svg { color: var(--gold-deep); }
+    .verify-mark.is-error svg path { animation: none; stroke-dashoffset: 0; }
+
+    .verify-card h1 {
+      font-family: var(--font-display);
+      font-size: var(--text-heading-lg);
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: var(--space-12);
+    }
+    .verify-card p {
+      font-size: var(--text-body);
+      line-height: 1.6;
+      color: var(--ink-secondary);
+      margin-bottom: var(--space-32);
+    }
+    .verify-card .verify-email { font-weight: 600; color: var(--ink); }
+
+    .verify-actions { display: flex; flex-direction: column; gap: var(--space-12); }
+    .verify-actions .btn { width: 100%; }
+
+    .verify-foot {
+      margin-top: var(--space-24);
+      font-size: var(--text-caption);
+      color: var(--ink-muted);
+      text-align: center;
+    }
+    .verify-foot a { color: var(--ink-secondary); text-decoration: underline; }
+
+    @media (max-width: 480px) {
+      .verify-card { padding: var(--space-32) var(--space-20); }
+      .verify-mark { width: 80px; height: 80px; }
+      .verify-mark svg { width: 40px; height: 40px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .verify-mark { animation: none; }
+      .verify-mark svg path { animation: none; stroke-dashoffset: 0; }
+    }
+  </style>
+</head>
+<body class="verify-page">
+
+  <main class="verify-wrap">
+    <div class="verify-brand">
+      <a href="index.html" aria-label="Eventara home"><img src="logo.svg?v=1" alt="Eventara"></a>
+    </div>
+
+    <div class="verify-card">
+      <div class="verify-mark" id="vMark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 6 9 17l-5-5"/>
+        </svg>
+      </div>
+
+      <h1 id="vTitle">Confirming your email…</h1>
+      <p id="vBody">One moment while we finish setting up your account.</p>
+
+      <div class="verify-actions" id="vActions"></div>
+    </div>
+
+    <p class="verify-foot" id="vFoot"></p>
+  </main>
+
+  <script>
+    /* ============================================================
+       Which state to show is decided by the real session, never
+       assumed. Supabase has already consumed the token by the time
+       this runs, so a present session means the address is confirmed.
+       ============================================================ */
+    var el = function (id) { return document.getElementById(id); };
+
+    var ICON_TICK  = '<path d="M20 6 9 17l-5-5"/>';
+    var ICON_ALERT = '<path d="M12 9v4"/><path d="M12 17h.01"/>' +
+                     '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/>';
+
+    function render(state) {
+      el('vTitle').textContent = state.title;
+      el('vBody').innerHTML = state.body;
+      var mark = el('vMark');
+      mark.classList.toggle('is-error', !!state.error);
+      mark.querySelector('svg').innerHTML = state.error ? ICON_ALERT : ICON_TICK;
+      document.title = state.title + ' - Eventara';
+
+      var actions = el('vActions');
+      actions.innerHTML = '';
+      (state.actions || []).forEach(function (a) {
+        var b = document.createElement(a.href ? 'a' : 'button');
+        b.className = 'btn ' + (a.primary ? 'btn-primary' : 'btn-secondary') + ' btn-lg';
+        b.textContent = a.label;
+        if (a.href) { b.href = a.href; } else { b.type = 'button'; b.addEventListener('click', function () { a.onClick(b); }); }
+        actions.appendChild(b);
+      });
+      el('vFoot').innerHTML = state.foot || '';
+    }
+
+    // Waits for detectSessionInUrl to finish turning the fragment into a
+    // session. It runs asynchronously, so an immediate getSession() can
+    // legitimately return null a beat before the session appears.
+    async function awaitSession(tries) {
+      for (var i = 0; i < (tries || 12); i++) {
+        var res = await sb.auth.getSession();
+        if (res.data.session) return res.data.session;
+        await new Promise(function (r) { setTimeout(r, 150); });
+      }
+      return null;
+    }
+
+    function esc(s) { return String(s == null ? '' : s).replace(/[<>&"]/g, ''); }
+
+    async function init() {
+      if (!window.sb) {
+        render({
+          error: true,
+          title: 'We can’t reach Eventara',
+          body: 'The site isn’t connected to its database right now, so we couldn’t confirm your email. Please try the link again in a few minutes.',
+          actions: [{ label: 'Go to sign in', href: 'signin.html', primary: true }]
+        });
+        return;
+      }
+
+      // Read the snapshot taken in <head>, not location.hash - by now
+      // supabase-js has already stripped the fragment from the URL.
+      var hash  = new URLSearchParams((window.__authHash || '').replace(/^#/, ''));
+      var query = new URLSearchParams(window.__authQuery || '');
+
+      var linkType  = hash.get('type') || query.get('type');
+      var linkErr   = hash.get('error_description') || hash.get('error') ||
+                      query.get('error_description') || query.get('error');
+      var hasTokens = hash.has('access_token') || query.has('code');
+
+      // This page exists for ONE journey: a new user confirming the address
+      // they signed up with. Anything else that reaches it is handed to the
+      // flow that owns it, rather than being shown a verification message
+      // that would not be true.
+      if (linkType === 'recovery') {
+        location.replace('signin.html?recovery=1');
+        return;
+      }
+      if (linkType === 'email_change') {
+        // Changing a sign-in address is a different confirmation with
+        // different wording, and is not implemented yet - hand off cleanly.
+        location.replace('signin.html?verified=1');
+        return;
+      }
+
+      // An expired or already-used confirmation link comes back as an error
+      // in the fragment rather than a session.
+      if (linkErr) {
+        render({
+          error: true,
+          title: 'That link has expired',
+          body: 'Confirmation links are single-use and time-limited. Request a fresh one from the sign-in page and it’ll arrive in a moment.',
+          actions: [{ label: 'Get a new link', href: 'signin.html', primary: true }],
+          foot: 'Still stuck? Email <a href="mailto:help@eventara.co.in">help@eventara.co.in</a>.'
+        });
+        history.replaceState(null, '', location.pathname);
+        return;
+      }
+
+      var cameFromSignupLink = (linkType === 'signup') || (!linkType && hasTokens);
+
+      // Not a confirmation at all - somebody opened /verified.html directly,
+      // or refreshed it after the fragment was cleared. Telling an existing
+      // user their email was "just verified" would be a lie, so route them
+      // to where they were actually trying to go.
+      if (!cameFromSignupLink) {
+        var existing = await awaitSession(2);
+        if (existing) {
+          var url = 'customer-dashboard.html';
+          try { url = await Auth.landingUrl(Auth.getRole()); } catch (e) {}
+          location.replace(url);
+        } else {
+          location.replace('signin.html');
+        }
+        return;
+      }
+
+      var session = await awaitSession(12);
+      if (!session) {
+        // Confirmed shape of link, but no session took hold - the token was
+        // almost certainly spent by an earlier click.
+        render({
+          title: 'Your email address is verified',
+          body: 'This link has already been used, so there’s nothing left to do. Sign in to pick up where you left off.',
+          actions: [{ label: 'Go to sign in', href: 'signin.html', primary: true }]
+        });
+        history.replaceState(null, '', location.pathname);
+        return;
+      }
+
+      // Make sure every provisioning row exists before handing over to a
+      // dashboard that will immediately query for it.
+      try { await sb.rpc('ensure_account_records'); } catch (e) {}
+
+      var role = 'customer';
+      var email = session.user.email || '';
+      try {
+        var prof = await sb.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
+        if (prof.data && prof.data.role) role = prof.data.role;
+      } catch (e) {}
+
+      var dash = role === 'supplier' ? 'supplier-dashboard.html#profile' : 'customer-dashboard.html#profile';
+
+      render({
+        title: 'Your Email Address is verified',
+        body: 'Thanks for confirming <span class="verify-email">' + esc(email) +
+              '</span>. Your Eventara account is active.<br>' +
+              (role === 'supplier'
+                ? 'Next, complete your business profile so customers can find you.'
+                : 'Next, complete your profile so your briefs and invoices fill themselves in.'),
+        actions: [{ label: 'Take me to My Profile', href: dash, primary: true }],
+        foot: 'Signed in as ' + esc(email) + '.'
+      });
+
+      history.replaceState(null, '', location.pathname);
+      try { Auth.renderNav(); } catch (e) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

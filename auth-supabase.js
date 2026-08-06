@@ -26,6 +26,19 @@
   function write(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
   function clear() { try { localStorage.removeItem(KEY); } catch (e) {} try { sessionStorage.removeItem('eventara_auth'); } catch (e) {} }
 
+  // Base URL for links Supabase emails back to, with a trailing slash.
+  // Built from the page's own origin so a link generated on localhost comes
+  // back to localhost and one generated on the live site comes back there.
+  //
+  // Supabase will only honour this if the URL matches its Redirect URLs
+  // allow-list; when it does not match, it silently substitutes the project's
+  // Site URL. That substitution is what sent a confirmation link generated on
+  // eventara.co.in to http://localhost:3000 - the fix is in the Supabase
+  // dashboard, not here, but this keeps the request side unambiguous.
+  function siteUrl() {
+    return location.origin + location.pathname.replace(/[^/]*$/, '');
+  }
+
   function initials(name, role) {
     var src = (name || (role === 'supplier' ? 'Supplier' : 'Customer')).trim();
     var p = src.split(/\s+/).filter(Boolean);
@@ -120,7 +133,11 @@
         email: email, password: password,
         options: {
           data: Object.assign({ role: role }, meta || {}),
-          emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'signin.html?verified=1'
+          // verified.html, not signin.html: the confirmation link returns a
+          // live session in the URL fragment, so the user arrives already
+          // signed in. Landing them on a sign-in form would ask for the
+          // password they just set, for no reason.
+          emailRedirectTo: siteUrl() + 'verified.html'
         }
       });
       // session === null means the project requires email confirmation, so
@@ -132,13 +149,13 @@
     resendVerification: async function (email) {
       if (!LIVE) return { error: { message: 'offline' } };
       return sb.auth.resend({ type: 'signup', email: email,
-        options: { emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'signin.html?verified=1' } });
+        options: { emailRedirectTo: siteUrl() + 'verified.html' } });
     },
 
     resetPassword: async function (email) {
       if (!LIVE) return { error: { message: 'offline' } };
       return sb.auth.resetPasswordForEmail(email, {
-        redirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'signin.html?recovery=1'
+        redirectTo: siteUrl() + 'signin.html?recovery=1'
       });
     },
 
