@@ -1989,6 +1989,72 @@ textarea.input-field {
 .status-delivered { background: var(--plum-50); color: var(--plum); }
 .status-cancelled { background: var(--error-light); color: var(--error); }
 
+/* --- Supplier portfolio assets (video / brochure / menu) --- */
+.asset-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.asset-rows { display: grid; gap: var(--space-8); }
+.asset-row, .asset-item {
+  display: flex; align-items: center; gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--hairline); border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.asset-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.asset-meta b { font-size: var(--text-body-sm); }
+.asset-meta span {
+  font-size: var(--text-caption); color: var(--ink-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.asset-list { display: grid; gap: var(--space-8); margin-top: var(--space-16); }
+@media (max-width: 520px) {
+  .asset-row, .asset-item { flex-wrap: wrap; }
+  .asset-meta { flex-basis: 100%; }
+}
+
+/* ============================================================
+   ONBOARDING METER
+   Shown on both dashboards' Profile panels until the account is
+   complete. Percentage and the missing-field chips both come from
+   profile_completion() (migration 0025) - nothing here is a guess.
+   ============================================================ */
+.onboard-card {
+  margin-bottom: var(--space-24);
+  border-left: 3px solid var(--gold);
+  background: linear-gradient(180deg, var(--gold-light) 0%, var(--surface) 60%);
+}
+.onboard-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: var(--space-16); margin-bottom: var(--space-12);
+}
+.onboard-head h3 { margin-bottom: 2px; }
+.onboard-pct {
+  font-family: var(--font-display); font-size: var(--text-heading-md);
+  font-weight: 700; color: var(--gold-deep); line-height: 1; white-space: nowrap;
+}
+.onboard-bar {
+  height: 8px; border-radius: var(--radius-pill);
+  background: var(--hairline-light); overflow: hidden;
+}
+.onboard-bar > div {
+  height: 100%; width: 0; border-radius: var(--radius-pill);
+  background: var(--gold);
+  transition: width var(--duration-slow) var(--ease-out), background var(--duration-base);
+}
+.onboard-bar > div.done { background: var(--trust-green); }
+.onboard-missing {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--space-12);
+}
+.onboard-missing .chip {
+  font-size: var(--text-micro); font-weight: 600;
+  padding: 4px 10px; border-radius: var(--radius-pill);
+  background: var(--surface); border: 1px solid var(--hairline);
+  color: var(--ink-secondary);
+}
+.onboard-missing .chip.ok { background: var(--trust-green-light); border-color: transparent; color: var(--trust-green); }
+@media (max-width: 520px) {
+  .onboard-head { flex-direction: column; gap: var(--space-8); }
+  .onboard-pct { font-size: var(--text-heading-sm); }
+}
+
 /* --- Dispute case states + priority dots ---
    Shared by both dashboards (disputes-ui.js renders the same markup for the
    customer and supplier panels), so these live here rather than in either

@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.12 (see §18 Change Log) |
+| **Doc version** | 2.13 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-29 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -55,6 +55,7 @@
 17. [AI Agent Instructions](#17-ai-agent-instructions)
 19. [Backend Architecture (Supabase)](#19-backend-architecture-supabase--added-v22)
 20. [Data Model, Security Matrix & Test Plan](#20-data-model-security-matrix--test-plan--added-v212)
+21. [Authentication & Onboarding](#21-authentication--onboarding--added-v213)
 18. [Change Log](#18-change-log)
 
 ---
@@ -2436,9 +2437,227 @@ v2.12; results are recorded in §18. Restore demo data afterwards - several step
 
 ---
 
+## 21. AUTHENTICATION & ONBOARDING  [added v2.13]
+
+### 21.1 What this replaced
+
+An audit of the sign-in page found registration was not partially wired - it did
+not exist. Both forms called `Auth.login()`, which writes a localStorage object,
+then redirected to a dashboard. **No `sb.auth.signUp()` call existed anywhere in
+the codebase.** A user who "registered" had no `auth.users` row, no profile and
+no data, and could not sign in on their next visit. Every field they filled in -
+mobile, city, GSTIN, business type - was discarded.
+
+Sign-*in* was half real: it called Supabase, but then fell through to two
+hardcoded email/password pairs that authenticated **even after live auth had
+rejected the attempt**.
+
+### 21.2 Architecture
+
+```
+                    ┌──────────────────────────────────────────┐
+  signin.html ────► │ Supabase Auth (GoTrue)                   │
+                    │  email+password, JWT 1h + refresh token  │
+                    └────────────────┬─────────────────────────┘
+                                     │ INSERT auth.users
+                                     ▼
+                    ┌──────────────────────────────────────────┐
+                    │ handle_new_user()  [trigger, 0025]       │
+                    │  profiles · user_preferences             │
+                    │  onboarding_progress                     │
+                    │  customer → customer_profiles            │
+                    │  supplier → suppliers(draft)             │
+                    │             supplier_profiles            │
+                    │             kyc_verification(pending)    │
+                    └────────────────┬─────────────────────────┘
+                                     │ on next sign-in
+                                     ▼
+                    ┌──────────────────────────────────────────┐
+                    │ ensure_account_records()  self-heal      │
+                    │ profile_completion() → % + missing[]     │
+                    └──────────────────────────────────────────┘
+```
+
+**Client session model** is unchanged in principle: a lightweight mirror in
+`localStorage` gives the `<head>` guard a synchronous role check, and **RLS is
+the real boundary** - faking the mirror grants no data.
+
+### 21.3 Sign-up
+
+| Step | Customer | Supplier |
+|---|---|---|
+| Collected | name/org, email, mobile, city, password ×2 | business name, category, contact, mobile, email, city, GSTIN, password ×2 |
+| Validated client-side | required fields, password ≥8 + strength, passwords match | as customer, plus GSTIN shape `^\d{2}[A-Z]{5}\d{4}[A-Z][0-9A-Z]Z[0-9A-Z]$` |
+| Created by trigger | `profiles`, `user_preferences`, `onboarding_progress`, `customer_profiles` | the same three, plus `suppliers` (**status `draft`**), `supplier_profiles`, `kyc_verification` (`pending`) |
+| Lands on | `customer-dashboard.html#profile` | `supplier-dashboard.html#profile` |
+
+**`draft`, not `active`.** `suppliers.status` defaults to `active` and
+`v_supplier_public` filters on exactly that, so a brand-new supplier with an
+empty profile and no photos would have appeared in public search the instant
+they registered. New signups are `draft` - invisible - and go live only through
+`publish_supplier()`, which **refuses** until the listing has a description, a
+capacity, a starting price and at least one photo.
+
+### 21.4 Email verification
+
+This project has email confirmation **enabled**, so `signUp()` returns
+`session: null`. The client reads that (`r.needsVerification`) rather than
+assuming either way, and shows a "confirm your email" view with a resend
+button - so the flow stays correct if that project setting is ever changed.
+Verified links return to `signin.html?verified=1`; expired or invalid ones
+arrive with `error_description` in the URL fragment and are shown as a banner.
+
+### 21.5 Password management
+
+| Flow | Implementation |
+|---|---|
+| Strength meter | `Auth.passwordScore()` - the **same function** validation uses, so the bar shown and the bar enforced cannot disagree |
+| Rules | ≥8 chars, and at least one of (upper+lower) / digit / symbol |
+| Forgot | `resetPasswordForEmail` → `signin.html?recovery=1` |
+| Reset | Supabase's temporary recovery session + `updateUser({password})` |
+| Change (signed in) | `changePassword()` re-authenticates with the current password first |
+
+The forgot form returns **the same message whether or not the address exists** -
+otherwise it tells a stranger which emails are registered.
+
+### 21.6 Session management
+
+- Persistent across refresh and browser restart (supabase-js token storage).
+- `SIGNED_OUT` clears the mirror immediately and bounces any open dashboard.
+- **Multi-tab**: a `storage` event on the supabase token key makes other tabs
+  catch up - signing out in one tab logs the others out.
+- `visibilitychange` re-checks on return to a backgrounded tab, rather than
+  letting the next query 401.
+
+### 21.7 Storage buckets
+
+| Bucket | Read | Cap | Types |
+|---|---|---|---|
+| `profile-pictures`, `supplier-images`, `venue-images` | public | 5 MB | JPEG/PNG/WebP/AVIF |
+| `supplier-videos` | public | 100 MB | MP4/WebM/MOV |
+| `supplier-documents`, `brochures`, `menus` | public | 20 MB | PDF |
+| `kyc-documents`, `gst-documents`, `invoices`, `dispute-evidence`, `booking-attachments` | owner + admin | - | - |
+
+Writes are folder-scoped: an object must live under `"<auth.uid()>/…"`. Caps and
+MIME allow-lists are enforced **by Storage**, not only by the client - so a
+renamed `.exe` or a 400 MB "video" is refused by the platform.
+
+### 21.8 Platform synchronisation - verified end to end
+
+A supplier registered during testing, published, and **with no manual step**
+appeared in: `search_suppliers` (7 → 8 results), `v_supplier_public` with the
+uploaded photo as `cover_image`, its own `supplier.html?slug=…` detail page, and
+the Similar Suppliers rail on a *different* supplier's page. Customer profile
+edits propagate the same way, because every surface reads the same tables.
+
+### 21.9 Testing checklist
+
+- [ ] Register a customer → lands on `#profile`, meter shows a real percentage
+- [ ] Register a supplier → `suppliers` row exists with status `draft`
+- [ ] A `draft` supplier is **absent** from search and `v_supplier_public`
+- [ ] `publish_supplier()` refuses while any required field is missing, naming them
+- [ ] After publishing: appears in search, detail page, and Similar Suppliers
+- [ ] Wrong password is rejected (no fallback credentials remain)
+- [ ] `grep -c "udaipur@2026" signin.html` returns **0**
+- [ ] Unconfirmed sign-in offers the resend path, not a dead end
+- [ ] Forgot-password gives the same reply for known and unknown addresses
+- [ ] Sign out in one tab logs out the others
+- [ ] Upload rejects wrong MIME and oversize with a readable sentence
+- [ ] Uploaded brochure is publicly readable (HTTP 200) and listed in the UI
+- [ ] All auth views: no horizontal overflow at 360 / 768 / 1440
+- [ ] Zero console errors on a **fresh** tab
+
+### 21.10 Deployment notes
+
+1. **Custom SMTP is not configured.** Supabase's built-in mailer is rate-limited
+   (this was hit during testing after two signups: `email rate limit exceeded`).
+   Verification and password-reset mail will throttle almost immediately in real
+   use. Configure SMTP under *Authentication → Settings* before launch.
+2. Set **Site URL** and **Redirect URLs** to the deployed origin, or the links in
+   verification and recovery emails will point at the wrong host.
+3. Email confirmation is currently **on**. Leaving it on is the right call for
+   production; the client handles either setting.
+4. `verify_status` gained `under_review`. Enum values cannot be added and used in
+   the same transaction, so it ships as its own statement ahead of `0025`.
+
+---
+
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.13 - 2026-08-06
+**Authentication and onboarding rebuilt on real Supabase Auth. Registration did not exist before this - it wrote a localStorage object and redirected.**
+
+**The audit finding.** Both registration forms on `signin.html` called
+`Auth.login()` inline and navigated away. There was **no `sb.auth.signUp()` call
+anywhere in the codebase** - `Auth.signUp()` existed in `auth-supabase.js` with
+zero call sites. A "registered" user had no `auth.users` row and could not sign
+in again. Sign-in was half real: it called Supabase, then fell through to two
+hardcoded credential pairs that authenticated *even after live auth rejected the
+attempt*.
+
+**Server-side gaps that had to close first** (`0025`)
+
+1. **`handle_new_user()` had a customer branch only.** A supplier signing up got
+   `profiles` + `user_preferences` and nothing else - no `suppliers` row - so
+   every supplier dashboard call, which resolves through `mySupplierId()`, would
+   have failed with *"no supplier owned by this account"*. The portal would have
+   been dead on arrival for every real signup.
+2. **New suppliers would have gone straight into public search.**
+   `suppliers.status` defaults to `'active'` and `v_supplier_public` filters on
+   exactly that, so an empty listing would have been publicly findable the moment
+   someone registered. Signups now start `draft` and go live via
+   `publish_supplier()`, which refuses until there is a description, capacity,
+   starting price and at least one photo.
+3. **Nothing measured onboarding**, so `onboarding_progress` and
+   `profile_completion()` were added - the latter returns a percentage *and* the
+   named missing fields, so the UI can list them rather than show a bare number.
+
+**Bugs found while building it**
+
+- **`suppliers_status_check` did not allow `'draft'`**, so the first version of
+  the trigger silently produced supplier accounts with no business record - the
+  exception guard swallowed the check violation. The guard now `RAISE WARNING`s,
+  so this class of failure is visible in the Postgres log instead of invisible.
+- **`supplier.html` asserted "Verified" in the page title and meta description
+  for every listing**, regardless of `suppliers.verified`. Harmless while every
+  seeded supplier was verified; a false trust claim now that anyone can register.
+- Two `text[] || text` appends raised *malformed array literal* at runtime
+  (`profile_completion`, `publish_supplier`); both now append `array[...]`.
+
+**Built**
+
+- Real sign-up for both roles, with password strength (the meter and the
+  validation share one function), confirmation field, GSTIN format check, and
+  role-aware metadata passed to the trigger.
+- Email verification with a "check your inbox" view and resend; forgot/reset
+  password; recovery-link handling including expired-link banners.
+- `ensure_account_records()` self-heal, called on every sign-in, so a partially
+  provisioned account repairs itself instead of failing forever.
+- Multi-tab session sync, sign-out propagation, and a visibility re-check.
+- Onboarding meter on both dashboards; supplier publish gate.
+- Portfolio uploads for **video, brochure and menu** into four new Storage
+  buckets with server-side size and MIME limits.
+
+**Verified**: a supplier account created during testing provisioned all six
+records, was correctly absent from search while `draft`, was refused publication
+until complete, and then appeared - with no manual step - in search (7→8),
+`v_supplier_public` with its uploaded photo as cover, its own detail page, and
+the Similar Suppliers rail on another supplier's page. Wrong passwords are now
+rejected; `grep -c "udaipur@2026" signin.html` returns 0. All auth views clear at
+360/768/1440 with zero console errors on a fresh tab. All QA accounts and
+uploads were removed afterwards - 3 users, 7 suppliers, 0 leftovers.
+
+**Known deployment blocker**: no custom SMTP is configured, and Supabase's
+built-in mailer rate-limited after two signups during testing
+(`email rate limit exceeded`). See §21.10 before launch.
+
+**Files**: `signin.html` (rebuilt), `auth-supabase.js`, `data-api.js`,
+`supplier-dashboard.html`, `customer-dashboard.html`, `supplier.html`,
+`styles.css` (`?v=22`), migration `0025`, both handout copies.
 
 ---
 

@@ -61,21 +61,119 @@
     },
 
     // ----- LIVE auth (email/password) -----
-    signIn: async function (email, password) {
-      if (!LIVE) return { error: { message: 'offline demo: use Auth.login(role, info)' } };
+
+    // Supabase phrases some failures for machines, not people. Anything not
+    // matched here is passed through rather than replaced with a vague
+    // catch-all, so a genuinely unexpected error still reaches the user.
+    friendlyError: function (err) {
+      if (!err) return '';
+      var m = String(err.message || err);
+      if (/Invalid login credentials/i.test(m))       return 'That email and password do not match an Eventara account.';
+      if (/Email not confirmed/i.test(m))             return 'Please confirm your email first - check your inbox for the link we sent.';
+      if (/User already registered|already been regist/i.test(m))
+                                                      return 'An account with this email already exists. Try signing in, or reset your password.';
+      if (/Password should be at least/i.test(m))     return 'Your password needs to be at least 8 characters.';
+      if (/rate limit|too many requests/i.test(m))    return 'Too many attempts just now. Please wait a minute and try again.';
+      if (/Failed to fetch|NetworkError|network/i.test(m))
+                                                      return 'We could not reach Eventara. Check your connection and try again.';
+      if (/banned|disabled/i.test(m))                 return 'This account is disabled. Contact support@eventara.in.';
+      if (/expired|invalid.*token/i.test(m))          return 'That link has expired. Request a new one below.';
+      return m;
+    },
+
+    // Returns { error } instead of navigating, so the caller owns the
+    // redirect and can route by role (and to onboarding for new accounts).
+    signIn: async function (email, password, opts) {
+      if (!LIVE) return { error: { message: 'Sign-in is unavailable: Eventara is not connected to its database.' } };
       var r = await sb.auth.signInWithPassword({ email: email, password: password });
-      if (!r.error) { var m = await refreshMirror(); this.renderNav();
-        window.location.href = this.dashboardUrl(m ? m.role : null); }
+      if (r.error) return r;
+
+      // Repair any provisioning row a partial signup left missing before the
+      // dashboard tries to read it (see ensure_account_records, 0025).
+      try { await sb.rpc('ensure_account_records'); } catch (e) {}
+
+      var m = await refreshMirror();
+      try { this.renderNav(); } catch (e) {}
+      if (opts && opts.noRedirect) return r;
+      window.location.href = await this.landingUrl(m ? m.role : null);
       return r;
     },
-    signUp: async function (email, password, role, meta) {
-      if (!LIVE) return { error: { message: 'offline demo' } };
-      return sb.auth.signUp({ email: email, password: password,
-        options: { data: Object.assign({ role: role }, meta || {}) } });
+
+    // Where a signed-in user should land. A finished account goes to its
+    // dashboard; an unfinished one goes straight to the panel that completes
+    // it, which is the whole point of onboarding.
+    landingUrl: async function (role) {
+      var base = this.dashboardUrl(role);
+      if (!LIVE) return base;
+      try {
+        var pc = await sb.rpc('profile_completion');
+        if (pc && pc.data && typeof pc.data.percent === 'number' && pc.data.percent < 100) {
+          return base + '#profile';
+        }
+      } catch (e) {}
+      return base;
     },
+
+    signUp: async function (email, password, role, meta) {
+      if (!LIVE) return { error: { message: 'Registration is unavailable: Eventara is not connected to its database.' } };
+      var r = await sb.auth.signUp({
+        email: email, password: password,
+        options: {
+          data: Object.assign({ role: role }, meta || {}),
+          emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'signin.html?verified=1'
+        }
+      });
+      // session === null means the project requires email confirmation, so
+      // the caller must show "check your inbox" rather than redirecting.
+      if (!r.error) r.needsVerification = !r.data.session;
+      return r;
+    },
+
+    resendVerification: async function (email) {
+      if (!LIVE) return { error: { message: 'offline' } };
+      return sb.auth.resend({ type: 'signup', email: email,
+        options: { emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'signin.html?verified=1' } });
+    },
+
     resetPassword: async function (email) {
-      if (!LIVE) return { error: { message: 'offline demo' } };
-      return sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/signin.html' });
+      if (!LIVE) return { error: { message: 'offline' } };
+      return sb.auth.resetPasswordForEmail(email, {
+        redirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'signin.html?recovery=1'
+      });
+    },
+
+    // Used by the recovery view: Supabase puts the user in a temporary
+    // recovery session when they follow the emailed link, so updateUser is
+    // all that is needed - no current password.
+    completePasswordReset: async function (newPassword) {
+      if (!LIVE) return { error: { message: 'offline' } };
+      return sb.auth.updateUser({ password: newPassword });
+    },
+
+    // Shared password rule, used by the strength meter and by validation, so
+    // the bar shown to the user and the bar actually enforced are the same.
+    passwordScore: function (pw) {
+      pw = pw || '';
+      var checks = {
+        length: pw.length >= 8,
+        longer: pw.length >= 12,
+        lower:  /[a-z]/.test(pw),
+        upper:  /[A-Z]/.test(pw),
+        digit:  /\d/.test(pw),
+        symbol: /[^A-Za-z0-9]/.test(pw)
+      };
+      var score = 0;
+      if (checks.length) score++;
+      if (checks.lower && checks.upper) score++;
+      if (checks.digit) score++;
+      if (checks.symbol) score++;
+      if (checks.longer) score++;
+      var labels = ['Too short', 'Weak', 'Fair', 'Good', 'Strong', 'Very strong'];
+      return {
+        score: score, max: 5, label: labels[score] || 'Weak',
+        acceptable: checks.length && (checks.lower && checks.upper || checks.digit || checks.symbol),
+        checks: checks
+      };
     },
 
     // ----- OFFLINE demo login (unchanged from original) -----
@@ -195,10 +293,45 @@
 
   window.Auth = Auth;
 
-  // Live: keep the mirror + navbar in sync with real auth state
+  // Live: keep the mirror + navbar in sync with real auth state.
   if (LIVE) {
-    sb.auth.onAuthStateChange(function () { refreshMirror().then(function () { try { Auth.renderNav(); } catch (e) {} }); });
+    sb.auth.onAuthStateChange(function (event) {
+      // SIGNED_OUT in one tab must not leave another tab showing a signed-in
+      // navbar over a dead session, so the mirror is cleared immediately
+      // rather than waiting for the next refreshMirror round trip.
+      if (event === 'SIGNED_OUT') {
+        clear();
+        try { Auth.renderNav(); } catch (e) {}
+        // Bounce any open dashboard - its data calls are about to start failing.
+        if (/dashboard\.html$/i.test(location.pathname)) location.replace('signin.html');
+        return;
+      }
+      refreshMirror().then(function () { try { Auth.renderNav(); } catch (e) {} });
+    });
     refreshMirror().then(function () { try { Auth.renderNav(); } catch (e) {} });
+
+    // Multi-tab synchronisation. supabase-js persists its session under a
+    // storage key of its own; a change to that key from ANOTHER tab means
+    // someone signed in or out over there, and this tab has to catch up.
+    window.addEventListener('storage', function (e) {
+      if (!e.key) return;
+      if (e.key === KEY || /^sb-.*-auth-token$/.test(e.key)) {
+        refreshMirror().then(function (m) {
+          try { Auth.renderNav(); } catch (err) {}
+          if (!m && /dashboard\.html$/i.test(location.pathname)) location.replace('signin.html');
+        });
+      }
+    });
+
+    // Returning to a backgrounded tab is the usual moment a session has
+    // quietly expired; re-check rather than letting the next query 401.
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        refreshMirror().then(function (m) {
+          if (!m && /dashboard\.html$/i.test(location.pathname)) location.replace('signin.html');
+        });
+      }
+    });
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { Auth.renderNav(); });

@@ -10,11 +10,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
-  <script src="auth-supabase.js?v=1"></script>
-  <script src="data-api.js?v=7"></script>
+  <script src="auth-supabase.js?v=2"></script>
+  <script src="data-api.js?v=9"></script>
   <script src="disputes-ui.js?v=1"></script>
   <script>Auth.requireRole('supplier', 'signin.html?next=dashboard&role=business');</script>
-  <link rel="stylesheet" href="styles.css?v=20" />
+  <link rel="stylesheet" href="styles.css?v=22" />
   <style>
     /* ============================================================
        SUPPLIER DASHBOARD - page-scoped styles
@@ -672,6 +672,23 @@
           <p>This is what customers see on your public listing. Keep it complete and accurate - verified, detailed profiles win more bookings. Saving here updates your public supplier page, search results and recommendations immediately.</p>
         </div>
 
+        <!-- Onboarding: shown until the listing is complete and published -->
+        <div class="card-flat onboard-card" id="onboardCard" hidden>
+          <div class="onboard-head">
+            <div>
+              <h3 id="onboardTitle">Finish setting up your listing</h3>
+              <p class="caption text-muted" id="onboardSub"></p>
+            </div>
+            <div class="onboard-pct"><span id="onboardPct">0%</span></div>
+          </div>
+          <div class="onboard-bar"><div id="onboardFill"></div></div>
+          <div id="onboardMissing" class="onboard-missing"></div>
+          <div class="flex" style="gap: var(--space-8); flex-wrap: wrap; margin-top: var(--space-16);">
+            <button class="btn btn-primary btn-sm" id="onboardPublish" onclick="publishListing(this)">Publish my listing</button>
+            <span class="caption text-muted" id="onboardStatus"></span>
+          </div>
+        </div>
+
         <div class="card-flat" style="margin-bottom: var(--space-24);">
           <h3>Business Details</h3>
           <div class="grid grid-2" style="gap: var(--space-20);">
@@ -733,6 +750,31 @@
           </label>
           <input id="bpGalleryInput" type="file" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
           <div class="gallery-grid" id="bpGallery"></div>
+        </div>
+
+        <div class="card-flat" style="margin-bottom: var(--space-24);">
+          <h3>Videos &amp; documents</h3>
+          <p class="caption" style="margin-bottom: var(--space-16);">A walkthrough video and a downloadable brochure or menu answer the questions customers would otherwise email you. These appear on your public page as soon as they finish uploading.</p>
+
+          <div class="asset-rows">
+            <div class="asset-row">
+              <div class="asset-meta"><b>Walkthrough video</b><span>MP4, WebM or MOV, up to 100 MB</span></div>
+              <label class="btn btn-secondary btn-sm" for="assetVideo" style="cursor:pointer;">Upload</label>
+              <input id="assetVideo" type="file" accept="video/mp4,video/webm,video/quicktime" data-kind="video" class="asset-input">
+            </div>
+            <div class="asset-row">
+              <div class="asset-meta"><b>Brochure</b><span>PDF, up to 20 MB</span></div>
+              <label class="btn btn-secondary btn-sm" for="assetBrochure" style="cursor:pointer;">Upload</label>
+              <input id="assetBrochure" type="file" accept="application/pdf" data-kind="brochure" class="asset-input">
+            </div>
+            <div class="asset-row">
+              <div class="asset-meta"><b>Menu</b><span>PDF, up to 20 MB</span></div>
+              <label class="btn btn-secondary btn-sm" for="assetMenu" style="cursor:pointer;">Upload</label>
+              <input id="assetMenu" type="file" accept="application/pdf" data-kind="menu" class="asset-input">
+            </div>
+          </div>
+
+          <div id="assetList" class="asset-list"></div>
         </div>
 
         <div class="bp-savebar">
@@ -1088,6 +1130,120 @@
       });
       var activeTab = document.querySelector('#panel-enquiries .tab-pill.active');
       if (activeTab) filterEnq(activeTab);
+    }
+
+    /* ============ Portfolio assets (video / brochure / menu) ============
+       Each kind has its own Storage bucket with a server-side size cap and
+       MIME allow-list (0025); data-api checks the same rules first so the
+       user gets a sentence instead of a raw 413. */
+    var ASSET_LABELS = { video: 'Video', brochure: 'Brochure', menu: 'Menu', document: 'Document' };
+
+    async function loadAssets() {
+      var host = document.getElementById('assetList');
+      if (!host || !window.EventaraAPI) return;
+      var res = await EventaraAPI.myMedia();
+      if (res.error) { host.innerHTML = '<p class="caption">Could not load your files.</p>'; return; }
+      var rows = (res.data || []).filter(function (m) { return ASSET_LABELS[m.category]; });
+      host.innerHTML = '';
+      if (!rows.length) {
+        var p = document.createElement('p');
+        p.className = 'caption text-muted';
+        p.textContent = 'No videos or documents uploaded yet.';
+        host.appendChild(p); return;
+      }
+      rows.forEach(function (m) {
+        var row = document.createElement('div'); row.className = 'asset-item';
+        var meta = document.createElement('div'); meta.className = 'asset-meta';
+        var b = document.createElement('b'); b.textContent = ASSET_LABELS[m.category];
+        var s = document.createElement('span'); s.textContent = m.caption || '';
+        meta.appendChild(b); meta.appendChild(s);
+        var view = document.createElement('a');
+        view.className = 'btn btn-secondary btn-sm'; view.href = m.url;
+        view.target = '_blank'; view.rel = 'noopener'; view.textContent = 'View';
+        var del = document.createElement('button');
+        del.className = 'btn btn-ghost btn-sm'; del.textContent = 'Remove';
+        del.addEventListener('click', async function () {
+          if (!confirm('Remove this ' + ASSET_LABELS[m.category].toLowerCase() + ' from your public page?')) return;
+          var d = await EventaraAPI.deleteSupplierImage(m.id);
+          if (d.error) { toast('Could not remove: ' + d.error.message); return; }
+          toast(ASSET_LABELS[m.category] + ' removed'); loadAssets(); loadOnboarding();
+        });
+        row.appendChild(meta); row.appendChild(view); row.appendChild(del);
+        host.appendChild(row);
+      });
+    }
+
+    async function handleAssetUpload(input) {
+      var file = input.files && input.files[0];
+      var kind = input.getAttribute('data-kind');
+      if (!file) return;
+      toast('Uploading ' + (ASSET_LABELS[kind] || 'file').toLowerCase() + '…');
+      var res = await EventaraAPI.uploadSupplierAsset(kind, file);
+      input.value = '';
+      if (res.error) { toast(res.error.message); return; }
+      toast((ASSET_LABELS[kind] || 'File') + ' uploaded - it is live on your page now.');
+      loadAssets(); loadOnboarding();
+    }
+
+    /* ============ Onboarding meter ============
+       Percentage and missing-field list both come from profile_completion()
+       (migration 0025). The card hides itself once the listing is complete
+       AND published, so a finished supplier never sees onboarding chrome. */
+    async function loadOnboarding() {
+      var card = document.getElementById('onboardCard');
+      if (!card || !window.EventaraAPI) return;
+      var res = await EventaraAPI.profileCompletion();
+      if (res.error || !res.data || !res.data.role) return;
+      var d = res.data;
+      var pct = d.percent || 0;
+      var published = d.status === 'active';
+
+      if (pct >= 100 && published) { card.hidden = true; return; }
+      card.hidden = false;
+
+      setTxt('onboardPct', pct + '%');
+      var fill = document.getElementById('onboardFill');
+      fill.style.width = pct + '%';
+      fill.className = pct >= 100 ? 'done' : '';
+
+      setTxt('onboardTitle', published ? 'Strengthen your listing' : 'Finish setting up your listing');
+      setTxt('onboardSub', published
+        ? 'Your listing is live. Filling the rest helps you rank higher and win more enquiries.'
+        : 'Your listing stays private until you publish it. Customers cannot find you yet.');
+
+      var host = document.getElementById('onboardMissing');
+      host.innerHTML = '';
+      (d.missing || []).forEach(function (m) {
+        var s = document.createElement('span'); s.className = 'chip'; s.textContent = m;
+        host.appendChild(s);
+      });
+      if (!(d.missing || []).length) {
+        var ok = document.createElement('span'); ok.className = 'chip ok';
+        ok.textContent = 'Everything filled in'; host.appendChild(ok);
+      }
+
+      var btn = document.getElementById('onboardPublish');
+      btn.hidden = published;
+      var verifyLabel = {
+        pending: 'Documents not yet submitted for verification.',
+        under_review: 'Your documents are with Eventara Ops for verification.',
+        verified: 'Verified by Eventara.',
+        rejected: 'Verification was rejected - contact support.'
+      };
+      setTxt('onboardStatus', verifyLabel[d.verification] || '');
+    }
+
+    async function publishListing(btn) {
+      btn.disabled = true; var prev = btn.textContent; btn.textContent = 'Publishing…';
+      var res = await EventaraAPI.publishSupplier();
+      btn.disabled = false; btn.textContent = prev;
+      if (res.error) { toast('Could not publish: ' + res.error.message); return; }
+      if (!res.data.published) {
+        toast('Add ' + (res.data.missing || []).join(', ') + ' before publishing.');
+        loadOnboarding(); return;
+      }
+      toast('Your listing is live. Customers can find you in search now.');
+      loadOnboarding(); loadBusinessProfile(true);
     }
 
     /* ============ Overview panel ============
@@ -1740,6 +1896,11 @@
       var gi = document.getElementById('bpGalleryInput');
       if (gi) gi.addEventListener('change', function () { handleGalleryUpload(this.files); this.value = ''; });
       if (document.getElementById('panel-profile')) loadBusinessProfile(false);
+      loadOnboarding();
+      loadAssets();
+      document.querySelectorAll('.asset-input').forEach(function (inp) {
+        inp.addEventListener('change', function () { handleAssetUpload(inp); });
+      });
 
       if (document.getElementById('soAttention')) loadOverview();
 

@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Sign In or Register for Eventara.">
   <title>Sign In / Register - Eventara</title>
-  <link rel="stylesheet" href="styles.css?v=20">
+  <link rel="stylesheet" href="styles.css?v=22">
   <link rel="preload" as="image" href="images/login-bg.jpg">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
-  <script src="auth-supabase.js?v=1"></script>
+  <script src="auth-supabase.js?v=2"></script>
   <style>
     /* ==========================================================
        SIGN IN / REGISTER
@@ -266,6 +266,82 @@
       margin-bottom: var(--space-24);
     }
 
+    /* ---------- Auth states: banner, password UX, verify card ---------- */
+    .auth-banner {
+      border-radius: var(--radius-lg);
+      padding: 12px 14px;
+      font-size: var(--text-body-sm);
+      line-height: 1.45;
+      margin-bottom: var(--space-20);
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+    .auth-banner-ok   { background: rgba(64, 191, 130, 0.20); border-color: rgba(64, 191, 130, 0.45); }
+    .auth-banner-warn { background: rgba(255, 179, 71, 0.18); border-color: rgba(255, 179, 71, 0.45); }
+
+    .auth-lead {
+      font-size: var(--text-body-sm);
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.86);
+      margin-bottom: var(--space-20);
+    }
+
+    /* A button styled as a link - keeps "Forgot password?" keyboard-reachable
+       and announced as an action, which an <a href="#"> was not. */
+    .link-button {
+      background: none; border: 0; padding: 0; cursor: pointer;
+      font: inherit; text-decoration: underline;
+    }
+
+    .pw-wrap { position: relative; }
+    .pw-wrap .input-field { padding-right: 68px; }
+    .pw-toggle {
+      position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+      background: none; border: 0; cursor: pointer; padding: 0 10px;
+      font-size: var(--text-caption); font-weight: 600;
+      color: rgba(255, 255, 255, 0.9); border-radius: var(--radius-sm);
+      /* 44px so it clears the touch-target guideline on mobile, where this
+         control matters most - a mistyped password is easiest to make there. */
+      min-height: 44px; min-width: 44px;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .pw-toggle:hover { background: rgba(255, 255, 255, 0.14); }
+
+    .pw-meter { display: flex; gap: 4px; margin-top: 8px; }
+    .pw-meter span {
+      height: 4px; flex: 1; border-radius: 2px;
+      background: rgba(255, 255, 255, 0.20);
+      transition: background var(--duration-fast) var(--ease-out);
+    }
+    .pw-meter span.on.s1, .pw-meter span.on.s2 { background: #ff8a73; }
+    .pw-meter span.on.s3 { background: #ffc46b; }
+    .pw-meter span.on.s4, .pw-meter span.on.s5 { background: #5fd39b; }
+
+    .pw-hint {
+      font-size: var(--text-micro);
+      color: rgba(255, 255, 255, 0.78);
+      margin-top: 6px; min-height: 14px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-16); }
+    @media (max-width: 520px) { .grid-2 { grid-template-columns: 1fr; gap: 0; } }
+
+    .verify-card { text-align: center; padding: var(--space-8) 0 0; }
+    .verify-icon {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.16);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto var(--space-16); color: #fff;
+    }
+    .verify-icon svg { width: 26px; height: 26px; }
+    .verify-card h3 { color: #fff; margin-bottom: var(--space-8); }
+    .verify-card p {
+      font-size: var(--text-body-sm); line-height: 1.55;
+      color: rgba(255, 255, 255, 0.88); margin-bottom: var(--space-16);
+    }
+    .verify-card .caption { color: rgba(255, 255, 255, 0.7); }
+
     /* ---------- Customer / Business toggle ---------- */
     .type-toggle {
       display: flex;
@@ -479,26 +555,85 @@
 
       <div class="auth-body">
 
+        <!-- Banner for verification / recovery / offline states -->
+        <div id="auth-banner" class="auth-banner" hidden role="status" aria-live="polite"></div>
+
         <!-- SIGN IN VIEW -->
         <div id="view-signin" class="auth-view active">
-          <form onsubmit="handleSignIn(event)">
+          <form onsubmit="handleSignIn(event)" novalidate>
             <div class="input-group">
-              <label>Email Address</label>
-              <input type="email" id="signin-email" class="input-field" placeholder="you@business.com" required>
+              <label for="signin-email">Email Address</label>
+              <input type="email" id="signin-email" class="input-field" placeholder="you@business.com"
+                     autocomplete="email" required>
             </div>
             <div class="input-group">
-              <label>Password</label>
-              <input type="password" id="signin-password" class="input-field" placeholder="Enter your password" required>
+              <label for="signin-password">Password</label>
+              <div class="pw-wrap">
+                <input type="password" id="signin-password" class="input-field" placeholder="Enter your password"
+                       autocomplete="current-password" required>
+                <button type="button" class="pw-toggle" data-toggle="signin-password" aria-label="Show password">Show</button>
+              </div>
             </div>
             <p id="signin-error" class="form-error"></p>
             <div class="checkbox-row">
-              <label>
-                <input type="checkbox"> Remember me
-              </label>
-              <a href="#" class="link-subtle">Forgot Password?</a>
+              <label><input type="checkbox" id="signin-remember" checked> Keep me signed in</label>
+              <button type="button" class="link-subtle link-button" onclick="switchTab('view-forgot')">Forgot Password?</button>
             </div>
-            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Sign In</button>
+            <button type="submit" class="btn btn-primary btn-lg" id="signin-submit" style="width: 100%;">Sign In</button>
           </form>
+        </div>
+
+        <!-- FORGOT PASSWORD VIEW -->
+        <div id="view-forgot" class="auth-view">
+          <p class="auth-lead">Enter the email you registered with. We'll send you a link to set a new password. The link works once and expires in an hour.</p>
+          <form onsubmit="handleForgot(event)" novalidate>
+            <div class="input-group">
+              <label for="forgot-email">Email Address</label>
+              <input type="email" id="forgot-email" class="input-field" placeholder="you@business.com"
+                     autocomplete="email" required>
+            </div>
+            <p id="forgot-error" class="form-error"></p>
+            <button type="submit" class="btn btn-primary btn-lg" id="forgot-submit" style="width: 100%;">Send reset link</button>
+            <button type="button" class="btn btn-secondary btn-lg" style="width:100%; margin-top: var(--space-12);"
+                    onclick="switchTab('view-signin')">Back to sign in</button>
+          </form>
+        </div>
+
+        <!-- SET NEW PASSWORD (arrived from the recovery email) -->
+        <div id="view-recovery" class="auth-view">
+          <p class="auth-lead">Choose a new password for your Eventara account.</p>
+          <form onsubmit="handleRecovery(event)" novalidate>
+            <div class="input-group">
+              <label for="rec-password">New password</label>
+              <div class="pw-wrap">
+                <input type="password" id="rec-password" class="input-field" autocomplete="new-password" required>
+                <button type="button" class="pw-toggle" data-toggle="rec-password" aria-label="Show password">Show</button>
+              </div>
+              <div class="pw-meter" data-for="rec-password"><span></span><span></span><span></span><span></span><span></span></div>
+              <p class="pw-hint" data-hint-for="rec-password"></p>
+            </div>
+            <div class="input-group">
+              <label for="rec-password2">Confirm new password</label>
+              <input type="password" id="rec-password2" class="input-field" autocomplete="new-password" required>
+            </div>
+            <p id="rec-error" class="form-error"></p>
+            <button type="submit" class="btn btn-primary btn-lg" id="rec-submit" style="width: 100%;">Save new password</button>
+          </form>
+        </div>
+
+        <!-- CHECK YOUR INBOX (after registering) -->
+        <div id="view-verify" class="auth-view">
+          <div class="verify-card">
+            <div class="verify-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+            </div>
+            <h3>Confirm your email</h3>
+            <p>We've sent a confirmation link to <b id="verify-email">your inbox</b>. Click it to activate your Eventara account, then come back here to sign in.</p>
+            <p class="caption text-muted">Nothing arrived? Check your spam folder first - the link can take a minute.</p>
+            <button type="button" class="btn btn-secondary btn-lg" style="width:100%;" id="resend-btn" onclick="handleResend(this)">Resend the link</button>
+            <button type="button" class="btn btn-ghost btn-lg" style="width:100%; margin-top: var(--space-8);"
+                    onclick="switchTab('view-signin')">Back to sign in</button>
+          </div>
         </div>
 
         <!-- REGISTER VIEW -->
@@ -510,81 +645,115 @@
           </div>
 
           <!-- Customer Registration Form -->
-          <form id="form-customer" class="register-form active" onsubmit="event.preventDefault(); Auth.login('customer', {name: this.querySelector('input[type=text]').value || 'Your Organisation', email: (this.querySelector('input[type=email]')||{}).value}); window.location.href='customer-dashboard.html';">
+          <form id="form-customer" class="register-form active" onsubmit="handleRegisterCustomer(event)" novalidate>
             <div class="input-group">
-              <label>Your Name or Organisation</label>
-              <input type="text" class="input-field" placeholder="e.g. Sharma Family, or Secure Meters Ltd" required>
+              <label for="rc-name">Your Name or Organisation</label>
+              <input type="text" id="rc-name" class="input-field" placeholder="e.g. Sharma Family, or Secure Meters Ltd"
+                     autocomplete="organization" required>
             </div>
             <div class="input-group">
-              <label>Email</label>
-              <input type="email" class="input-field" placeholder="you@example.com" required>
+              <label for="rc-email">Email</label>
+              <input type="email" id="rc-email" class="input-field" placeholder="you@example.com"
+                     autocomplete="email" required>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-16);">
+            <div class="grid-2">
               <div class="input-group">
-                <label>Mobile Number</label>
-                <input type="tel" class="input-field" placeholder="+91" required>
+                <label for="rc-phone">Mobile Number</label>
+                <input type="tel" id="rc-phone" class="input-field" placeholder="+91" autocomplete="tel" required>
               </div>
               <div class="input-group">
-                <label>Event City</label>
-                <select class="input-field" required>
-                  <option value="udaipur" selected>Udaipur</option>
+                <label for="rc-city">Event City</label>
+                <select id="rc-city" class="input-field" required>
+                  <option value="Udaipur" selected>Udaipur</option>
                 </select>
               </div>
             </div>
             <div class="input-group">
-              <label>Password</label>
-              <input type="password" class="input-field" placeholder="Create a strong password" required>
+              <label for="rc-password">Password</label>
+              <div class="pw-wrap">
+                <input type="password" id="rc-password" class="input-field" placeholder="Create a strong password"
+                       autocomplete="new-password" required>
+                <button type="button" class="pw-toggle" data-toggle="rc-password" aria-label="Show password">Show</button>
+              </div>
+              <div class="pw-meter" data-for="rc-password"><span></span><span></span><span></span><span></span><span></span></div>
+              <p class="pw-hint" data-hint-for="rc-password"></p>
             </div>
+            <div class="input-group">
+              <label for="rc-password2">Confirm Password</label>
+              <input type="password" id="rc-password2" class="input-field" placeholder="Re-enter your password"
+                     autocomplete="new-password" required>
+            </div>
+            <p id="rc-error" class="form-error"></p>
             <p class="legal-note">By registering, you agree to Eventara's Terms of Service and Privacy Policy. Your details are kept safe and never shared without your consent.</p>
-            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Create Customer Account</button>
+            <button type="submit" class="btn btn-primary btn-lg" id="rc-submit" style="width: 100%;">Create Customer Account</button>
           </form>
 
           <!-- Business Registration Form -->
-          <form id="form-business" class="register-form" style="display: none;" onsubmit="event.preventDefault(); Auth.login('supplier', {name: this.querySelector('input[type=text]').value || 'Your Business', email: (this.querySelector('input[type=email]')||{}).value}); window.location.href='supplier-dashboard.html';">
+          <form id="form-business" class="register-form" style="display: none;" onsubmit="handleRegisterSupplier(event)" novalidate>
             <div class="input-group">
-              <label>Business Name</label>
-              <input type="text" class="input-field" placeholder="e.g. Paandora Grand Udaipur" required>
+              <label for="rb-business">Business Name</label>
+              <input type="text" id="rb-business" class="input-field" placeholder="e.g. Paandora Grand Udaipur"
+                     autocomplete="organization" required>
             </div>
             <div class="input-group">
-              <label>Business Type</label>
-              <select class="input-field" required>
+              <label for="rb-category">Business Type</label>
+              <select id="rb-category" class="input-field" required>
                 <option value="" disabled selected>Select Type</option>
-                <option>Banquet Hotel / Resort</option>
-                <option>Professional Event Manager</option>
+                <option value="banquet_hotel">Banquet Hotel / Resort</option>
+                <option value="event_manager">Professional Event Manager</option>
+                <option value="caterer">Caterer</option>
+                <option value="decorator">Decorator</option>
+                <option value="av_production">AV &amp; Production</option>
               </select>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-16);">
+            <div class="grid-2">
               <div class="input-group">
-                <label>Contact Person</label>
-                <input type="text" class="input-field" placeholder="Full Name" required>
+                <label for="rb-contact">Contact Person</label>
+                <input type="text" id="rb-contact" class="input-field" placeholder="Full Name"
+                       autocomplete="name" required>
               </div>
               <div class="input-group">
-                <label>Mobile Number</label>
-                <input type="tel" class="input-field" placeholder="+91" required>
+                <label for="rb-phone">Mobile Number</label>
+                <input type="tel" id="rb-phone" class="input-field" placeholder="+91" autocomplete="tel" required>
               </div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-16);">
+            <div class="grid-2">
               <div class="input-group">
-                <label>Email Address</label>
-                <input type="email" class="input-field" placeholder="business@example.com" required>
+                <label for="rb-email">Email Address</label>
+                <input type="email" id="rb-email" class="input-field" placeholder="business@example.com"
+                       autocomplete="email" required>
               </div>
               <div class="input-group">
-                <label>City</label>
-                <select class="input-field" required>
-                  <option value="udaipur" selected>Udaipur</option>
+                <label for="rb-city">City</label>
+                <select id="rb-city" class="input-field" required>
+                  <option value="Udaipur" selected>Udaipur</option>
                 </select>
               </div>
             </div>
             <div class="input-group">
-              <label>GSTIN (required to verify &amp; go live)</label>
-              <input type="text" class="input-field" placeholder="08AAAAA0000A1Z5">
+              <label for="rb-gstin">GSTIN (required to verify &amp; go live)</label>
+              <input type="text" id="rb-gstin" class="input-field" placeholder="08AAAAA0000A1Z5"
+                     maxlength="15" style="text-transform: uppercase;">
+              <p class="pw-hint" id="rb-gstin-hint">You can add this later - your listing just can't be verified until you do.</p>
             </div>
             <div class="input-group">
-              <label>Password</label>
-              <input type="password" class="input-field" placeholder="Create a strong password" required>
+              <label for="rb-password">Password</label>
+              <div class="pw-wrap">
+                <input type="password" id="rb-password" class="input-field" placeholder="Create a strong password"
+                       autocomplete="new-password" required>
+                <button type="button" class="pw-toggle" data-toggle="rb-password" aria-label="Show password">Show</button>
+              </div>
+              <div class="pw-meter" data-for="rb-password"><span></span><span></span><span></span><span></span><span></span></div>
+              <p class="pw-hint" data-hint-for="rb-password"></p>
             </div>
+            <div class="input-group">
+              <label for="rb-password2">Confirm Password</label>
+              <input type="password" id="rb-password2" class="input-field" placeholder="Re-enter your password"
+                     autocomplete="new-password" required>
+            </div>
+            <p id="rb-error" class="form-error"></p>
             <p class="legal-note">Your GST number (and trade licence / food-safety licence for in-house catering) is checked by the Eventara team before your verified badge goes live. By registering you accept the Business Terms and payout terms.</p>
-            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">Create Business Account</button>
+            <button type="submit" class="btn btn-primary btn-lg" id="rb-submit" style="width: 100%;">Create Business Account</button>
           </form>
 
         </div>
@@ -616,15 +785,30 @@
     const authTabs = document.querySelectorAll('.auth-tab');
     const authViews = document.querySelectorAll('.auth-view');
 
+    // The forgot / recovery / verify views have no tab of their own - they are
+    // states of the sign-in journey, so that tab stays highlighted while they
+    // are showing.
+    const SIGNIN_SUBVIEWS = ['view-forgot', 'view-recovery', 'view-verify'];
+
     function switchTab(targetId) {
       authTabs.forEach(t => t.classList.remove('active'));
       authViews.forEach(v => v.classList.remove('active'));
 
-      const targetTab = document.querySelector(`.auth-tab[data-target="${targetId}"]`);
+      const tabFor = SIGNIN_SUBVIEWS.indexOf(targetId) >= 0 ? 'view-signin' : targetId;
+      const targetTab = document.querySelector(`.auth-tab[data-target="${tabFor}"]`);
       if(targetTab) targetTab.classList.add('active');
 
       const targetView = document.getElementById(targetId);
       if(targetView) targetView.classList.add('active');
+
+      // A view swap changes the form in focus; announce it and reset scroll so
+      // a long registration form does not open half-way down on mobile.
+      if (targetView) {
+        const firstField = targetView.querySelector('input:not([type=checkbox]), select');
+        if (firstField && SIGNIN_SUBVIEWS.indexOf(targetId) >= 0) {
+          try { firstField.focus({ preventScroll: true }); } catch (e) {}
+        }
+      }
     }
 
     authTabs.forEach(tab => {
@@ -672,38 +856,274 @@
       }
     });
 
-    // Sign-in - sample demo credentials for each role. On success we set a
-    // session flag that gates that role's dashboard (Supplier Portal / Customer Account).
-    const SUPPLIER_LOGIN = { email: 'hotel@eventara.in',    password: 'udaipur@2026' };
-    const CUSTOMER_LOGIN = { email: 'customer@eventara.in', password: 'udaipur@2026' };
+    /* ============================================================
+       Authentication.
 
+       Every flow below talks to Supabase Auth. There are no fallback
+       credentials: the previous version of this file held two email/password
+       pairs and signed anyone in who typed them, even after live auth had
+       already rejected the attempt. Registration was equally notional - both
+       forms wrote a localStorage object and redirected, so no account was
+       ever created and the user could not sign in again on their next visit.
+       ============================================================ */
+
+    function el(id) { return document.getElementById(id); }
+
+    function showError(id, msg) {
+      var n = el(id); if (!n) return;
+      n.textContent = msg || '';
+      n.style.display = msg ? 'block' : 'none';
+    }
+
+    function banner(msg, tone) {
+      var b = el('auth-banner');
+      if (!b) return;
+      if (!msg) { b.hidden = true; return; }
+      b.className = 'auth-banner' + (tone ? ' auth-banner-' + tone : '');
+      b.textContent = msg;
+      b.hidden = false;
+    }
+
+    function busy(btnId, on, label) {
+      var b = el(btnId); if (!b) return;
+      if (on) { b.dataset.label = b.textContent; b.textContent = label || 'Working…'; b.disabled = true; }
+      else { b.textContent = b.dataset.label || b.textContent; b.disabled = false; }
+    }
+
+    // Refuses to run any live flow when the app is not connected, instead of
+    // failing with a confusing Supabase error deep inside a handler.
+    function requireLive(errId) {
+      if (window.EVENTARA_LIVE) return true;
+      showError(errId, 'Eventara is not connected to its database, so accounts cannot be created or signed in to right now.');
+      return false;
+    }
+
+    /* ---------- password UX ---------- */
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest('.pw-toggle');
+      if (!t) return;
+      var input = el(t.getAttribute('data-toggle'));
+      if (!input) return;
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      t.textContent = show ? 'Hide' : 'Show';
+      t.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+
+    // The meter reads from Auth.passwordScore, the same function validation
+    // uses - so the bar a user sees and the bar actually enforced agree.
+    document.addEventListener('input', function (e) {
+      var input = e.target;
+      if (!input.id) return;
+      var meter = document.querySelector('.pw-meter[data-for="' + input.id + '"]');
+      if (!meter) return;
+      var res = Auth.passwordScore(input.value);
+      Array.prototype.forEach.call(meter.children, function (bar, i) {
+        bar.className = i < res.score ? ('on s' + res.score) : '';
+      });
+      var hint = document.querySelector('.pw-hint[data-hint-for="' + input.id + '"]');
+      if (hint) hint.textContent = input.value ? res.label : '';
+    });
+
+    /* ---------- sign in ---------- */
     async function handleSignIn(event) {
       event.preventDefault();
-      const email = document.getElementById('signin-email').value.trim().toLowerCase();
-      const password = document.getElementById('signin-password').value;
-      const err = document.getElementById('signin-error');
-      err.style.display = 'none';
+      showError('signin-error', '');
+      var email = el('signin-email').value.trim().toLowerCase();
+      var password = el('signin-password').value;
 
-      // Live mode: authenticate against real Supabase Auth (Postgres-backed,
-      // RLS-enforced). Auth.signIn() redirects on success. Falls through to
-      // the offline demo check below only if the live attempt errors -
-      // covers a network hiccup without breaking the demo mid-presentation.
-      if (window.EVENTARA_LIVE) {
-        const r = await Auth.signIn(email, password);
-        if (!r.error) return;
-      }
+      if (!email || !password) { showError('signin-error', 'Enter your email and password.'); return; }
+      if (!requireLive('signin-error')) return;
 
-      if (email === SUPPLIER_LOGIN.email && password === SUPPLIER_LOGIN.password) {
-        Auth.login('supplier', { name: 'Paandora Grand Udaipur', email: email });
-        window.location.href = 'supplier-dashboard.html';
-      } else if (email === CUSTOMER_LOGIN.email && password === CUSTOMER_LOGIN.password) {
-        Auth.login('customer', { name: 'Secure Meters Ltd', email: email });
-        window.location.href = 'customer-dashboard.html';
-      } else {
-        err.textContent = 'Incorrect email or password. Please try again.';
-        err.style.display = 'block';
+      busy('signin-submit', true, 'Signing in…');
+      var r = await Auth.signIn(email, password);
+      busy('signin-submit', false);
+
+      if (r && r.error) {
+        showError('signin-error', Auth.friendlyError(r.error));
+        // Unconfirmed accounts get the resend path rather than a dead end.
+        if (/Email not confirmed/i.test(r.error.message || '')) {
+          el('verify-email').textContent = email;
+          window.__pendingEmail = email;
+          switchTab('view-verify');
+          banner('Your email is not confirmed yet.', 'warn');
+        }
       }
+      // On success Auth.signIn navigates to the right dashboard for the role,
+      // landing on #profile when onboarding is not finished.
     }
+
+    /* ---------- registration ---------- */
+    function validateRegistration(prefix, errId) {
+      var pw  = el(prefix + '-password').value;
+      var pw2 = el(prefix + '-password2').value;
+      var score = Auth.passwordScore(pw);
+      if (pw.length < 8) { showError(errId, 'Your password needs to be at least 8 characters.'); return null; }
+      if (!score.acceptable) {
+        showError(errId, 'Add a capital letter, a number or a symbol to make this password stronger.');
+        return null;
+      }
+      if (pw !== pw2) { showError(errId, 'The two passwords do not match.'); return null; }
+      return pw;
+    }
+
+    async function handleRegisterCustomer(event) {
+      event.preventDefault();
+      showError('rc-error', '');
+      if (!requireLive('rc-error')) return;
+
+      var name  = el('rc-name').value.trim();
+      var email = el('rc-email').value.trim().toLowerCase();
+      var phone = el('rc-phone').value.trim();
+      var city  = el('rc-city').value;
+      if (!name)  { showError('rc-error', 'Tell us your name or organisation.'); return; }
+      if (!email) { showError('rc-error', 'Enter an email address.'); return; }
+      if (!phone) { showError('rc-error', 'Enter a mobile number so suppliers can reach you after a booking.'); return; }
+      var pw = validateRegistration('rc', 'rc-error');
+      if (!pw) return;
+
+      busy('rc-submit', true, 'Creating your account…');
+      var r = await Auth.signUp(email, pw, 'customer', {
+        full_name: name, org_name: name, phone: phone, city: city
+      });
+      busy('rc-submit', false);
+
+      if (r.error) { showError('rc-error', Auth.friendlyError(r.error)); return; }
+      afterSignUp(email, 'customer', r);
+    }
+
+    async function handleRegisterSupplier(event) {
+      event.preventDefault();
+      showError('rb-error', '');
+      if (!requireLive('rb-error')) return;
+
+      var business = el('rb-business').value.trim();
+      var category = el('rb-category').value;
+      var contact  = el('rb-contact').value.trim();
+      var phone    = el('rb-phone').value.trim();
+      var email    = el('rb-email').value.trim().toLowerCase();
+      var city     = el('rb-city').value;
+      var gstin    = el('rb-gstin').value.trim().toUpperCase();
+
+      if (!business) { showError('rb-error', 'Enter your business name.'); return; }
+      if (!category) { showError('rb-error', 'Choose your business type.'); return; }
+      if (!contact)  { showError('rb-error', 'Enter a contact person.'); return; }
+      if (!phone)    { showError('rb-error', 'Enter a mobile number.'); return; }
+      if (!email)    { showError('rb-error', 'Enter an email address.'); return; }
+      // GSTIN is optional at signup (you cannot get verified without it, and
+      // the form says so) but a wrong-shaped one is worth catching now.
+      if (gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/.test(gstin)) {
+        showError('rb-error', 'That GSTIN does not look right. It is 15 characters, like 08AAAAA0000A1Z5.');
+        return;
+      }
+      var pw = validateRegistration('rb', 'rb-error');
+      if (!pw) return;
+
+      busy('rb-submit', true, 'Creating your business account…');
+      var r = await Auth.signUp(email, pw, 'supplier', {
+        full_name: contact, business_name: business, category: category,
+        phone: phone, city: city, gstin: gstin || null
+      });
+      busy('rb-submit', false);
+
+      if (r.error) { showError('rb-error', Auth.friendlyError(r.error)); return; }
+      afterSignUp(email, 'supplier', r);
+    }
+
+    // Whether the user lands in the dashboard or on "check your inbox"
+    // depends on whether this Supabase project requires email confirmation.
+    // Reading r.needsVerification rather than assuming either way means the
+    // flow stays correct if that project setting is ever changed.
+    async function afterSignUp(email, role, r) {
+      if (r.needsVerification) {
+        el('verify-email').textContent = email;
+        window.__pendingEmail = email;
+        switchTab('view-verify');
+        return;
+      }
+      // Called directly rather than through EventaraAPI so the auth page does
+      // not have to load the whole data layer.
+      try { await sb.rpc('ensure_account_records'); } catch (e) {}
+      // Straight into the panel that completes onboarding, not the overview.
+      window.location.href = (role === 'supplier' ? 'supplier-dashboard.html' : 'customer-dashboard.html') + '#profile';
+    }
+
+    async function handleResend(btn) {
+      var email = window.__pendingEmail || el('verify-email').textContent;
+      if (!email || email === 'your inbox') { banner('Enter your email on the sign-in tab first.', 'warn'); return; }
+      btn.disabled = true; var prev = btn.textContent; btn.textContent = 'Sending…';
+      var r = await Auth.resendVerification(email);
+      btn.disabled = false; btn.textContent = prev;
+      banner(r && r.error ? Auth.friendlyError(r.error) : 'Sent. Check your inbox again in a moment.',
+             r && r.error ? 'warn' : 'ok');
+    }
+
+    /* ---------- password recovery ---------- */
+    async function handleForgot(event) {
+      event.preventDefault();
+      showError('forgot-error', '');
+      var email = el('forgot-email').value.trim().toLowerCase();
+      if (!email) { showError('forgot-error', 'Enter your email address.'); return; }
+      if (!requireLive('forgot-error')) return;
+
+      busy('forgot-submit', true, 'Sending…');
+      var r = await Auth.resetPassword(email);
+      busy('forgot-submit', false);
+
+      if (r && r.error) { showError('forgot-error', Auth.friendlyError(r.error)); return; }
+      // Deliberately the same message whether or not the address exists -
+      // otherwise this form tells a stranger which emails are registered.
+      switchTab('view-signin');
+      banner('If that email has an Eventara account, a reset link is on its way.', 'ok');
+    }
+
+    async function handleRecovery(event) {
+      event.preventDefault();
+      showError('rec-error', '');
+      var pw = el('rec-password').value, pw2 = el('rec-password2').value;
+      var score = Auth.passwordScore(pw);
+      if (pw.length < 8) { showError('rec-error', 'Your password needs to be at least 8 characters.'); return; }
+      if (!score.acceptable) { showError('rec-error', 'Add a capital letter, a number or a symbol.'); return; }
+      if (pw !== pw2) { showError('rec-error', 'The two passwords do not match.'); return; }
+
+      busy('rec-submit', true, 'Saving…');
+      var r = await Auth.completePasswordReset(pw);
+      busy('rec-submit', false);
+
+      if (r && r.error) { showError('rec-error', Auth.friendlyError(r.error)); return; }
+      switchTab('view-signin');
+      banner('Password updated. Sign in with your new password.', 'ok');
+    }
+
+    /* ---------- arrival states ---------- */
+    document.addEventListener('DOMContentLoaded', function () {
+      var q = new URLSearchParams(location.search);
+
+      if (!window.EVENTARA_LIVE) {
+        banner('Eventara is not connected to its database. Sign-in and registration are unavailable.', 'warn');
+      }
+      if (q.get('verified')) {
+        banner('Email confirmed. Sign in to finish setting up your account.', 'ok');
+      }
+
+      // Supabase returns recovery/verification results in the URL fragment.
+      // A recovery link puts the browser in a temporary session whose only
+      // permitted action is setting a new password.
+      var hash = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+      if (hash.get('error_description')) {
+        banner(Auth.friendlyError({ message: hash.get('error_description') }), 'warn');
+        history.replaceState(null, '', location.pathname + location.search);
+      }
+      if (q.get('recovery') || hash.get('type') === 'recovery') {
+        switchTab('view-recovery');
+        history.replaceState(null, '', location.pathname);
+      }
+      if (window.sb) {
+        sb.auth.onAuthStateChange(function (event) {
+          if (event === 'PASSWORD_RECOVERY') switchTab('view-recovery');
+        });
+      }
+    });
   </script>
   <script src="chatbot.js?v=9"></script>
 </body>

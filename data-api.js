@@ -412,6 +412,70 @@
       return sb.from("supplier_media").delete().eq("id", mediaId);
     },
 
+    // Portfolio assets beyond photos. Each kind has its own bucket (0025) with
+    // its own size cap and MIME allow-list, enforced server-side by Storage -
+    // so a 400 MB "video" or a renamed .exe is refused by the platform, not
+    // just by this function. All land in supplier_media, which is what the
+    // public pages read, so an upload is visible the moment it finishes.
+    ASSET_KINDS: {
+      video:    { bucket: "supplier-videos",    category: "video",    max: 100 * 1024 * 1024,
+                  accept: ["video/mp4", "video/webm", "video/quicktime"], label: "video" },
+      brochure: { bucket: "brochures",          category: "brochure", max: 20 * 1024 * 1024,
+                  accept: ["application/pdf"], label: "brochure" },
+      menu:     { bucket: "menus",              category: "menu",     max: 20 * 1024 * 1024,
+                  accept: ["application/pdf"], label: "menu" },
+      document: { bucket: "supplier-documents", category: "document", max: 20 * 1024 * 1024,
+                  accept: ["application/pdf"], label: "document" }
+    },
+
+    async uploadSupplierAsset(kind, file, caption = null) {
+      const g = guard(); if (g) return g;
+      const spec = this.ASSET_KINDS[kind];
+      if (!spec) return { data: null, error: { message: `unknown asset kind "${kind}"` } };
+
+      // Checked here so the user gets a sentence rather than a raw 413/415.
+      if (file.size > spec.max) {
+        return { data: null, error: { message:
+          `That ${spec.label} is ${(file.size / 1048576).toFixed(1)} MB. The limit is ${spec.max / 1048576} MB.` } };
+      }
+      if (spec.accept.indexOf(file.type) === -1) {
+        return { data: null, error: { message:
+          `A ${spec.label} has to be ${spec.accept.map(t => t.split("/")[1].toUpperCase()).join(" or ")}.` } };
+      }
+
+      const id = await uid(); const sid = await mySupplierId();
+      if (!id || !sid) return { data: null, error: { message: "not signed in as a supplier" } };
+
+      const safe = String(file.name || spec.label).replace(/[^\w.\-]/g, "_");
+      const path = `${id}/${Date.now()}_${safe}`;
+      const up = await sb.storage.from(spec.bucket).upload(path, file, { upsert: false });
+      if (up.error) return up;
+      const { data: pub } = sb.storage.from(spec.bucket).getPublicUrl(path);
+      return sb.from("supplier_media")
+        .insert({ supplier_id: sid, category: spec.category, caption: caption || file.name, url: pub.publicUrl })
+        .select().single();
+    },
+
+    async myMedia(category) {
+      const g = guard(); if (g) return g;
+      const sid = await mySupplierId();
+      if (!sid) return { data: null, error: { message: "no supplier owned by this account" } };
+      let q = sb.from("supplier_media").select("*").eq("supplier_id", sid).order("sort");
+      if (category) q = q.eq("category", category);
+      return q;
+    },
+
+    // ---------- Onboarding ----------
+    // profile_completion() returns a percentage AND the specific fields still
+    // missing, so the UI can name them instead of showing a bare number.
+    async profileCompletion() { const g = guard(); if (g) return g; return sb.rpc("profile_completion"); },
+    async myOnboarding()      { const g = guard(); if (g) return g; return sb.rpc("my_onboarding"); },
+    async dismissOnboarding() { const g = guard(); if (g) return g; return sb.rpc("dismiss_onboarding"); },
+    // Flips a supplier from 'draft' to 'active'. Refuses (returning the list
+    // of what is missing) until the listing is worth showing a customer.
+    async publishSupplier()   { const g = guard(); if (g) return g; return sb.rpc("publish_supplier"); },
+    async ensureAccountRecords() { const g = guard(); if (g) return g; return sb.rpc("ensure_account_records"); },
+
     // ---------- Dashboard overview ----------
     // Everything the Overview panel shows, in one round trip, aggregated in
     // the database (0020) rather than counted in the browser.

@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title id="pageTitle">Supplier Profile - Eventara</title>
   <meta name="description" id="pageDescription" content="Browse a verified venue or event planner on Eventara - gallery, packages, availability and reviews, all without leaving the platform." />
-  <link rel="stylesheet" href="styles.css?v=20" />
+  <link rel="stylesheet" href="styles.css?v=22" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
-  <script src="auth-supabase.js?v=1"></script>
-  <script src="data-api.js?v=7"></script>
+  <script src="auth-supabase.js?v=2"></script>
+  <script src="data-api.js?v=9"></script>
   <style>
     /* === Supplier Profile - Page-Specific Styles (shared shape with the
        legacy provider.html, plus new dynamic-page additions) === */
@@ -870,9 +870,14 @@
       var faqs = sup.supplier_faqs || [];
       var reviews = sup.reviews || [];
 
-      document.title = sup.business_name + ' - Verified ' + titleCase(sup.category) + ' - Eventara';
+      // "Verified" is a claim Eventara makes on a supplier's behalf, so it
+      // has to track the actual flag. Suppliers can now self-register and
+      // publish before their documents clear, and the title and meta
+      // description used to assert verification for every listing.
+      var verifiedWord = sup.verified ? 'Verified ' : '';
+      document.title = sup.business_name + ' - ' + verifiedWord + titleCase(sup.category) + ' - Eventara';
       document.getElementById('pageDescription').setAttribute('content',
-        sup.business_name + ' is a verified ' + titleCase(sup.category).toLowerCase() + ' on Eventara in ' + sup.city + '. Browse the gallery, packages and reviews, and get a clear quote - all without leaving Eventara.');
+        sup.business_name + ' is ' + (sup.verified ? 'a verified ' : 'a ') + titleCase(sup.category).toLowerCase() + ' on Eventara in ' + sup.city + '. Browse the gallery, packages and reviews, and get a clear quote - all without leaving Eventara.');
 
       var heroImages = [];
       if (sup.hero_image_url) heroImages.push(sup.hero_image_url);
