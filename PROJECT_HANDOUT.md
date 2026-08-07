@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.15 (see §18 Change Log) |
+| **Doc version** | 2.16 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-29 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -2642,6 +2642,77 @@ edits propagate the same way, because every surface reads the same tables.
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.16 - 2026-08-07
+**Supplier pages moved from client-only rendering to on-demand server rendering, and the sitemap moved into the database.**
+
+**Why the previous approach was wrong.** v2.15 put seven `supplier.html?slug=…`
+URLs in a static sitemap. A crawl check showed what Googlebot actually receives
+on its first pass:
+
+```
+title:                   Supplier Profile - Eventara
+"paandora" in raw HTML:  0 occurrences
+canonical:               none
+structured data:         none
+```
+
+Every supplier URL served byte-identical HTML - the shared shell - because the
+title, canonical and schema are all written by JavaScript after a Supabase
+fetch. Google would very likely have kept one and dropped the rest as
+duplicates.
+
+The obvious fix, pre-generating a static file per supplier, was rejected:
+suppliers **self-onboard**. A listing published on Tuesday would need a code
+deploy to become indexable, and 100+ suppliers would mean 100+ committed files
+kept in sync with the database by hand.
+
+**What was built instead**
+
+| File | Role |
+|---|---|
+| `api/venue.js` | Serves `/venue/<slug>`. Fetches the supplier from `v_supplier_public`, then returns **the same `supplier.html` shell** with a per-supplier `<head>` injected server-side. One function, any number of suppliers. |
+| `api/sitemap.js` | Generates `/sitemap.xml` from `v_supplier_public` on every request, so a newly published listing is advertised without a deploy. |
+| `vercel.json` | Rewrites `/venue/:slug` → `/api/venue`, `/sitemap.xml` → `/api/sitemap`; 301s the legacy `/provider.html`. |
+
+The shell is **fetched over HTTP rather than duplicated** inside the function,
+so the page markup keeps exactly one source of truth. `supplier.html` still
+works and still renders client-side, but its canonical now points at
+`/venue/<slug>`, consolidating the two addresses into one indexed page. Every
+internal link across `index`, `search`, `booking`, the customer dashboard and
+the Similar Suppliers rail was repointed to `/venue/<slug>`.
+
+**Behaviour that falls out of it**
+
+- **Draft suppliers stay invisible.** `v_supplier_public` filters to
+  `status = 'active'`, so a registered-but-unpublished listing is in neither the
+  sitemap nor a servable page - `/venue/<slug>` returns a real **404**, not an
+  empty shell for Google to index.
+- Unknown slugs 404; malformed slugs 400; a Supabase outage returns **503 with
+  `Retry-After`**, so Google comes back rather than recording the URL as broken.
+- Edge-cached (`s-maxage=600` for pages, `3600` for the sitemap, both with
+  `stale-while-revalidate`), so crawls and visitors do not re-query Postgres.
+
+**Bug caught in testing.** The first version left the shell's own generic
+`EVENTARA-SEO` block in place. Because it sits earlier in the document than
+anything injected before `</head>`, and scrapers take the first occurrence,
+every supplier's `og:title` came out as "Supplier Profile - Eventara" - so every
+WhatsApp and Facebook share would have shown the same placeholder. The block is
+now stripped before the real head is injected.
+
+**Verified** by executing both functions against the live database:
+`paandora-grand-udaipur` → 200 with its own title, canonical and `EventVenue`
+schema; `blossom-events` → `ProfessionalService`; unknown slug → 404;
+`../etc/passwd` → 400. Then end to end: a supplier inserted as `draft` was
+absent from the sitemap and 404'd; flipping it to `active` put it in the sitemap
+(12 → 13 URLs) and produced a fully rendered page with correct title, canonical
+and capacity - **with no deploy**. Test supplier removed; back to 7 live.
+
+**Files**: `api/venue.js`, `api/sitemap.js`, `vercel.json` (all new),
+`robots.txt`, `supplier.html`, `index.html`, `search.html`, `booking.html`,
+`customer-dashboard.html`; static `sitemap.xml` deleted.
 
 ---
 

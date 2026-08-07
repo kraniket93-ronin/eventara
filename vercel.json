@@ -1,0 +1,36 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": false,
+  "trailingSlash": false,
+
+  "rewrites": [
+    {
+      "comment": "Pretty, per-supplier URLs served by one function. /venue/<slug> keeps the supplier name in the path and lets api/venue.js inject a unique <head> server-side, so crawlers never see the shared shell. Scales to any number of suppliers with no per-supplier files.",
+      "source": "/venue/:slug",
+      "destination": "/api/venue?slug=:slug"
+    },
+    {
+      "comment": "Sitemap is generated from the database so a newly published supplier appears without a deploy.",
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    }
+  ],
+
+  "redirects": [
+    {
+      "comment": "Legacy stub for the original hardcoded provider page. 301 to the same supplier's new URL so old bookmarks and any accumulated link equity land on real content, not a generic list.",
+      "source": "/provider.html",
+      "destination": "/venue/paandora-grand-udaipur",
+      "permanent": true
+    }
+  ],
+
+  "headers": [
+    {
+      "source": "/api/venue",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    }
+  ]
+}

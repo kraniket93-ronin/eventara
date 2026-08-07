@@ -635,7 +635,7 @@
         body.querySelector('h4').textContent = s.business_name;
         body.querySelector('.sc-meta').textContent =
           '★ ' + (s.rating || 0).toFixed(1) + ' (' + (s.review_count || 0) + ') • ' + cat + ' • ' + (s.city || '');
-        body.querySelector('a').href = 'supplier.html?slug=' + encodeURIComponent(s.slug || '');
+        body.querySelector('a').href = '/venue/' + encodeURIComponent(s.slug || '');
         body.querySelector('.sc-remove').addEventListener('click', async function () {
           var d = await EventaraAPI.unsaveSupplier(s.id);
           if (d.error) { settingsToast('Could not remove'); return; }

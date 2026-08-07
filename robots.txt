@@ -17,8 +17,13 @@ Disallow: /booking.html
 Disallow: /invoice.html
 Disallow: /compare.html
 
-# Legacy redirect stub, superseded by /supplier.html?slug=...
+# Legacy stub - vercel.json 301s this to /venue/paandora-grand-udaipur
 Disallow: /provider.html
+
+# NOTE: /supplier.html?slug=... is deliberately NOT disallowed. It renders the
+# same supplier as /venue/<slug> and carries a canonical pointing there, so
+# Google needs to crawl it to see that canonical and consolidate the two.
+# Blocking it would leave the duplicate unresolved.
 
 # Auth callbacks carry one-time tokens in the query string
 Disallow: /*?recovery=

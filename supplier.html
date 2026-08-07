@@ -760,7 +760,7 @@
         var imageHtml = candidates.length
           ? '<img src="' + esc(candidates[0]) + '" alt="' + esc(s.business_name) + '" loading="' + (idx === 0 ? 'eager' : 'lazy') + '" style="opacity:0;transition:opacity .4s var(--ease-out);" data-candidates="' + esc(JSON.stringify(candidates)) + '" data-idx="0" data-name="' + esc(s.business_name) + '" data-category="' + esc(s.category) + '" />'
           : fallbackCardMarkup(s.business_name, s.category);
-        return '<a href="supplier.html?slug=' + esc(s.slug) + '" class="provider-card">' +
+        return '<a href="/venue/' + esc(s.slug) + '" class="provider-card">' +
           '<div class="card-image">' + imageHtml +
             (s.verified ? '<div class="card-badge"><span class="badge badge-verified">Verified <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" stroke="#1DA1F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4" stroke="white"/></svg></span></div>' : '') +
           '</div>' +
@@ -892,7 +892,16 @@
       // because at parse time this file is one empty shell shared by every
       // supplier - a static canonical would collapse all seven into one URL.
       window.applySupplierSeo = function (s) {
-        var url = 'https://www.eventara.co.in/supplier.html?slug=' + encodeURIComponent(s.slug || '');
+        // api/venue.js already wrote a complete, correct <head> server-side
+        // when this page is served as /venue/<slug>. Re-writing it here would
+        // only risk clobbering it with a slower client-side version.
+        if (window.__SSR_SEO) return;
+
+        // The canonical is the pretty, server-rendered URL - never this
+        // query-string one. Both addresses render the same supplier, so
+        // pointing here at /venue/<slug> consolidates the two into a single
+        // indexed page instead of letting them compete as duplicates.
+        var url = 'https://www.eventara.co.in/venue/' + encodeURIComponent(s.slug || '');
 
         var link = document.querySelector('link[rel="canonical"]');
         if (!link) { link = document.createElement('link'); link.rel = 'canonical'; document.head.appendChild(link); }
