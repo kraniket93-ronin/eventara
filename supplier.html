@@ -861,8 +861,13 @@
 
     // ---- Boot ----
     async function boot() {
+      // Two ways in. Served as /venue/<slug>, api/venue.js has already
+      // resolved the supplier and puts the slug on window.__SSR_SLUG - there
+      // is no query string to read. Served as /supplier.html?slug=... it comes
+      // from the query string as before. Checking the SSR value first is what
+      // makes the pretty URL work at all.
       var params = new URLSearchParams(location.search);
-      var key = params.get('slug') || params.get('id');
+      var key = window.__SSR_SLUG || params.get('slug') || params.get('id');
       var skeleton = document.getElementById('loadingSkeleton');
       var notFound = document.getElementById('notFoundState');
       var content = document.getElementById('supplierContent');

@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.16 (see §18 Change Log) |
+| **Doc version** | 2.18 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-29 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -2642,6 +2642,99 @@ edits propagate the same way, because every surface reads the same tables.
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.18 - 2026-08-07
+**Fix: /venue/<slug> rendered unstyled and showed "Supplier Not Found" for every supplier.**
+
+The v2.16 server-rendering shipped with two defects that only appear once the
+page is served from a path other than the site root. Both were introduced with
+the SSR work; neither showed up in the head-only checks that were run at the
+time, because both live below the `<head>`.
+
+**1. Every relative path resolved against `/venue/`.** The shell is written for
+`/supplier.html`, so `styles.css`, `data-api.js` and `logo.svg` are relative to
+the site root. Served from `/venue/<slug>` the browser resolved them against
+`/venue/` - requesting `/venue/styles.css`, which fell straight back into the
+`/venue/:slug` rewrite, was rejected as an invalid slug and returned 400. The
+page rendered with no CSS, no JavaScript and broken images.
+
+**2. The client could not find the supplier.** `boot()` reads the slug from
+`location.search`, and `/venue/<slug>` has no query string. `window.__SSR_SLUG`
+was being injected by the function but `supplier.html` was never wired to read
+it, so `key` was null and the page showed its "Supplier Not Found" state.
+
+**Fixes**
+- `api/venue.js` rewrites relative `src`/`href`/`url(...)` to root-absolute
+  before serving. Absolute URLs, `#fragments`, `mailto:`, `tel:` and `data:`
+  are left alone - rewriting `#about` to `/#about` would send the section nav
+  to the homepage.
+- `supplier.html` now reads `window.__SSR_SLUG` first, falling back to the
+  query string so `/supplier.html?slug=...` keeps working unchanged.
+
+**Two bugs caught while fixing it**, both worth recording:
+
+- The first attribute rewrite also matched inside `<script>` bodies, where the
+  page builds markup by concatenation - `'<img src="' + url + '"'`. It turned
+  those into `src="/' + url + '"`, which would have corrupted every image URL
+  the page generates at runtime. Script *bodies* are now masked during the
+  rewrite; the opening `<script src="...">` tag is deliberately left exposed,
+  because that is how the page loads its own JavaScript.
+- The file was twice written through a shell heredoc using a non-raw Python
+  string, which silently converted `` into a literal backspace and `` into
+  a control character. The regexes then required characters that never occur,
+  so `rootRelativeAssets()` matched nothing and was a no-op that still passed
+  `node --check`. Rewritten with the editor rather than a shell script, and the
+  file is now verified free of stray control characters.
+
+**Verified**: no relative assets remain in the served HTML; stylesheet, script
+and image all resolve to `/…`; script bodies are byte-identical to the source
+(the Similar Suppliers link builder at `supplier.html:763` is intact);
+in-page anchors `#about`, `#portfolio`, `#services`, `#pricing` preserved;
+title, canonical and structured data still correct; `__SSR_SLUG` present.
+
+**Lesson**: a head-only check is not a page check. `curl` confirming a correct
+`<title>` and canonical said nothing about whether the page could load its own
+stylesheet.
+
+**Files**: `api/venue.js`, `supplier.html`, both handout copies.
+
+---
+
+### Version 2.17 - 2026-08-07
+**Fix: an invalid `vercel.json` silently blocked three production deployments.**
+
+The v2.16 SSR work was uploaded correctly and sat in the repository doing
+nothing. Three consecutive production deployments failed, and because the site
+keeps serving the last good build, everything *looked* fine - the old static
+sitemap kept being served, `/venue/<slug>` kept 404ing, and there was no visible
+error anywhere on the site.
+
+Vercel's own report:
+
+```
+The `vercel.json` schema validation failed with the following message:
+`redirects[0]` should NOT have additional property `comment`
+```
+
+**Cause.** `vercel.json` was written with a `"comment"` key inside each rewrite
+and redirect entry to explain what they were for. JSON has no comment syntax,
+and Vercel validates `vercel.json` against a strict schema that rejects unknown
+properties. The deployment was refused *before the build started*, which is why
+there were no build logs to inspect - the usual first place to look.
+
+**Fix.** All `comment` keys removed; the file is now the minimal valid config.
+The reasoning that was in those comments lives in §21 and the v2.16 entry
+instead, which is where it belonged.
+
+**Lesson worth keeping**: a failed Vercel deployment is invisible from the
+public site. `curl` against production will happily return 200s from a build
+that is days old. Confirm a deploy reached `READY` in the Vercel dashboard, or
+check that a file you know you changed actually changed in the response - do not
+infer success from the site being up.
+
+**Files**: `vercel.json`, both handout copies.
 
 ---
 
