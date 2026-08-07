@@ -1,5 +1,5 @@
 /* ============================================================
-   EVENTARA — Assistant API  (Vercel Serverless Function)
+   EVENTARA - Assistant API  (Vercel Serverless Function)
    ------------------------------------------------------------
    POST /api/chat
    Body: { messages: [{role:'user'|'assistant', content:string}],
@@ -7,13 +7,13 @@
    Returns: { text, model }
 
    Provider: Google Gemini (free tier) via the Interactions API.
-   The GEMINI_API_KEY lives ONLY here (server-side) — it is never
+   The GEMINI_API_KEY lives ONLY here (server-side) - it is never
    shipped to the browser. Set it in Vercel:
      Project → Settings → Environment Variables → GEMINI_API_KEY
    Get a free key (no card) at https://aistudio.google.com/apikey
 
    The model is grounded on the KB below and instructed never to
-   invent policies, prices or vendors — if it isn't in the KB it says
+   invent policies, prices or vendors - if it isn't in the KB it says
    so and points at the Help Centre / support.
 
    NOTE ON HISTORY: the Interactions API's structured multi-turn form
@@ -34,7 +34,7 @@ const ai = new GoogleGenAI({});   // reads GEMINI_API_KEY from env
 
 /* ---------- Grounding knowledge base (stable → cached prefix) ---------- */
 const KB = `
-# Eventara — platform knowledge
+# Eventara - platform knowledge
 
 ## What it is
 Eventara is Udaipur's trusted online marketplace for events. It connects people
@@ -48,7 +48,7 @@ Eventara operates in **Udaipur, Rajasthan ONLY**. Every listed venue and planner
 verified Udaipur business and all bookings are for events held in Udaipur. Eventara is
 NOT available in any other city (Delhi, Mumbai, Jaipur, Bengaluru, Goa, etc.) and there
 is no announced date for other cities. If someone asks about another city, say clearly
-that Eventara is Udaipur-only for now — do not imply it might work elsewhere.
+that Eventara is Udaipur-only for now - do not imply it might work elsewhere.
 
 ## How it works (customer journey)
 1. Tell us about your event (type, date, guest count, budget) via "Get Free Quotes".
@@ -61,11 +61,11 @@ that Eventara is Udaipur-only for now — do not imply it might work elsewhere.
 
 ## Phase 1 launch scope (IMPORTANT)
 Currently supported categories:
-- Corporate Events & Conferences — offsites, conferences, product launches, award
+- Corporate Events & Conferences - offsites, conferences, product launches, award
   nights. Typically from ₹5 lakh.
-- Institutional Events & Fests — college fests, convocations, school annual days,
+- Institutional Events & Fests - college fests, convocations, school annual days,
   university events. Typically from ₹2.5 lakh.
-Weddings & Related Celebrations are COMING SOON (next phase) — customers cannot
+Weddings & Related Celebrations are COMING SOON (next phase) - customers cannot
 browse or book wedding venues yet. Birthdays are not a supported category.
 
 ## Confirmed vendors (7 total, all verified)
@@ -122,11 +122,11 @@ Escalation: ask to escalate by email and a senior team member follows up.
 `.trim();
 
 const PERSONA = `
-You are the Eventara Assistant, the in-app help assistant for Eventara — a two-sided
+You are the Eventara Assistant, the in-app help assistant for Eventara - a two-sided
 event marketplace in Udaipur, India. You help BOTH customers (companies and
 institutions planning events) and businesses (hotels, venues, event planners).
 
-RULES — follow exactly:
+RULES - follow exactly:
 1. GROUNDING: answer only from the Eventara knowledge base below. If the answer is not
    in it, say plainly that you don't have that information and point to the Help Centre
    (faq.html) or support@eventara.in. NEVER invent prices, policies, vendors, dates,
@@ -194,7 +194,7 @@ function buildInput(messages) {
 }
 
 export default async function handler(req, res) {
-  // Health check — open /api/chat in a browser to debug a deploy.
+  // Health check - open /api/chat in a browser to debug a deploy.
   // Reports ONLY whether a key is configured, never the key itself.
   if (req.method === 'GET') {
     return res.status(200).json({
@@ -208,7 +208,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'method_not_allowed' });
   }
   if (!process.env.GEMINI_API_KEY) {
-    // No key configured — the widget falls back to its offline engine.
+    // No key configured - the widget falls back to its offline engine.
     return res.status(503).json({ error: 'assistant_unconfigured' });
   }
 
@@ -259,7 +259,7 @@ export default async function handler(req, res) {
     const status = err && (err.status || err.code);
     // Bad/missing key -> report unconfigured so the widget goes offline quietly.
     if (status === 401 || status === 403) {
-      console.error('Gemini auth failed — check GEMINI_API_KEY');
+      console.error('Gemini auth failed - check GEMINI_API_KEY');
       return res.status(503).json({ error: 'assistant_unconfigured' });
     }
     if (status === 429) return res.status(429).json({ error: 'rate_limited' });
