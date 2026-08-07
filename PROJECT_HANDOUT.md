@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.18 (see §18 Change Log) |
+| **Doc version** | 2.19 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-29 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -2642,6 +2642,63 @@ edits propagate the same way, because every surface reads the same tables.
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.19 - 2026-08-07
+**Fix: "Request This Package" led to /venue/brief.html. And a workflow audit that found the front door is not connected.**
+
+**The reported bug.** Package buttons and the Compare button are built inside
+`<script>` bodies, which `rootRelativeAssets()` deliberately masks - masking is
+what stops it corrupting JavaScript that concatenates markup (see v2.18). The
+consequence is that JS-emitted relative URLs are not rewritten either, so
+`brief.html` resolved to `/venue/brief.html` and hit the slug validator:
+"Invalid supplier address."
+
+Fixed at the source rather than by widening the server rewrite: the two
+JS-generated links are now root-absolute (`/brief.html`, `/compare.html`), which
+is correct whether the page is served from `/supplier.html` or `/venue/<slug>`.
+A third instance of one root cause - relative paths in a page that is now served
+from two different depths.
+
+**Workflow finding 1 - the package choice was thrown away.** "Request This
+Package" linked to a bare `brief.html`. The customer had just told us two things
+(this supplier, this package) and the form opened blank, so a supplier receiving
+the brief could not know which package prompted it. The link now carries
+`?supplier=<slug>&package=<name>`, and `brief.html` names both back to the
+customer in a context banner and stashes them in `sessionStorage` for the
+submit step.
+
+**Workflow finding 2 - the brief form does not create anything.** This is the
+significant one. `brief.html` has **no inline script and does not load
+`data-api.js`**. Its submit handler lives in `app.js`:
+
+```js
+if (e.target.closest('[data-step-submit]')) {
+  e.preventDefault();
+  showSubmitConfirmation();     // renders a success screen, writes nothing
+}
+```
+
+So the primary customer entry point - "Get Quotes" / "Submit Event Brief",
+linked from the navbar of every page, the homepage hero, and now every package
+card - shows a confirmation and creates no `event_requests` row. No supplier
+ever receives the enquiry, and nothing appears in the customer's Requests &
+Quotes panel.
+
+Everything downstream of it is real and verified: supplier enquiries, the
+quotation composer, accept/reject, bookings, payments, invoices, disputes. The
+two seeded requests in the database came from `0007_seed.sql` and `0019`, not
+from this form. The funnel has a working middle and end, and a disconnected
+beginning.
+
+**Not fixed in this entry**, because it is a feature rather than a defect fix
+and involves decisions worth making deliberately: whether an anonymous visitor
+can submit a brief or must sign in first (B17/B19 both argue for an account),
+how the multi-step fields map onto `event_requests` columns, and what the
+success state should say once a real reference number exists.
+
+**Files**: `supplier.html`, `brief.html`, both handout copies.
 
 ---
 

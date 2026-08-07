@@ -613,6 +613,10 @@
       }).join('');
     }
 
+    // Set once the supplier resolves in boot(); read by renderPricing so a
+    // package request can say which supplier it belongs to.
+    var SUPPLIER_SLUG = '';
+
     function renderPricing(packages) {
       if (!packages || !packages.length) { document.getElementById('pricing').style.display = 'none'; return; }
       document.getElementById('pricingGrid').innerHTML = packages.map(function (p) {
@@ -620,7 +624,15 @@
         return '<div class="package-card' + (p.is_featured ? ' featured' : '') + '"><h3>' + esc(p.name) + '</h3>' +
           '<div class="package-price">' + inr(p.price_from) + ' <span>from' + (guestLine ? ' • ' + esc(guestLine) : '') + '</span></div>' +
           '<ul class="inclusions">' + (p.inclusions || []).map(function (i) { return '<li>' + CHECK + ' ' + esc(i) + '</li>'; }).join('') + '</ul>' +
-          '<a href="brief.html" class="btn ' + (p.is_featured ? 'btn-primary' : 'btn-secondary') + ' w-full">Request This Package</a></div>';
+          // Root-absolute, and carrying which supplier and package the customer
+          // actually chose. This page is served from BOTH /supplier.html and
+          // /venue/<slug>; a relative "brief.html" resolves to /venue/brief.html
+          // on the latter. The supplier/package parameters exist so the brief
+          // knows what was clicked instead of opening blank - the customer has
+          // already told us both, and asking again loses the intent.
+          '<a href="/brief.html?supplier=' + encodeURIComponent(SUPPLIER_SLUG) +
+          '&package=' + encodeURIComponent(p.name || '') +
+          '" class="btn ' + (p.is_featured ? 'btn-primary' : 'btn-secondary') + ' w-full">Request This Package</a></div>';
       }).join('');
     }
 
@@ -855,7 +867,7 @@
         var arr = readArr(CMP_KEY);
         if (arr.indexOf(sup.id) === -1) { arr.push(sup.id); if (arr.length > 3) arr.shift(); writeArr(CMP_KEY, arr); }
         toast('Added to compare - opening Compare Quotes');
-        setTimeout(function () { location.href = 'compare.html'; }, 700);
+        setTimeout(function () { location.href = '/compare.html'; }, 700);
       });
     }
 
@@ -880,6 +892,7 @@
       if (res.error || !res.data) { showNotFound(); return; }
 
       var sup = res.data;
+      SUPPLIER_SLUG = sup.slug || key;
       var profile = sup.supplier_profiles || null;
       var venues = sup.venues || [];
       var media = (sup.supplier_media || []).slice().sort(function (a, b) { return a.sort - b.sort; });

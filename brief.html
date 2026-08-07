@@ -446,6 +446,17 @@
   <section class="brief-header container">
     <h1 class="fade-in">Tell Us About Your Event</h1>
     <p class="fade-in">Share a few details once, and we'll match you with the best verified venues and planners in Udaipur. Clear quotes arrive within 48 hours - no repeating yourself to every vendor.</p>
+
+    <!-- Shown only when the customer arrived from a supplier's package.
+         Without it the click is silently discarded and the brief opens
+         blank, as though the package they chose never existed. -->
+    <div class="container" id="briefContext" hidden
+         style="max-width:760px; margin-top:var(--space-20); padding:var(--space-16) var(--space-20);
+                background:var(--gold-light); border-left:3px solid var(--gold);
+                border-radius:var(--radius-lg); text-align:left;">
+      <b id="briefContextTitle" style="display:block; margin-bottom:2px;"></b>
+      <span class="caption text-muted" id="briefContextSub"></span>
+    </div>
   </section>
 
   <!-- ============================================================
@@ -859,6 +870,48 @@
   </footer>
 
   <script src="app.js?v=4"></script>
+  <script src="data-api.js?v=9"></script>
+  <script>
+    /* Carry through what the customer already chose.
+       Arriving from a supplier's package card, the URL says which supplier and
+       which package. Naming them back is the difference between "we heard you"
+       and a blank form that ignores the click. The values are also stashed so
+       that when this form is wired to create_request they can be recorded on
+       the brief rather than lost. */
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var slug = (q.get('supplier') || '').trim();
+      var pkg  = (q.get('package') || '').trim();
+      if (!slug && !pkg) return;
+
+      var box = document.getElementById('briefContext');
+      if (!box) return;
+
+      try {
+        sessionStorage.setItem('eventara_brief_context', JSON.stringify({ supplier: slug, package: pkg }));
+      } catch (e) {}
+
+      function show(name) {
+        document.getElementById('briefContextTitle').textContent =
+          pkg ? ('Requesting the "' + pkg + '" package' + (name ? ' from ' + name : ''))
+              : ('Requesting a quote' + (name ? ' from ' + name : ''));
+        document.getElementById('briefContextSub').textContent =
+          'Fill in your event details below and we will send this to ' +
+          (name || 'the supplier') + ' along with other matched suppliers, so you can compare.';
+        box.hidden = false;
+      }
+
+      // Resolve the supplier's real name; fall back to the slug if the
+      // lookup fails so the banner still says something true.
+      if (slug && window.EventaraAPI) {
+        EventaraAPI.getSupplierDetail(slug).then(function (r) {
+          show(r && r.data ? r.data.business_name : slug.replace(/-/g, ' '));
+        }).catch(function () { show(slug.replace(/-/g, ' ')); });
+      } else {
+        show('');
+      }
+    })();
+  </script>
   <script src="chatbot.js?v=9"></script>
 </body>
 </html>
