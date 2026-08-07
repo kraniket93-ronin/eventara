@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Browse verified venues, hotels and event planners in Udaipur for weddings, birthdays, corporate events and celebrations. Compare quotes and book with your payment protected.">
   <title>Find Suppliers in Udaipur - Eventara</title>
+  <!-- EVENTARA-SEO -->
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <link rel="canonical" href="https://www.eventara.co.in/search.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Eventara">
+  <meta property="og:locale" content="en_IN">
+  <meta property="og:title" content="Find Suppliers in Udaipur - Eventara">
+  <meta property="og:description" content="Browse verified venues, hotels and event planners in Udaipur for weddings, birthdays, corporate events and celebrations. Compare quotes and book with your payment protected.">
+  <meta property="og:url" content="https://www.eventara.co.in/search.html">
+  <meta property="og:image" content="https://www.eventara.co.in/images/login-bg.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Find Suppliers in Udaipur - Eventara">
+  <meta name="twitter:description" content="Browse verified venues, hotels and event planners in Udaipur for weddings, birthdays, corporate events and celebrations. Compare quotes and book with your payment protected.">
+  <meta name="twitter:image" content="https://www.eventara.co.in/images/login-bg.jpg">
+  <!-- /EVENTARA-SEO -->
+
   <link rel="stylesheet" href="styles.css?v=22">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -560,6 +577,17 @@
         c._cap    = parseInt(c.getAttribute('data-capacity'), 10) || Infinity; // planners = any size
       });
 
+      // ?q= text filter. This exists because index.html declares a
+      // schema.org SearchAction pointing at /search.html?q={search_term_string}
+      // (the sitelinks search box Google can show under a brand result).
+      // Declaring that target without honouring it would be a promise to
+      // Google the site does not keep, so the parameter is handled for real.
+      var qTerm = (new URLSearchParams(location.search).get('q') || '').trim().toLowerCase();
+
+      cards.forEach(function (c) {
+        c._text = (c.textContent || '').toLowerCase().replace(/\s+/g, ' ');
+      });
+
       function apply() {
         var minCap = parseInt(elGuest.value, 10);
         var maxBud = parseInt(elBudg.value, 10);
@@ -567,6 +595,7 @@
 
         cards.forEach(function (c) {
           var ok = true;
+          if (qTerm && c._text.indexOf(qTerm) === -1) ok = false;
           if (ptype !== 'all' && c.getAttribute('data-ptype') !== ptype) ok = false;
           if (minCap > 0 && c._cap < minCap) ok = false;
           if (maxBud > 0 && c._price > maxBud) ok = false;
@@ -587,6 +616,24 @@
         count.textContent = shown.length;
         if (ftCount) ftCount.textContent = shown.length + ' venues &amp; planners'.replace('&amp;','&');
         empty.style.display = shown.length ? 'none' : 'block';
+      }
+
+      // Tell the visitor a text search is narrowing the list, and give them a
+      // way out - otherwise a no-match ?q= looks like an empty marketplace.
+      if (qTerm) {
+        var note = document.createElement('div');
+        note.className = 'card-flat';
+        note.style.cssText = 'margin-bottom: var(--space-16); display:flex; justify-content:space-between;' +
+                             'align-items:center; gap:var(--space-12); flex-wrap:wrap;';
+        var label = document.createElement('span');
+        label.className = 'body-sm';
+        label.textContent = 'Showing matches for “' + qTerm + '”';
+        var clear = document.createElement('a');
+        clear.className = 'btn btn-secondary btn-sm';
+        clear.href = 'search.html';
+        clear.textContent = 'Clear search';
+        note.appendChild(label); note.appendChild(clear);
+        if (grid.parentNode) grid.parentNode.insertBefore(note, grid);
       }
 
       // Mobile "Filters & Sort" toggle

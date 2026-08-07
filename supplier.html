@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title id="pageTitle">Supplier Profile - Eventara</title>
   <meta name="description" id="pageDescription" content="Browse a verified venue or event planner on Eventara - gallery, packages, availability and reviews, all without leaving the platform." />
+  <!-- EVENTARA-SEO -->
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Eventara">
+  <meta property="og:locale" content="en_IN">
+  <meta property="og:title" content="Supplier Profile - Eventara">
+  <meta property="og:image" content="https://www.eventara.co.in/images/login-bg.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Supplier Profile - Eventara">
+  <meta name="twitter:image" content="https://www.eventara.co.in/images/login-bg.jpg">
+  <!-- /EVENTARA-SEO -->
+
   <link rel="stylesheet" href="styles.css?v=22" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
@@ -874,10 +887,84 @@
       // has to track the actual flag. Suppliers can now self-register and
       // publish before their documents clear, and the title and meta
       // description used to assert verification for every listing.
+      // SEO for a page whose content only exists after the fetch resolves.
+      // The canonical and the structured data both have to be written here,
+      // because at parse time this file is one empty shell shared by every
+      // supplier - a static canonical would collapse all seven into one URL.
+      window.applySupplierSeo = function (s) {
+        var url = 'https://www.eventara.co.in/supplier.html?slug=' + encodeURIComponent(s.slug || '');
+
+        var link = document.querySelector('link[rel="canonical"]');
+        if (!link) { link = document.createElement('link'); link.rel = 'canonical'; document.head.appendChild(link); }
+        link.href = url;
+
+        function meta(sel, attr, val) {
+          var m = document.head.querySelector(sel);
+          if (!m) { m = document.createElement('meta'); m.setAttribute(attr, sel.match(/"([^"]+)"/)[1]); document.head.appendChild(m); }
+          m.setAttribute('content', val);
+        }
+        var cover = s.hero_image_url || (s.supplier_media && s.supplier_media[0] && s.supplier_media[0].url) || '';
+        meta('meta[property="og:title"]', 'property', document.title);
+        meta('meta[property="og:url"]', 'property', url);
+        meta('meta[property="og:type"]', 'property', 'business.business');
+        if (cover) { meta('meta[property="og:image"]', 'property', cover);
+                     meta('meta[name="twitter:image"]', 'name', cover); }
+
+        // A venue is a LocalBusiness; a planner is a professional service.
+        // Both carry the Udaipur address, which is what ties these pages to
+        // the "… Udaipur" queries this site is trying to win.
+        var isVenue = s.category === 'banquet_hotel';
+        var node = {
+          "@context": "https://schema.org",
+          "@type": isVenue ? "EventVenue" : "ProfessionalService",
+          "@id": url + "#business",
+          "name": s.business_name,
+          "url": url,
+          "description": s.description || s.tagline || undefined,
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": s.city || "Udaipur",
+            "addressRegion": "Rajasthan",
+            "addressCountry": "IN"
+          },
+          "areaServed": { "@type": "City", "name": s.city || "Udaipur" },
+          "isPartOf": { "@type": "WebSite", "@id": "https://www.eventara.co.in/#website" },
+          "provider": { "@type": "Organization", "@id": "https://www.eventara.co.in/#organization" }
+        };
+        if (cover) node.image = cover;
+        if (isVenue && s.capacity) {
+          node.maximumAttendeeCapacity = s.capacity;
+        }
+        if (s.starting_price) {
+          node.priceRange = "From Rs " + s.starting_price;
+        }
+        // Only publish a rating when there are real reviews behind it -
+        // aggregateRating without reviewCount is a manual-action risk.
+        if (s.rating > 0 && s.review_count > 0) {
+          node.aggregateRating = {
+            "@type": "AggregateRating",
+            "ratingValue": String(s.rating),
+            "reviewCount": String(s.review_count),
+            "bestRating": "5", "worstRating": "1"
+          };
+        }
+        Object.keys(node).forEach(function (k) { if (node[k] === undefined) delete node[k]; });
+
+        var old = document.getElementById('supplierSchema');
+        if (old) old.remove();
+        var tag = document.createElement('script');
+        tag.type = 'application/ld+json';
+        tag.id = 'supplierSchema';
+        tag.textContent = JSON.stringify(node);
+        document.head.appendChild(tag);
+      };
+
       var verifiedWord = sup.verified ? 'Verified ' : '';
       document.title = sup.business_name + ' - ' + verifiedWord + titleCase(sup.category) + ' - Eventara';
       document.getElementById('pageDescription').setAttribute('content',
         sup.business_name + ' is ' + (sup.verified ? 'a verified ' : 'a ') + titleCase(sup.category).toLowerCase() + ' on Eventara in ' + sup.city + '. Browse the gallery, packages and reviews, and get a clear quote - all without leaving Eventara.');
+
+      applySupplierSeo(sup);
 
       var heroImages = [];
       if (sup.hero_image_url) heroImages.push(sup.hero_image_url);

@@ -1,0 +1,27 @@
+# Eventara - https://www.eventara.co.in
+# Public marketplace pages are open to crawlers. Account, transaction and
+# internal pages are excluded: they need a session, so a crawler would only
+# ever see an empty shell or a redirect, and indexing them would spend crawl
+# budget on pages that can never rank.
+
+User-agent: *
+Allow: /
+
+# Signed-in and transactional areas
+Disallow: /customer-dashboard.html
+Disallow: /supplier-dashboard.html
+Disallow: /ops.html
+Disallow: /signin.html
+Disallow: /verified.html
+Disallow: /booking.html
+Disallow: /invoice.html
+Disallow: /compare.html
+
+# Legacy redirect stub, superseded by /supplier.html?slug=...
+Disallow: /provider.html
+
+# Auth callbacks carry one-time tokens in the query string
+Disallow: /*?recovery=
+Disallow: /*?verified=
+
+Sitemap: https://www.eventara.co.in/sitemap.xml

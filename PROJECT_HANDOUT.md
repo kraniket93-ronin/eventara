@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.14 (see §18 Change Log) |
+| **Doc version** | 2.15 (see §18 Change Log) |
 | **Last verified against code** | 2026-07-29 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -2642,6 +2642,72 @@ edits propagate the same way, because every surface reads the same tables.
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.15 - 2026-08-07
+**Technical SEO foundation: robots.txt, sitemap, canonicals, Open Graph and structured data.**
+
+**Audit first.** Two findings changed the plan:
+
+1. **The site was not in Google's index at all.** Searches for `"Eventara"` and
+   `Eventara Udaipur event marketplace` returned nothing from `eventara.co.in`.
+   The site *is* publicly reachable - Vercel deployment protection is off - so
+   this is a discovery problem, not an access one.
+2. **"Eventara" is a contested brand.** At least six other entities use the
+   name, and one is a direct competitor: `eventaraevents.com`, a luxury event
+   management and wedding planning company operating in Darjeeling, Siliguri and
+   the Northeast, holding the `.com`. The obvious social handles
+   (`@theeventara`, `@_eventara_`, `@eventaraevents`) are already taken.
+
+   The practical consequence: **"Eventara Udaipur" is winnable** - none of the
+   others are in Udaipur - while bare **"Eventara"** is a genuine fight that
+   on-page work makes the site *eligible* for, but cannot decide on its own.
+
+**What was missing.** Titles and meta descriptions were good. Everything else
+was absent: no `robots.txt` (404), no sitemap, no canonical on any page, no
+structured data on any page, no Open Graph or Twitter cards, no favicon.
+
+**Built**
+
+- **`robots.txt`** - crawlable public pages; account, transactional and internal
+  pages disallowed, plus auth callbacks carrying one-time tokens.
+- **`sitemap.xml`** - 12 URLs including all seven supplier pages, which are the
+  site's real indexable content.
+- **Canonical + robots meta on all 15 pages.** Six indexable
+  (home, search, brief, faq, help, supplier); nine `noindex, follow`
+  (dashboards, sign-in, verify, booking, invoice, compare, ops, provider).
+- **JSON-LD on the homepage** - `Organization` + `WebSite` + `OnlineBusiness` in
+  one `@graph` with `@id` cross-references, so the entities are linked rather
+  than three unrelated blobs. This is what tells Google *which* Eventara this is.
+- **`FAQPage` schema generated from the 50 real Q&As** already on `faq.html` -
+  the first is literally "What is Eventara?", which is exactly the brand query.
+- **Per-supplier structured data**, written at runtime because the page is one
+  shell shared by seven suppliers: `EventVenue` for hotels, `ProfessionalService`
+  for planners, each with the Udaipur address, capacity, price range and - only
+  where real reviews exist - `aggregateRating`. A static canonical would have
+  collapsed all seven URLs into one, so the canonical is set per slug too.
+- **Open Graph + Twitter cards + SVG favicon** across the indexable pages.
+
+**One promise made real.** The homepage `WebSite` schema declares a
+`SearchAction` targeting `/search.html?q={search_term_string}` - the sitelinks
+search box Google can show under a brand result. `search.html` had no text
+search at all, only filters, so that target would have been a promise to Google
+the site did not keep. A `?q=` filter was implemented for real, with a visible
+"showing matches for…" notice and a clear-search escape, and the canonical still
+points at the unfiltered URL so query permutations do not become duplicates.
+
+**Verified**: sitemap parses as valid XML with no wrong-host URLs; all JSON-LD
+parses; every indexable page has a canonical and OG tags; every private page is
+`noindex`; `?q=paandora` filters to exactly one card; zero console errors.
+
+**Not done here, and it matters more than the code**: Google Search Console
+verification and sitemap submission, a Google Business Profile for Udaipur,
+claiming remaining social handles, and any real backlinks. Those are off-page and
+cannot be committed to a repository. See §21 notes and the summary in chat.
+
+**Files**: `robots.txt`, `sitemap.xml` (both new), all 15 HTML pages,
+`search.html` (`?q=` handler), both handout copies.
 
 ---
 
