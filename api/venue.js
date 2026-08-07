@@ -53,6 +53,62 @@ async function rest(path) {
   return r.json();
 }
 
+/* ------------------------------------------------------------
+   Relative -> root-absolute asset paths.
+
+   The shell lives at /supplier.html, so its paths are written
+   relative to the site root. Served from /venue/<slug> the browser
+   resolves them against /venue/ instead: "styles.css" becomes
+   "/venue/styles.css", which falls back into this same rewrite and
+   400s. Symptom is a completely unstyled page with broken images
+   and no JavaScript at all.
+   ------------------------------------------------------------ */
+
+// Already resolvable from anywhere, or must not be touched. A bare
+// "#about" especially: turning it into "/#about" would send the
+// section nav to the homepage instead of scrolling the page.
+const ABSOLUTE = /^(\/|https?:|\/\/|#|mailto:|tel:|data:|javascript:|blob:)/i;
+
+// Placeholder for masked script bodies. Uses characters that cannot
+// occur in HTML text so it can never collide with real content.
+const MASK_OPEN = '';
+const MASK_CLOSE = '';
+
+function rootRelativeAssets(html) {
+  // Mask script BODIES before rewriting. They contain JavaScript that
+  // builds markup by concatenation - '<img src="' + url + '"' - and a
+  // plain attribute rewrite matches those fragments too, producing
+  // src="/' + url + '" and corrupting every URL the page generates at
+  // runtime. The opening <script src="..."> tag is left exposed, since
+  // that is how data-api.js and the rest are loaded and it does need
+  // rewriting.
+  const bodies = [];
+  html = html.replace(
+    /(<script[^>]*>)([\s\S]*?)(<\/script>)/gi,
+    (m, open, body, close) => {
+      bodies.push(body);
+      return open + MASK_OPEN + (bodies.length - 1) + MASK_CLOSE + close;
+    }
+  );
+
+  // src="..." / href="..." on links, stylesheets, images and anchors
+  html = html.replace(/(src|href)="([^"]*)"/gi, (m, attr, val) => {
+    if (!val || ABSOLUTE.test(val)) return m;
+    return attr + '="/' + val + '"';
+  });
+
+  // url(...) inside the shell's inline <style> blocks
+  html = html.replace(/url\((['"]?)([^'")]+)\1\)/gi, (m, quote, val) => {
+    if (!val || ABSOLUTE.test(val)) return m;
+    return 'url(' + quote + '/' + val + quote + ')';
+  });
+
+  return html.replace(
+    new RegExp(MASK_OPEN + '(\\d+)' + MASK_CLOSE, 'g'),
+    (m, i) => bodies[Number(i)]
+  );
+}
+
 function buildHead(s, url) {
   const kind = titleCase(s.category);
   const verified = s.verified ? 'Verified ' : '';
@@ -183,7 +239,10 @@ export default async function handler(req, res) {
   const kind = titleCase(sup.category);
   const title = `${sup.business_name} - ${sup.verified ? 'Verified ' : ''}${kind} in ${sup.city} | Eventara`;
 
-  // Strip the shell's own generic SEO block first. It carries a placeholder
+  // Make every relative path resolve from the site root, not from /venue/.
+  html = rootRelativeAssets(html);
+
+  // Strip the shell's own generic SEO block. It carries a placeholder
   // og:title/description that appears EARLIER in the document than anything
   // injected before </head>, and scrapers take the first occurrence - so
   // leaving it would hand Facebook, WhatsApp and Google the shared
@@ -194,8 +253,9 @@ export default async function handler(req, res) {
   html = html.replace(/<title[^>]*>[\s\S]*?<\/title>/i, `<title id="pageTitle">${esc(title)}</title>`);
   html = html.replace(/<\/head>/i, buildHead(sup, url) + '</head>');
 
-  // Tell the client script which supplier this is, so it does not have to
-  // re-read the query string, and so its own canonical/meta pass is skipped.
+  // Tell the client script which supplier this is. Without it boot() reads
+  // ?slug= from a query string that does not exist on /venue/<slug> and shows
+  // "Supplier Not Found".
   html = html.replace(/<body/i,
     `<script>window.__SSR_SLUG=${JSON.stringify(sup.slug)};window.__SSR_SEO=true;</script>\n<body`);
 
