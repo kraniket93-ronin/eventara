@@ -126,11 +126,259 @@
 
 
   <link rel="stylesheet" href="styles.css?v=22">
+  <!-- Hero LCP. Only the FIRST slide is preloaded (and only the variant this
+       viewport will actually use); slides 2-5 are fetched after `load` by the
+       carousel script, so they never compete with the first paint. -->
+  <link rel="preload" as="image" href="images/hero/hero-1-udaipur-lake-venue.jpg"
+        imagesrcset="images/hero/hero-1-udaipur-lake-venue-sm.jpg 1200w, images/hero/hero-1-udaipur-lake-venue.jpg 1920w"
+        imagesizes="100vw" fetchpriority="high">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
   <script src="auth-supabase.js?v=3"></script>
   <style>
+    /* ============================================================
+       HERO - photographic carousel (added v2.21)
+       ------------------------------------------------------------
+       Page-scoped on purpose. `.hero*` lives in styles.css but is
+       only ever rendered by index.html, and keeping the override
+       here avoids a `?v=` bump - and a full revalidation pass -
+       across the other 14 pages for a change only this page shows.
+       Same reasoning already recorded for .events-framework below.
+       ============================================================ */
+
+    /* Tints of the brand hues, lightened for dark photography.
+       MEASURED, not picked by eye: against the worst-case composited
+       backdrop the brand values fail outright - #CBA135 gold scores
+       2.38:1 and #1E40AF royal blue 1.52:1. These tints keep the same
+       hues at usable contrast (see the table in the scrim note). */
+    /* Declared at :root, not on .hero, because the navbar's glass state uses
+       the same navy and the same gold and must not re-declare either. */
+    :root {
+      --hero-gold: #EFD489;   /* 3.95:1 - h1 accent, large text (AA large = 3:1) */
+      --hero-ink: #FFFFFF;    /* 5.74:1 */
+      --hero-navy: 11, 17, 40;
+    }
+
+    /* A dark base colour, not white: if every image 404s the hero is
+       still a readable dark panel rather than white-on-white text. */
+    .hero {
+      position: relative;
+      background-color: rgb(var(--hero-navy));
+      min-height: min(88vh, 860px);
+      padding-top: 80px;           /* clears the 80px fixed navbar */
+      padding-bottom: var(--space-56);
+      isolation: isolate;
+    }
+
+    .hero-media { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
+
+    /* Each slide crossfades AND drifts horizontally: the incoming slide
+       travels from +3% to 0 while the outgoing one continues to -3%, so
+       the movement reads as one continuous left-to-right pass rather
+       than a hard cut. Only `opacity`/`transform` animate - both are
+       compositor-only, so the carousel costs no layout or paint. */
+    .hero-slide {
+      position: absolute; inset: 0;
+      opacity: 0;
+      transform: translate3d(3%, 0, 0);
+      transition: opacity 1200ms var(--ease-out), transform 1800ms var(--ease-out);
+      will-change: opacity, transform;
+    }
+    .hero-slide.is-active { opacity: 1; transform: translate3d(0, 0, 0); }
+    .hero-slide.is-leaving { opacity: 0; transform: translate3d(-3%, 0, 0); }
+
+    /* scale(1.12) gives 6% of overscan on each edge, comfortably more
+       than the 3% slide travel + 1.5% pan, so no edge of the photo is
+       ever exposed mid-transition. */
+    .hero-slide img {
+      width: 100%; height: 100%;
+      object-fit: cover; object-position: center;
+      display: block;
+      transform: scale(1.12);
+    }
+    .hero-slide.is-active img { animation: heroPan 11s linear both; }
+    @keyframes heroPan {
+      from { transform: scale(1.12) translate3d(-1.5%, 0, 0); }
+      to   { transform: scale(1.12) translate3d(1.5%, 0, 0); }
+    }
+
+    /* Contrast scrim - a measured accessibility requirement, not styling.
+       The photographs were tonally graded to a common p95 luminance so a
+       single scrim holds for every slide (a bright slide and a dark slide
+       under one overlay is what makes carousels fail AA on some frames
+       and pass on others). Worst case measured across all five slides:
+
+         overlay alpha | white-text contrast
+         --------------|--------------------
+              0.30     | 4.46:1  fails AA
+              0.42     | 5.75:1  used (minimum anywhere behind copy)
+              0.50     | 6.86:1
+
+       The gradient never drops below 0.42, so 5.75:1 is the floor. It is
+       darker at top and bottom to seat the hero under the white navbar
+       and against the section below. */
+    .hero-scrim {
+      position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background: linear-gradient(180deg,
+        rgba(var(--hero-navy), 0.72) 0%,
+        rgba(var(--hero-navy), 0.46) 26%,
+        rgba(var(--hero-navy), 0.42) 55%,
+        rgba(var(--hero-navy), 0.66) 100%);
+    }
+
+    .hero > .container { position: relative; z-index: 2; }
+
+    /* Light-on-dark treatment of the EXISTING hero copy. No element was
+       added, removed or reworded - only recoloured for the new backdrop. */
+    .hero .hero-eyebrow {
+      background: rgba(255, 255, 255, 0.13);
+      border-color: rgba(255, 255, 255, 0.28);
+      color: #fff;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+    }
+    .hero .hero-title { color: var(--hero-ink); text-shadow: 0 2px 20px rgba(0, 0, 0, 0.35); }
+    .hero .hero-title .accent { color: var(--hero-gold); }
+    .hero .hero-subtitle { color: rgba(255, 255, 255, 0.92); }   /* 5.13:1 */
+    .hero .hero-trust .trust-item { color: rgba(255, 255, 255, 0.90); }  /* 4.99:1 */
+    .hero .hero-trust .trust-item svg { color: #6FE0AC; }        /* 3.54:1, non-text (needs 3:1) */
+
+    /* ---------- Navbar: frosted glass while it floats over the hero ----------
+       Same glass recipe as the Sign In card (§5.9) - blur + saturate, a white
+       hairline and an inset top highlight - but tinted with the HERO's navy
+       rather than that card's violet, so the bar reads as an extension of the
+       hero's own scrim instead of introducing a second tint.
+
+       The tint is aesthetic, not a contrast fix. Measured on the strip the
+       navbar actually covers (the hero scrim is already at alpha 0.72 up
+       there), white text scores 9.05:1 with NO tint at all. What the same
+       measurement proves is the part that IS load-bearing: the default ink
+       (#222) sits at 1.22:1 over that strip, so every navbar element has to
+       flip to white here - not just the background. */
+    .navbar.over-hero {
+      background: rgba(var(--hero-navy), 0.26);
+      -webkit-backdrop-filter: blur(22px) saturate(150%);
+      backdrop-filter: blur(22px) saturate(150%);
+      border-bottom-color: rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    }
+    /* Without the blur a translucent bar reads as muddy rather than glassy, so
+       the fallback commits to a solid dark bar - same approach as the Sign In
+       card's @supports block. */
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .navbar.over-hero { background: rgba(var(--hero-navy), 0.86); }
+    }
+
+    .navbar.over-hero .navbar-nav a { color: rgba(255, 255, 255, 0.88); }
+    .navbar.over-hero .navbar-nav a:hover,
+    .navbar.over-hero .navbar-nav a.active { color: #fff; }
+    .navbar.over-hero .navbar-nav a::after { background: var(--hero-gold); }
+    .navbar.over-hero .btn-signin { color: rgba(255, 255, 255, 0.92); }
+    .navbar.over-hero .btn-signin:hover { color: #fff; }
+    .navbar.over-hero .btn-secondary {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.38);
+      color: #fff;
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+    .navbar.over-hero .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.22); border-color: #fff; color: #fff;
+    }
+    .navbar.over-hero .hamburger span { background: #fff; }
+    /* Signed-in account chip - same flip, or it disappears into the glass. */
+    .navbar.over-hero .account-trigger,
+    .navbar.over-hero .account-name,
+    .navbar.over-hero .account-chevron { color: #fff; }
+    .navbar.over-hero .account-trigger:hover,
+    .navbar.over-hero .account-trigger[aria-expanded="true"] {
+      background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.30);
+    }
+    .navbar.over-hero .account-trigger:focus-visible { outline-color: #fff; }
+
+    /* The blue wordmark measures 1.4:1 on dark glass - the same finding that
+       put logo-light.svg on the Sign In card. BOTH marks ship in the markup and
+       CSS picks one, so there is no src swap: no second fetch mid-scroll, and
+       no flash of the wrong logo on either transition. */
+    .navbar-logo .logo-light { display: none; }
+    .navbar.over-hero .navbar-logo .logo-dark { display: none; }
+    .navbar.over-hero .navbar-logo .logo-light { display: block; }
+
+    /* Cross-fade the two states instead of snapping between them. */
+    .navbar {
+      transition: background var(--duration-base) var(--ease-out),
+                  border-color var(--duration-base) var(--ease-out),
+                  box-shadow var(--duration-base) var(--ease-out);
+    }
+
+    /* Slide indicators. 8px dot inside a 44px hit area - the visible
+       control may be small, the tap target may not (§13 rule 2). */
+    .hero-dots {
+      position: relative; z-index: 2;
+      display: flex; justify-content: center; align-items: center;
+      gap: var(--space-4); margin-top: var(--space-32);
+    }
+    .hero-dot {
+      width: 44px; height: 44px; padding: 0;
+      background: none; border: 0; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hero-dot::before {
+      content: ""; width: 8px; height: 8px; border-radius: var(--radius-pill);
+      background: rgba(255, 255, 255, 0.42);
+      transition: background var(--duration-base) var(--ease-out), width var(--duration-base) var(--ease-out);
+    }
+    .hero-dot[aria-current="true"]::before { width: 26px; background: var(--hero-gold); }
+    .hero-dot:focus-visible { outline: 2px solid #fff; outline-offset: -8px; border-radius: var(--radius-pill); }
+
+    /* Motion sensitivity: stop the rotation entirely rather than merely
+       shortening it, and drop the pan. The dots stay operable so the
+       imagery is still browsable by choice. */
+    @media (prefers-reduced-motion: reduce) {
+      .hero-slide { transition: opacity 1ms linear; transform: none; }
+      .hero-slide.is-active img, .hero-slide img { animation: none; transform: scale(1.02); }
+      .hero-slide.is-leaving { transform: none; }
+    }
+
+    /* Tablet */
+    @media (max-width: 991px) {
+      .hero { min-height: min(82vh, 720px); }
+    }
+    /* Mobile. Height is content-driven (min-height:auto) exactly as it was
+       before this change, so the carousel adds NO vertical height on a
+       phone - it only fills the box the copy already occupies. The vh cap
+       is deliberately dropped: a phone's collapsing browser toolbar
+       changes vh mid-scroll, which would resize the hero as the user
+       scrolls. Same reasoning as .events-framework below. */
+    @media (max-width: 768px) {
+      .hero {
+        min-height: auto;
+        padding-top: 96px;
+        padding-bottom: var(--space-40);
+      }
+      /* Vertical rhythm tightened on phones. The hero is content-driven
+         here (the search bar stacks into four full-width fields), so the
+         only honest way to keep it from running long is to trim the gaps
+         rather than cap the box and crop the copy. Measured at 360x740:
+         1132px -> 986px, and the padding change above is already 48px
+         shorter than the pre-carousel hero (120/64 -> 96/40). */
+      .hero .hero-eyebrow { margin-bottom: var(--space-16); }
+      .hero .hero-title { margin-bottom: var(--space-16); }
+      .hero .hero-subtitle {
+        font-size: var(--text-body);      /* 16px; still 5.13:1 on the scrim */
+        margin-bottom: var(--space-24);
+      }
+      .hero .hero-search { margin-bottom: var(--space-24); }
+      .hero .hero-trust { gap: var(--space-12); }
+      .hero-slide { transition: opacity 900ms var(--ease-out), transform 1400ms var(--ease-out); }
+      .hero-dots { margin-top: var(--space-16); }
+    }
+    /* Short landscape phones: keep the hero from eating the whole screen. */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .hero { min-height: auto; padding-top: 88px; }
+    }
+
     /* Phase 1 - Coming Soon category card */
     .category-card.is-soon { cursor: default; }
     .category-card.is-soon:hover { transform: none !important; }
@@ -216,7 +464,10 @@
   <nav class="navbar">
     <div class="navbar-inner">
       <a href="index.html" class="navbar-logo">
-        <img src="logo.svg?v=1" alt="Eventara" class="logo-img" />
+        <!-- Both wordmarks ship; CSS shows one. The light mark is aria-hidden
+             with an empty alt so the brand name is announced exactly once. -->
+        <img src="logo.svg?v=1" alt="Eventara" class="logo-img logo-dark" />
+        <img src="logo-light.svg?v=1" alt="" aria-hidden="true" class="logo-img logo-light" />
       </a>
 
       <div class="navbar-nav">
@@ -251,7 +502,41 @@
        HERO
        ============================================================ -->
   <section class="hero">
-    <div class="hero-gradient"></div>
+    <!-- Background imagery. Decorative: the h1 and subtitle carry the
+         meaning, so the slides are aria-hidden with empty alt rather than
+         narrating five photo descriptions to a screen reader.
+         Slide 1 ships with a real src + is-active IN THE MARKUP so it
+         paints without waiting for JavaScript; slides 2-5 carry data-src
+         and are fetched after `load` (see the script below). -->
+    <div class="hero-media" aria-hidden="true">
+      <div class="hero-slide is-active">
+        <img src="images/hero/hero-1-udaipur-lake-venue.jpg"
+             srcset="images/hero/hero-1-udaipur-lake-venue-sm.jpg 1200w, images/hero/hero-1-udaipur-lake-venue.jpg 1920w"
+             sizes="100vw" width="1920" height="1080" alt=""
+             fetchpriority="high" decoding="async">
+      </div>
+      <div class="hero-slide">
+        <img data-src="images/hero/hero-2-corporate-conference.jpg"
+             data-srcset="images/hero/hero-2-corporate-conference-sm.jpg 1200w, images/hero/hero-2-corporate-conference.jpg 1920w"
+             sizes="100vw" width="1920" height="1080" alt="" decoding="async">
+      </div>
+      <div class="hero-slide">
+        <img data-src="images/hero/hero-3-institutional-convocation.jpg"
+             data-srcset="images/hero/hero-3-institutional-convocation-sm.jpg 1200w, images/hero/hero-3-institutional-convocation.jpg 1920w"
+             sizes="100vw" width="1920" height="1080" alt="" decoding="async">
+      </div>
+      <div class="hero-slide">
+        <img data-src="images/hero/hero-4-corporate-networking.jpg"
+             data-srcset="images/hero/hero-4-corporate-networking-sm.jpg 1200w, images/hero/hero-4-corporate-networking.jpg 1920w"
+             sizes="100vw" width="1920" height="1080" alt="" decoding="async">
+      </div>
+      <div class="hero-slide">
+        <img data-src="images/hero/hero-5-heritage-venue-courtyard.jpg"
+             data-srcset="images/hero/hero-5-heritage-venue-courtyard-sm.jpg 1200w, images/hero/hero-5-heritage-venue-courtyard.jpg 1920w"
+             sizes="100vw" width="1920" height="1080" alt="" decoding="async">
+      </div>
+    </div>
+    <div class="hero-scrim" aria-hidden="true"></div>
     <div class="container">
       <div class="hero-content fade-in">
 
@@ -315,8 +600,169 @@
         </div>
 
       </div>
+
+      <!-- Slide indicators. Real buttons so the imagery stays browsable by
+           keyboard and for anyone who has reduced-motion enabled (which
+           stops the automatic rotation). -->
+      <div class="hero-dots" id="heroDots" role="group" aria-label="Hero background imagery">
+        <button type="button" class="hero-dot" data-slide="0" aria-current="true" aria-label="Show background image 1 of 5"></button>
+        <button type="button" class="hero-dot" data-slide="1" aria-label="Show background image 2 of 5"></button>
+        <button type="button" class="hero-dot" data-slide="2" aria-label="Show background image 3 of 5"></button>
+        <button type="button" class="hero-dot" data-slide="3" aria-label="Show background image 4 of 5"></button>
+        <button type="button" class="hero-dot" data-slide="4" aria-label="Show background image 5 of 5"></button>
+      </div>
     </div>
   </section>
+
+  <script>
+    /* ============================================================
+       Hero carousel (added v2.21)
+       ------------------------------------------------------------
+       Page-scoped rather than added to app.js: only this page has a
+       hero, and putting it here avoids a `?v=` bump across all 14
+       other HTML files. Deliberately dependency-free and ES5-flavoured
+       to match the rest of the codebase.
+
+       Design notes:
+       - Slide 1 is already visible from the static markup, so if this
+         script never runs the hero is a correct still image, not an
+         empty box.
+       - Slides 2-5 are fetched on `load`, so they cannot compete with
+         the LCP image for bandwidth on first paint.
+       - A slide whose image fails to load is dropped from the rotation
+         rather than shown as a broken frame.
+       ============================================================ */
+    (function () {
+      var root   = document.querySelector('.hero');
+      if (!root) return;
+      var slides = [].slice.call(root.querySelectorAll('.hero-slide'));
+      var dots   = [].slice.call(root.querySelectorAll('.hero-dot'));
+      if (slides.length < 2) return;
+
+      var HOLD = 6000;            // visible time per slide
+      var idx = 0, timer = null;
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // Slides that failed to load are excluded from the rotation so a
+      // dead URL never shows as an empty/broken frame.
+      function alive() {
+        return slides.filter(function (s) { return !s.hasAttribute('data-failed'); });
+      }
+
+      function show(next) {
+        if (next === idx) return;
+        var from = slides[idx], to = slides[next];
+        if (!to || to.hasAttribute('data-failed')) return;
+        from.classList.remove('is-active');
+        from.classList.add('is-leaving');
+        // Clear the leaving state once its transition has finished, so the
+        // slide is reusable on the next lap.
+        window.setTimeout(function () { from.classList.remove('is-leaving'); }, 1800);
+        to.classList.add('is-active');
+        idx = next;
+        dots.forEach(function (d, i) {
+          if (i === idx) { d.setAttribute('aria-current', 'true'); }
+          else { d.removeAttribute('aria-current'); }
+        });
+      }
+
+      function nextIndex() {
+        var n = idx;
+        for (var i = 0; i < slides.length; i++) {
+          n = (n + 1) % slides.length;
+          if (!slides[n].hasAttribute('data-failed')) return n;
+        }
+        return idx;
+      }
+
+      function start() {
+        if (reduce || timer || alive().length < 2) return;
+        timer = window.setInterval(function () { show(nextIndex()); }, HOLD);
+      }
+      function stop() { if (timer) { window.clearInterval(timer); timer = null; } }
+
+      // Load slides 2-5 only after the page has loaded, so the preloaded
+      // first slide owns the initial bandwidth.
+      function hydrate() {
+        slides.forEach(function (s) {
+          var img = s.querySelector('img');
+          if (!img || !img.getAttribute('data-src')) return;
+          img.onerror = function () { s.setAttribute('data-failed', '1'); };
+          if (img.getAttribute('data-srcset')) img.setAttribute('srcset', img.getAttribute('data-srcset'));
+          img.setAttribute('src', img.getAttribute('data-src'));
+          img.removeAttribute('data-src');
+          img.removeAttribute('data-srcset');
+        });
+        start();
+      }
+
+      var first = slides[0].querySelector('img');
+      if (first) {
+        first.addEventListener('error', function () {
+          // The hero keeps its dark navy background, so the copy stays
+          // readable; just move on to a slide that did load.
+          slides[0].setAttribute('data-failed', '1');
+          slides[0].classList.remove('is-active');
+          var n = nextIndex();
+          if (n !== 0) { slides[n].classList.add('is-active'); idx = n; }
+        });
+      }
+
+      if (document.readyState === 'complete') { hydrate(); }
+      else { window.addEventListener('load', hydrate); }
+
+      // Don't animate in a backgrounded tab - pure wasted work.
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) { stop(); } else { start(); }
+      });
+
+      dots.forEach(function (d) {
+        d.addEventListener('click', function () {
+          var target = parseInt(d.getAttribute('data-slide'), 10);
+          // A manual pick restarts the clock, so the chosen slide gets a
+          // full turn instead of being swapped a moment later.
+          stop();
+          show(target);
+          start();
+        });
+      });
+    })();
+
+    /* ============================================================
+       Navbar glass state (added v2.23)
+       ------------------------------------------------------------
+       The bar is frosted ONLY while the hero is actually behind it.
+       Past that the page is white, and white-on-white is exactly the
+       failure the measurement warned about - so it reverts to the
+       standard solid navbar every other page already uses.
+
+       This script sits directly after the hero markup and runs during
+       parse, so the correct state is applied before first paint rather
+       than flashing the wrong one. If it never runs, the navbar simply
+       stays in its normal solid state - the safe direction to fail.
+       ============================================================ */
+    (function () {
+      var nav = document.querySelector('.navbar');
+      var hero = document.querySelector('.hero');
+      if (!nav || !hero) return;
+      var ticking = false;
+
+      function sync() {
+        ticking = false;
+        // Measured, not hardcoded: the bar is 80px on desktop but 64px below
+        // 768px (styles.css §14), so a fixed constant would switch state at the
+        // wrong point on every phone.
+        var navH = nav.offsetHeight || 80;
+        nav.classList.toggle('over-hero', hero.getBoundingClientRect().bottom > navH);
+      }
+      function onScroll() {
+        if (!ticking) { ticking = true; window.requestAnimationFrame(sync); }
+      }
+      sync();
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll, { passive: true });
+    })();
+  </script>
 
   <!-- ============================================================
        EVENTS VALUE FRAMEWORK

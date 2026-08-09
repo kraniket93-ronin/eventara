@@ -36,7 +36,17 @@
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
   <script src="auth-supabase.js?v=3"></script>
+  <script src="data-api.js?v=10"></script>
   <style>
+    /* Illustrated no-photo fallback. Reached only when a card's every
+       image candidate fails to load (the hotlinked supplier photos noted
+       as L13 can break at any time) - never a blank grey box.
+       Deliberately duplicated from supplier.html rather than promoted to
+       styles.css: moving it there would force a `?v=` bump, and a full
+       revalidation pass, across all 15 HTML files for four rules. */
+    .card-fallback { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-8); background: linear-gradient(135deg, var(--plum-50), var(--gold-light)); color: var(--plum); }
+    .card-fallback svg { width: 32px; height: 32px; opacity: 0.55; }
+    .card-fallback span { font-size: var(--text-heading-md); font-weight: 700; color: var(--ink-faint); }
     /* Clear the fixed 80px navbar so page content isn't hidden underneath it */
     body { padding-top: 80px; }
 
@@ -272,7 +282,9 @@
 
         <!-- Paandora Grand Udaipur -->
         <a href="/venue/paandora-grand-udaipur" class="provider-card fade-in" data-capacity="800" data-ptype="hotel">
-          <div class="card-image" style="background-image: url('https://pandorahotels.co.in/grand-udr/Property-with-lawn-view.webp'); background-size: cover; background-position: center;">
+          <div class="card-image">
+            <img src="https://pandorahotels.co.in/grand-udr/Property-with-lawn-view.webp" alt="Paandora Grand Udaipur"
+                 loading="eager" decoding="async" data-name="Paandora Grand Udaipur" data-category="banquet_hotel">
             <div class="card-badge badge-verified">
               Verified <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" stroke="#1DA1F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4" stroke="white"/></svg>
             </div>
@@ -306,7 +318,9 @@
 
         <!-- Sterling Balicha Udaipur -->
         <a href="/venue/sterling-balicha" class="provider-card fade-in" data-capacity="400" data-ptype="hotel">
-          <div class="card-image" style="background-image: url('https://media.easemytrip.com/media/Hotel/SHL-2401311249900013/Hotel/HotelbLWLcC.png'); background-size: cover; background-position: center;">
+          <div class="card-image">
+            <img src="https://media.easemytrip.com/media/Hotel/SHL-2401311249900013/Hotel/HotelbLWLcC.png" alt="Sterling Balicha"
+                 loading="eager" decoding="async" data-name="Sterling Balicha" data-category="banquet_hotel">
             <div class="card-badge badge-verified">
               Verified <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" stroke="#1DA1F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4" stroke="white"/></svg>
             </div>
@@ -340,7 +354,9 @@
 
         <!-- Hotel Aloka -->
         <a href="/venue/hotel-aloka" class="provider-card fade-in" data-capacity="200" data-ptype="hotel">
-          <div class="card-image" style="display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:700;color:var(--ink-faint);">HA
+          <div class="card-image">
+            <img src="images/suppliers/hotel-aloka.jpg" alt="Hotel Aloka"
+                 loading="eager" decoding="async" data-name="Hotel Aloka" data-category="banquet_hotel">
             <div class="card-badge badge-verified">
               Verified <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" stroke="#1DA1F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4" stroke="white"/></svg>
             </div>
@@ -374,7 +390,9 @@
 
         <!-- Lakeside Leisure -->
         <a href="/venue/lakeside-leisure" class="provider-card fade-in" data-capacity="150" data-ptype="hotel">
-          <div class="card-image" style="background-image: url('https://media.easemytrip.com/media/Hotel/SHL-260127857612651/Hotel/HotelaOinJi.png'); background-size: cover; background-position: center;">
+          <div class="card-image">
+            <img src="https://media.easemytrip.com/media/Hotel/SHL-260127857612651/Hotel/HotelaOinJi.png" alt="Lakeside Leisure"
+                 loading="lazy" decoding="async" data-name="Lakeside Leisure" data-category="banquet_hotel">
             <div class="card-badge badge-verified">
               Verified <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" stroke="#1DA1F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4" stroke="white"/></svg>
             </div>
@@ -408,7 +426,9 @@
 
         <!-- Bluspring -->
         <a href="/venue/bluspring" class="provider-card fade-in" data-capacity="9999" data-ptype="manager">
-          <div class="card-image" style="display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:700;color:var(--ink-faint);">BS
+          <div class="card-image">
+            <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&amp;fit=crop&amp;w=900&amp;q=75" alt="Bluspring"
+                 loading="lazy" decoding="async" data-name="Bluspring" data-category="event_manager">
             <div class="card-badge badge-verified">
               Verified <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" stroke="#1DA1F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4" stroke="white"/></svg>
             </div>
@@ -442,7 +462,9 @@
 
         <!-- Indicraft Communications -->
         <a href="/venue/indicraft-communications" class="provider-card fade-in" data-capacity="9999" data-ptype="manager">
-          <div class="card-image" style="display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:700;color:var(--ink-faint);">IC
+          <div class="card-image">
+            <img src="images/suppliers/indicraft-communications.jpg" alt="Indicraft Communications"
+                 loading="lazy" decoding="async" data-name="Indicraft Communications" data-category="event_manager">
             <div class="card-badge badge-verified">
               Verified <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" stroke="#1DA1F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4" stroke="white"/></svg>
             </div>
@@ -476,7 +498,9 @@
 
         <!-- Blossom Events -->
         <a href="/venue/blossom-events" class="provider-card fade-in" data-capacity="9999" data-ptype="manager">
-          <div class="card-image" style="background-image: url('https://blossomevent.com/wp-content/uploads/2025/06/AJ1A2224-1-scaled-1.webp'); background-size: cover; background-position: center;">
+          <div class="card-image">
+            <img src="https://blossomevent.com/wp-content/uploads/2025/06/AJ1A2224-1-scaled-1.webp" alt="Blossom Events"
+                 loading="lazy" decoding="async" data-name="Blossom Events" data-category="event_manager">
             <div class="card-badge badge-verified">
               Verified <svg width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" stroke="#1DA1F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4" stroke="white"/></svg>
             </div>
@@ -681,6 +705,96 @@
       });
 
       apply();
+    })();
+  </script>
+  <script>
+    /* ============================================================
+       Supplier cover images - resolved from Supabase (added v2.21)
+       ------------------------------------------------------------
+       This page still renders its 7 cards as static markup (a
+       deliberate scope boundary since v2.4 - see the handout §5.13);
+       only the IMAGE layer is data-driven here. The static `src` is a
+       build-time snapshot of the same database value, so the page is
+       correct with JavaScript off, offline, or before this resolves -
+       and is then re-resolved from the database on load so the listing
+       cannot drift from what the supplier's own dashboard shows.
+
+       Nothing else about a card is touched: the filter/sort code reads
+       .rating/.amount/data-capacity/data-ptype, and the href already
+       carries each supplier's own slug, so every card keeps opening its
+       own portfolio page.
+       ============================================================ */
+    (function () {
+      var CATEGORY_ICON_BUILDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/></svg>';
+      var CATEGORY_ICON_CALENDAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14l2 2 4-4"/></svg>';
+
+      function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+      function categoryIcon(cat) { return cat === 'banquet_hotel' ? CATEGORY_ICON_BUILDING : CATEGORY_ICON_CALENDAR; }
+      function initialsOf(n) { return (n || '').split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase(); }
+
+      // An oversized original costs bandwidth for no visible gain: the card
+      // image box is 220px tall and never wider than ~400 CSS px. Unsplash
+      // serves a resized copy from the same URL, so ask for one. Applied
+      // only to that host - every other URL is passed through untouched.
+      function rightSized(url) {
+        if (!url || url.indexOf('images.unsplash.com') === -1) return url;
+        return url.replace(/([?&])w=\d+/, '$1w=900').replace(/([?&])q=\d+/, '$1q=75');
+      }
+
+      function slugOf(card) {
+        var href = card.getAttribute('href') || '';
+        var m = href.match(/\/venue\/([a-z0-9-]+)/i) || href.match(/[?&]slug=([a-z0-9-]+)/i);
+        return m ? m[1] : null;
+      }
+
+      // Walks to the next candidate URL on failure and, once they are all
+      // exhausted, swaps in the illustrated fallback rather than leaving a
+      // broken image icon in the card.
+      function attachFallback(img) {
+        img.onerror = function () {
+          var list; try { list = JSON.parse(img.getAttribute('data-candidates') || '[]'); } catch (e) { list = []; }
+          var i = parseInt(img.getAttribute('data-idx') || '0', 10) + 1;
+          if (list[i]) { img.setAttribute('data-idx', String(i)); img.src = rightSized(list[i]); return; }
+          var wrap = img.parentNode;
+          var fb = document.createElement('div');
+          fb.innerHTML = '<div class="card-fallback">' + categoryIcon(img.getAttribute('data-category')) +
+                         '<span>' + esc(initialsOf(img.getAttribute('data-name'))) + '</span></div>';
+          wrap.insertBefore(fb.firstChild, img);
+          img.remove();
+        };
+      }
+
+      var cards = [].slice.call(document.querySelectorAll('#providerGrid .provider-card'));
+      cards.forEach(function (c) { var i = c.querySelector('.card-image img'); if (i) attachFallback(i); });
+
+      // Offline / not-configured: the static snapshot already on the page
+      // stands, exactly as it does for the rest of this prototype.
+      if (!window.EventaraAPI || !window.sb) return;
+
+      EventaraAPI.supplierCovers().then(function (r) {
+        if (!r || r.error || !r.data) return;
+        var bySlug = {};
+        r.data.forEach(function (s) { bySlug[s.slug] = s; });
+
+        cards.forEach(function (card) {
+          var s = bySlug[slugOf(card)];
+          var img = card.querySelector('.card-image img');
+          if (!s || !img) return;
+          var candidates = [s.hero_image_url, s.media_cover_url,
+            s.category === 'banquet_hotel' ? s.venue_cover_url : null,
+            s.cover_image].filter(Boolean);
+          if (!candidates.length) return;
+          img.setAttribute('data-candidates', JSON.stringify(candidates));
+          img.setAttribute('data-idx', '0');
+          if (s.business_name) { img.setAttribute('data-name', s.business_name); img.alt = s.business_name; }
+          if (s.category) img.setAttribute('data-category', s.category);
+          var next = rightSized(candidates[0]);
+          // Don't re-request an identical URL - that would throw away a
+          // already-decoded image and flash the card for no reason.
+          if (next && next !== img.getAttribute('src')) { img.removeAttribute('srcset'); img.src = next; }
+        });
+      }).catch(function () { /* snapshot stands */ });
     })();
   </script>
   <script src="chatbot.js?v=9"></script>

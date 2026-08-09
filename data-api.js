@@ -47,6 +47,23 @@
       const g = guard(); if (g) return g;
       return sb.from("v_supplier_public").select("*").eq("id", id).single();
     },
+    // Cover imagery for every active supplier, keyed by slug, in one round
+    // trip. Exists so pages that still render supplier cards as static
+    // markup (search.html, index.html's featured row) can resolve their
+    // photos from the SAME source as supplier.html and the Similar
+    // Suppliers rail, instead of carrying a second, drifting copy of each
+    // URL. A photo changed in the supplier dashboard therefore reaches the
+    // listing pages with no markup edit.
+    //
+    // Returns the raw candidates as well as the resolved cover_image, so
+    // the caller can retry down the chain when a URL 404s - the same
+    // hero_image_url -> supplier_media -> venue_images(hotels only)
+    // priority v_supplier_public.cover_image applies server-side.
+    async supplierCovers() {
+      const g = guard(); if (g) return g;
+      return sb.from("v_supplier_public")
+        .select("slug,business_name,category,cover_image,hero_image_url,media_cover_url,venue_cover_url");
+    },
 
     // ---------- Supplier detail ----------
     async getSupplierDetail(idOrSlug) {

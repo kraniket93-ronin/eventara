@@ -11,8 +11,8 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.19 (see §18 Change Log) |
-| **Last verified against code** | 2026-07-29 |
+| **Doc version** | 2.23 (see §18 Change Log) |
+| **Last verified against code** | 2026-08-09 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
 > The **GitHub repo root == the contents of the local `prototype/` folder.**
@@ -56,6 +56,7 @@
 19. [Backend Architecture (Supabase)](#19-backend-architecture-supabase--added-v22)
 20. [Data Model, Security Matrix & Test Plan](#20-data-model-security-matrix--test-plan--added-v212)
 21. [Authentication & Onboarding](#21-authentication--onboarding--added-v213)
+22. [Native Android App](#22-native-android-app--added-v220)
 18. [Change Log](#18-change-log)
 
 ---
@@ -230,6 +231,13 @@ Project B Prototype/                  ← LOCAL project root (NOT the repo root)
     │   └── chat.js                   ★ Vercel serverless fn - Gemini-backed assistant
     │
     ├── images/                       Local images
+    │   ├── hero/                     ★ Homepage hero carousel (added v2.21, recurated v2.22)
+    │   │   └── hero-1..5-<name>.jpg + -sm.jpg   5 slides x 2 widths (1920x1080 / 1200x900)
+    │   │       Indian/Udaipur set: udaipur-lake-venue · corporate-conference ·
+    │   │       institutional-convocation · corporate-networking · heritage-venue-courtyard
+    │   ├── suppliers/                ★ Curated supplier covers (added v2.21)
+    │   │   ├── hotel-aloka.jpg               1200x800, boutique-hotel interior
+    │   │   └── indicraft-communications.jpg  1200x800, corporate exhibition floor
     │   ├── corporate.png  fest.png  hotel.png  wedding1.png  wedding2.png
     │   ├── events-value-framework.png ★ EVENTS artwork, foreground layer (1024x894, RGBA, 301KB)
     │   ├── events-value-framework-bg.png ★ Full-bleed photo backdrop behind it (1672x941, RGB, 1.65MB)
@@ -262,10 +270,17 @@ flat in the root. This is intentional for a no-build prototype. Do not reorganis
 
 ## 5. PAGE DOCUMENTATION
 
-There are **14 pages**. Every page includes, in `<head>` or before `</body>`:
-`styles.css?v=19` · `auth-supabase.js?v=1` · `app.js?v=4` · `chatbot.js?v=9` (plus the Supabase SDK
+There are **15 pages**. Every page includes, in `<head>` or before `</body>`:
+`styles.css?v=22` · `auth-supabase.js?v=3` · `app.js?v=4` · `chatbot.js?v=9` (plus the Supabase SDK
 + `supabase-config.js` + `supabase-client.js`, loaded before `auth-supabase.js` on every page since
-v2.3). `supplier.html` additionally loads `data-api.js?v=1` - the first and so far only page to.
+v2.3). **`data-api.js?v=10`** is loaded by `supplier.html`, `brief.html`, both dashboards and -
+since v2.21 - `search.html`. `disputes-ui.js?v=1` is loaded by both dashboards.
+
+> These version numbers drift out of date faster than anything else in this document. To read the
+> truth straight off the code:
+> ```bash
+> grep -oh '[a-z-]*\.js?v=[0-9]*\|styles\.css?v=[0-9]*' *.html | sort -u
+> ```
 
 ---
 
@@ -278,10 +293,164 @@ v2.3). `supplier.html` additionally loads `data-api.js?v=1` - the first and so f
 | **Auth** | Public |
 | **Connected pages** | `search.html`, `brief.html`, `compare.html`, `signin.html`, `faq.html`, `provider.html` |
 
-**Sections (in order):** Navbar → Hero (headline, subtitle, event-type search bar, 3 trust items)
-→ **EVENTS Value Framework graphic** (added v2.7) → Categories (3 cards) → How It Works (3 steps)
-→ Featured suppliers (3 cards) → Trust (4 cards) → Stats row (animated counters) →
-Testimonials (3) → CTA band (supplier acquisition) → Footer.
+**Sections (in order):** Navbar → Hero (**photographic carousel**, headline, subtitle, event-type
+search bar, 3 trust items, slide dots) → **EVENTS Value Framework graphic** (added v2.7) →
+Categories (3 cards) → How It Works (3 steps) → Featured suppliers (3 cards) → Trust (4 cards) →
+Stats row (animated counters) → Testimonials (3) → CTA band (supplier acquisition) → Footer.
+
+#### Hero Enhancement - photographic carousel (added v2.21)
+
+**Purpose.** The hero was a white canvas with black type. It now sits on a rotating set of five
+event photographs, so the landing view reads as an event marketplace rather than a generic SaaS
+page. **No hero copy, field or control was reworded, added or removed** - the headline, subtitle,
+search bar and three trust items are the same elements, recoloured for a dark backdrop.
+
+**Assets (recurated to an Indian / Udaipur context in v2.22).**
+`images/hero/hero-1..5-<name>.jpg`, each also at `-sm.jpg`:
+
+| # | Slide | Represents | Source (Pexels id) | Crop focal-y |
+|---|---|---|---|---|
+| 1 | `hero-1-udaipur-lake-venue` | Lake Pichola at dusk with a heritage hotel façade, Aravalli hills behind - Udaipur premium hospitality (**LCP slide**) | 1719173 | 0.52 |
+| 2 | `hero-2-corporate-conference` | An Indian speaker addressing a seated audience - corporate conference / seminar | 31770764 | 0.45 |
+| 3 | `hero-3-institutional-convocation` | Indian convocation, graduates on a campus lawn | 35486979 | 0.58 |
+| 4 | `hero-4-corporate-networking` | Indian professionals at an event hospitality counter | 14846583 | 0.44 |
+| 5 | `hero-5-heritage-venue-courtyard` | Rajasthani heritage courtyard with jharokhas and garden seating - palace-inspired venue | 33726143 | 0.55 |
+
+Sourced from **Pexels** (Pexels License - free commercial use, no attribution required),
+**downloaded and re-encoded locally**, not hotlinked: the hero is the LCP element and must not
+depend on a third-party CDN staying up (the fragility recorded as L13 for supplier photos).
+Two widths at `sizes="100vw"` - **1920x1080** desktop and **1200x900** mobile - so a phone never
+downloads a 1920px asset. Desktop set totals **1,038KB**; **only slide 1 (204KB) is on the
+critical path**, the rest load after `load`.
+
+> **The `Crop focal-y` column is the responsive-cropping mechanism.** Two sources are portrait
+> (2400x3600) and every slide is cut to both 16:9 and 4:3, so a naive centre crop loses the
+> subject. The focal point is applied **at encode time**, per image, per variant - the CSS stays
+> `object-fit: cover; object-position: center` for every slide, so the page has no per-image
+> rules to keep in sync. To re-crop a slide, change its focal value and re-run the encode; do not
+> add `object-position` overrides.
+
+**Tonal grading - why the source photos were altered.** Text over a carousel fails accessibility
+intermittently: a scrim tuned for a dark slide is not enough for a bright one, so contrast passes
+on some frames and fails on others. Every slide is therefore graded once, at encode time, to a
+**common p95 luminance of 0.36**, and the page then applies a single scrim. This is also what
+keeps the sequence tonally even rather than pulsing bright/dark as it rotates.
+
+> **v2.22 changed the grading curve, and the reason matters.** The original set used a flat
+> multiply in linear space. The Indian/Udaipur set could not: several of these frames carry a
+> *small* very bright region - a projection screen, an open sky - that pushes p95 to 0.82-0.96
+> while the rest of the frame is mid-toned. Cutting the whole image by the ~1.4 stops needed to
+> tame that highlight crushed everything else into mud. The encoder now applies a **soft-knee
+> highlight compression**: tones below the frame's median are left untouched and only the
+> highlights are compressed on a straight line, chosen so p95 lands on 0.36. Same guarantee
+> behind the text, far more of the original image preserved.
+
+**Contrast scrim - measured, like §5.1's framework backdrop and §5.9's glass card.**
+`.hero-scrim` is a vertical gradient of `rgba(11,17,40,α)` that **never drops below α=0.42**
+behind the copy:
+
+| Overlay α | Worst-case white-text contrast |
+|---|---|
+| 0.30 | 4.46:1 ✗ fails AA |
+| **0.42 (the floor used)** | **5.81:1** ✓ (v2.22 set; 5.75:1 on the original set) |
+| 0.50 | 6.86:1 ✓ |
+
+Re-measured across the v2.22 images, worst case of the five: **white 5.81:1 · hero-gold 4.00:1 ·
+subtitle-white-92% 4.93:1** - all above their AA thresholds, and unchanged in method. Because the
+grading target is the same 0.36, **any future slide graded the same way inherits these numbers.**
+
+**Brand colours could not be used as-is on the dark backdrop, and this is deliberate.** Measured
+against the worst-case composited background:
+
+| Colour | Contrast | Verdict |
+|---|---|---|
+| Brand gold `#CBA135` | 2.38:1 | ✗ unusable |
+| Royal blue `#1E40AF` | 1.52:1 | ✗ unusable |
+| **Hero gold `#EFD489`** (h1 accent) | **3.95:1** | ✓ AA large text (needs 3:1) |
+| White (h1) | 5.74:1 | ✓ |
+| White 92% (subtitle) | 5.13:1 | ✓ |
+| White 90% (trust items) | 4.99:1 | ✓ |
+| `#6FE0AC` (trust icons) | 3.54:1 | ✓ non-text (needs 3:1) |
+
+They are **lightened tints of the same hues**, scoped to `.hero` only - the royal-blue-and-gold
+identity is unchanged everywhere else on the site. Do not "restore" `--coral`/`--gold` here.
+
+**Carousel behaviour.** 5 slides, **6s** each, crossfade over 1200ms while the incoming slide
+travels from `+3%` to `0` and the outgoing continues to `-3%` - a continuous left-to-right pass,
+not a cut. The active slide also pans ±1.5% over 11s. Slide images are `scale(1.12)`, giving 6%
+of overscan per edge so the 3% travel plus 1.5% pan can never expose an edge. Only `opacity` and
+`transform` animate, so the carousel is **compositor-only** - no layout, no repaint.
+
+**Everything that can fail, degrades:**
+
+| Condition | Behaviour |
+|---|---|
+| JavaScript disabled / fails | Slide 1 has a real `src` and `is-active` **in the static markup** - the hero is a correct still image, never an empty box |
+| A slide's image 404s | The slide is marked `data-failed` and **dropped from the rotation** |
+| Slide 1 fails | Rotation advances to the first slide that did load |
+| **All** images fail | `.hero` keeps `background-color: rgb(11,17,40)`, so white copy stays readable |
+| Tab backgrounded | `visibilitychange` stops the timer - no work in a hidden tab |
+| `prefers-reduced-motion` | **Rotation stops entirely** and the pan is removed; dots remain operable so the imagery is still browsable by choice |
+
+**Performance.** Slide 1 is `<link rel="preload" as="image">` with `imagesrcset`/`imagesizes` so
+the preload picks the same variant the `<img>` will, plus `fetchpriority="high"`. **Slides 2-5
+carry `data-src` and are only promoted to `src` on `window.load`**, so they cannot compete with
+the LCP image for bandwidth. The media layer is `position: absolute`, so it contributes **zero**
+document height - verified: forcing all five slides visible changed `scrollHeight` by 0px.
+
+**Responsive (measured, no horizontal overflow at any width):**
+
+| Viewport | Hero height | % of viewport |
+|---|---|---|
+| 1440x900 | 792px | 88% |
+| 768x1024 (tablet) | 797px | 78% |
+| 390x844 | 966px | 114% |
+| 360x740 | 1030px | 139% |
+| 740x360 (landscape phone) | 789px | `min-height` correctly resolves to `auto` |
+
+> **Mobile height - an honest limitation.** The hero is **content-driven** on phones
+> (`min-height: auto`), and its height is set by copy the brief said not to redesign: a
+> ~6-line subtitle and a search bar that stacks into four full-width fields. v2.21 reduced
+> it from a measured **~1180px to 1030px** at 360x740 by trimming padding (120/64 → 96/40)
+> and tightening the vertical rhythm; the carousel itself adds **no** height, it only fills
+> the box the copy already occupied. Getting materially below ~1000px needs a **copy or
+> search-bar decision**, not a CSS one - flagged rather than taken unilaterally.
+
+#### Navbar glass state (added v2.23)
+
+While the hero is behind it, the navbar becomes **frosted glass** instead of the solid white bar:
+`rgba(11,17,40,0.26)` + `blur(22px) saturate(150%)`, a white hairline and an inset top highlight.
+Same recipe as the Sign In card (§5.9), tinted with the **hero's navy rather than that card's
+violet**, so the bar reads as an extension of the hero scrim instead of introducing a second tint.
+
+> **The tint is aesthetic; the text flip is not.** Measured on the strip the navbar actually
+> covers - where the hero scrim already sits at α 0.72 - white text scores **9.05:1 with no tint
+> at all**, while the navbar's default ink `#222` scores **1.22:1**. So the load-bearing part of
+> this change is that *every* navbar element flips to white: links, Sign In, the List Your
+> Business button, the hamburger bars and the signed-in account chip. Changing only the
+> background would leave the navigation unreadable.
+
+| Concern | How it is handled |
+|---|---|
+| **Scrolled past the hero** | The page is white there, and white-on-white is the same failure inverted. A scroll handler removes the class and the bar reverts to the **existing solid navbar, unchanged** |
+| **Switch point** | `hero.getBoundingClientRect().bottom > nav.offsetHeight`. The height is **measured, not hardcoded** - the bar is 80px on desktop but **64px below 768px** (styles.css §14), so a constant would switch at the wrong point on every phone |
+| **Logo** | The blue wordmark measures 1.4:1 on dark glass - the same finding that put `logo-light.svg` on the Sign In card. **Both marks ship in the markup and CSS picks one**, so there is no `src` swap: no second fetch mid-scroll and no flash of the wrong logo. The light one is `alt="" aria-hidden` so the brand is announced once |
+| **No JavaScript** | The class is only ever *added* by script, so the fallback is the normal solid navbar - the safe direction to fail |
+| **No `backdrop-filter`** | `@supports` raises the tint to `0.86` - a translucent bar without blur reads as muddy rather than glassy (same fallback as the Sign In card) |
+| **Signed-in state** | `Auth.renderNav()` rebuilds `.navbar-actions`; the account chip, name and chevron have their own over-hero rules. Verified: chip renders white, avatar keeps `--coral`, both logos survive the rebuild |
+
+Scoped entirely to `index.html` (one `<style>` addition, one `<script>`, one extra `<img>`), so
+**no other page's navbar changes and no `?v=` bump was needed.**
+
+**Accessibility.** Slides are decorative (`alt=""`, container `aria-hidden="true"`) because the
+`h1` and subtitle carry the meaning - narrating five photo descriptions would be noise. The dots
+are real `<button>`s in a `role="group"` with `aria-label`s and `aria-current`, and although the
+visible dot is 8px the **hit area is 44x44** (§13 rule 2). Verified: exactly one `aria-current`
+at a time, and clicking a dot both selects that slide and restarts the timer.
+
+**Files:** `index.html` only (one `<style>` block, the hero markup, one page-scoped `<script>`)
+plus the `images/hero/` assets. **`styles.css` is untouched, so no `?v=` bump was needed on the
+other 14 pages** - the same reasoning recorded for `.events-framework` below.
 
 #### Homepage Enhancement - EVENTS Value Framework (added v2.7)
 
@@ -474,6 +643,56 @@ Managers / Banquet Hotels) · Sort By (Reputation / Rating / Price asc / Price d
 | 5 | Bluspring | Food & Hospitality | `manager` | 9999 | ₹5,00,000 | Initials cover "BS" |
 | 6 | Indicraft Communications | Events & Promotions | `manager` | 9999 | ₹6,00,000 | Initials cover "IC" |
 | 7 | Blossom Events | Event Management | `manager` | 9999 | ₹8,00,000 | Real photo |
+
+#### Supplier cover images - now resolved from Supabase (v2.21)
+
+**The bug this fixed.** Three cards (Hotel Aloka, Bluspring, Indicraft) rendered an initials
+cover - "HA", "BS", "IC" - while **the database had held real cover images for all seven
+suppliers since `0010`/`0012`**. Nothing was missing from the data; this page's static markup had
+simply never been updated, so the listing and the supplier's own detail page disagreed about what
+that supplier looked like.
+
+**How it works now.** The image layer - and only the image layer - is data-driven:
+
+```
+v_supplier_public  →  EventaraAPI.supplierCovers()  →  card <img>  →  /venue/<slug>
+```
+
+- Every card's `.card-image` is now an **`<img>`**, not a CSS `background-image`. Deliberate:
+  `background-image` has **no `onerror` event and no native lazy-loading**, both of which this
+  needs. Same reason recorded for the Similar Suppliers rail in §5.13.
+- The static `src` in the markup is a **build-time snapshot of the same database value**, so the
+  page is correct with JavaScript off, offline, or before the query resolves - and is then
+  re-resolved on load, so the listing cannot drift from the supplier's dashboard again.
+- Candidates follow the **same priority chain** as everywhere else -
+  `hero_image_url` → `supplier_media` → `venue_images` (hotels only) → `cover_image` - and a
+  failed URL walks to the next before finally rendering the illustrated `.card-fallback`.
+- Unsplash URLs are **right-sized client-side** (`w=900&q=75`): the card image box is 220px tall
+  and never wider than ~400 CSS px, so a `w=1600` original is pure waste. Applied to that host
+  only; every other URL passes through untouched.
+
+**Two seeded photos were wrong for their supplier** and are corrected by migration
+`0026_supplier_cover_images.sql`:
+
+| Supplier | Was | Why it was wrong | Now |
+|---|---|---|---|
+| Hotel Aloka (Boutique Hotel) | Pastel banquet table dressed for a **wedding** | Does not depict a boutique hotel, **and weddings are Coming Soon (B2)** - wedding imagery on a live listing implies a category the platform does not sell | `/images/suppliers/hotel-aloka.jpg` |
+| Indicraft Communications (Events & Promotions) | Casual outdoor party crowd | Reads social/private, not the corporate promotions and exhibitions this firm runs | `/images/suppliers/indicraft-communications.jpg` |
+
+**Bluspring's photo was deliberately left alone** - plated fine dining is a correct match for a
+Food & Hospitality firm - as were the four suppliers with genuine photographs of their own
+property. The brief was to fix what was missing or wrong, not to restyle what worked.
+
+> ⚠️ **Migration `0026` must be applied for those two images to appear.** The paths are stored in
+> the database, and the browser holds only the **anon** key, which RLS correctly refuses write
+> access to (a `PATCH` returns `200` with an empty result set - the silent-denial behaviour this
+> project has hit before). Until it is applied the two cards show their **previous** stock photos,
+> which load fine but are less apt. Nothing else waits on it.
+
+> **Why the paths are root-absolute** (`/images/suppliers/...`, not `images/...`): the same value
+> is rendered by `/supplier.html?slug=…` **and** by `/venue/<slug>`, which sit at different path
+> depths. A relative path would resolve to `/venue/images/…` on the second, hit the slug
+> validator and 400 - exactly the class of bug fixed in v2.18.
 
 **Filtering mechanism (important for anyone editing this page):**
 The filter JS is **fully DOM-driven** - it reads every `.provider-card` live and parses rating,
@@ -1605,7 +1824,9 @@ component framework and no partial/include system - **markup is duplicated acros
 | **Footer** | `.footer`, `.footer-grid`, `.footer-brand`, `.footer-col`, `.footer-tagline`, `.footer-bottom` | All pages | 4-column footer; tagline in royal blue |
 | **Supplier card** | `.provider-card`, `.card-image`, `.card-content`, `.provider-name`, `.provider-meta`, `.price-row` | `search.html`, `index.html`, `supplier.html` (Similar Suppliers) | Listing tile. Needs `data-capacity` + `data-ptype` on search |
 | **Verified badge** | `.badge-verified` | Supplier cards & profile | Blue tick + "Verified" |
-| **Initials cover** | `.card-image` with flex-centred text | Suppliers without a photo (HA, BS, IC, LL) | The design's official no-photo treatment - **not** a placeholder |
+| **Hero carousel** | `.hero-media`, `.hero-slide` (`.is-active` / `.is-leaving`), `.hero-scrim`, `.hero-dots`, `.hero-dot` | `index.html` only (page-scoped) | 5-slide crossfade + horizontal drift behind the hero copy (§5.1) |
+| **Illustrated card fallback** | `.card-fallback` | `supplier.html`, `search.html` | Category icon + initials on a soft gradient. Reached only when **every** image candidate for a card fails - never a blank grey box. Replaces the old initials cover as the no-photo treatment |
+| ~~**Initials cover**~~ | ~~`.card-image` with flex-centred text~~ | — | **Retired v2.21.** Every supplier now has a real cover image resolved from Supabase; `.card-fallback` covers the load-failure case |
 | **Category card** | `.category-card`, `.category-icon`, `.is-soon`, `.cat-badge`, `.cat-soon-label` | `index.html` | Phase 1 categories; `.is-soon` = non-clickable "Coming Soon" |
 | **Button** | `.btn` + `.btn-primary` / `.btn-secondary` / `.btn-ghost` / `.btn-sm` / `.btn-lg` | Everywhere | Primary = royal blue fill |
 | **Filter toolbar** | `.filter-bar`, `.filter-toolbar`, `.filter-field`, `.filter-select`, `.seg`, `.filter-toggle` | `search.html` | Filters; collapses on mobile |
@@ -1920,8 +2141,8 @@ Be honest about these - especially in a stakeholder demo.
 
 | # | Limitation |
 |---|---|
-| L13 | **Supplier photos are hotlinked** from third-party CDNs (pandorahotels.co.in, sterlingholidays.com, blossomevent.com, media.easemytrip.com). If a host blocks hotlinking or moves a file, images break. Local copies would be more robust. |
-| L14 | **3 suppliers have no verified photo** - Hotel Aloka, Bluspring, Indicraft Communications use initials covers. Their ratings/review counts/prices are **illustrative**, not sourced. |
+| L13 | **Four suppliers' photos are still hotlinked** from third-party CDNs (pandorahotels.co.in, blossomevent.com, media.easemytrip.com x2). If a host blocks hotlinking or moves a file, those images break - the `.card-fallback` chain now degrades gracefully instead of showing a blank box, but the photo is still gone. The v2.21 hero and the two curated supplier covers are hosted locally for exactly this reason; the remaining four are genuine photographs of the suppliers' own property and were left as-is. |
+| L14 | **3 suppliers have no photograph of their own premises** - Hotel Aloka, Bluspring and Indicraft Communications carry category-appropriate **stock** imagery (v2.21), not pictures of their actual venue or work. Their ratings/review counts/prices remain **illustrative**, not sourced. Replace with real photography before launch; a supplier can do this themselves from the dashboard gallery, and it propagates to search automatically. |
 | L15 | **"Hotel Aloka" identity is unconfirmed** - public searches resolve to a different property ("Hotel Alka"). Confirm before publishing. |
 | L16 | **Testimonials and sample GST/FSSAI numbers are illustrative** (marked `(sample)` on the invoice). |
 
@@ -2134,6 +2355,14 @@ prototype/
       0024_rpc_execute_hardening.sql      [v2.12] revokes anon EXECUTE on every session-required
                                     RPC (notify() was callable with just the anon key, allowing
                                     spoofed notifications), pins search_path on 2 helpers
+      0025_auth_onboarding.sql            [v2.13] handle_new_user() supplier branch, draft
+                                    signups + publish_supplier(), onboarding_progress,
+                                    profile_completion(), ensure_account_records()
+      0026_supplier_cover_images.sql      [v2.21] repoints Hotel Aloka's and Indicraft's cover
+                                    imagery at locally hosted, category-appropriate assets (the
+                                    seeded stock photos depicted a wedding and a private party
+                                    respectively - see §5.2). Idempotent; no schema change.
+                                    ** NOT YET APPLIED - needs to be run in the SQL editor. **
     APPLY_GUIDE.md        apply + connect + env-vars + test checklist
   supabase-config.js      URL + anon key (you fill in; blank = offline demo mode)
   supabase-client.js      creates window.sb only when configured
@@ -2193,7 +2422,7 @@ Upload convention: objects live under a `"<auth.uid()>/..."` folder; object poli
 - **RPCs** (`sb.rpc(...)`) for transactions: `create_booking`, `accept_quote`, `reject_quote`, `release_escrow`, `cancel_booking`, `generate_invoice`, `update_availability`, `search_suppliers`, `supplier_dashboard_stats`, `customer_dashboard_stats`, `notify`.
 - **Views** for read models (dashboards/analytics), all `security_invoker` so RLS still applies. `v_supplier_public` (v2.4: now also exposes `slug`/`tagline`/`featured`/`hero_image_url`; **v2.5:** `cover_image` rewritten to a real hero -> supplier_media -> venue_images(hotel-only) priority chain instead of venue_images-only, plus raw `media_cover_url`/`venue_cover_url`/`availability_state` columns for client-side image retry and no-extra-query availability badges).
 - **RPCs** gain `get_similar_suppliers(p_supplier_id, p_limit)` in v2.5 - ranked recommendation query (same city/category first, then verified/featured/closest-rating/closest-price), replacing a two-query client-side fallback with one round trip.
-- `data-api.js` wraps these as `EventaraAPI.*`; each returns `{data,error}` and degrades gracefully offline. **v2.4 additions:** `getSupplierDetail(idOrSlug)` (single nested-embed query for the whole supplier profile; slug-vs-id chosen client-side via UUID regex). **v2.5:** `getSimilarSuppliers(supplierId, limit)` signature simplified (was `(category, city, excludeId, limit)`) now that ranking lives entirely in `get_similar_suppliers()`.
+- `data-api.js` wraps these as `EventaraAPI.*`; each returns `{data,error}` and degrades gracefully offline. **v2.21:** `supplierCovers()` - one query returning `slug`/`business_name`/`category`/`cover_image` + the raw candidate columns for **every** active supplier, so pages that still render supplier cards as static markup (`search.html`) resolve their photos from the same source as `supplier.html`, instead of carrying a second copy of each URL that drifts. **v2.4 additions:** `getSupplierDetail(idOrSlug)` (single nested-embed query for the whole supplier profile; slug-vs-id chosen client-side via UUID regex). **v2.5:** `getSimilarSuppliers(supplierId, limit)` signature simplified (was `(category, city, excludeId, limit)`) now that ranking lives entirely in `get_similar_suppliers()`.
 
 ### 19.7 Security & env vars
 Server secrets live only in Vercel env (`SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` [rotate], payment/email/WhatsApp keys). The browser only ever gets the **anon** key, which is safe because RLS enforces access. Passwords are hashed by Supabase (bcrypt); input is validated in RPCs and by DB constraints; audit + login events give a trail. Repo should be made **private**.
@@ -2639,9 +2868,336 @@ edits propagate the same way, because every surface reads the same tables.
 
 ---
 
+## 22. NATIVE ANDROID APP  [added v2.20]
+
+A native Android client is being built **alongside** this platform, in a sibling folder that is
+deliberately outside the deployable tree.
+
+```
+Project B Prototype/
+├── PROJECT_HANDOUT.md      this file (master copy)
+├── prototype/              <- GitHub repo root -> Vercel -> www.eventara.co.in
+└── android/                <- native Kotlin/Compose app. NOT deployed.
+```
+
+> **Nothing under `prototype/` is created, edited or deleted by the Android work**, apart from
+> this documentation section. No page, script, style, migration or serverless function changes.
+> The live site is unaffected.
+
+### 22.1 What it is
+
+| | |
+|---|---|
+| **Stack** | Kotlin - Jetpack Compose - Material 3 - MVVM + repository - Hilt - Navigation Compose - Coroutines/StateFlow |
+| **SDK** | supabase-kt (Auth, Postgrest, Storage, Realtime) over Ktor/OkHttp |
+| **Package** | `com.eventara.android` |
+| **Min / target** | API 24 / API 35 |
+| **Its own handout** | **`android/ANDROID_HANDOUT.md`** - authoritative for everything Android-specific |
+
+It is a real native app, not a WebView wrapper. No page of this site is loaded in it.
+
+### 22.2 Relationship to this platform
+
+**The app shares exactly one thing with the website: the Supabase project.** Same URL, same
+anon key, same tables, same RPCs, same Row-Level Security. It contributes **no migration and no
+schema change** - if the app needs something the database does not have, that is a change to
+make here first, in `prototype/supabase/migrations/`, and both surfaces then read it.
+
+Consequences worth knowing before changing either side:
+
+- **Additive schema changes are safe; renames and removals are not.** The app decodes JSON with
+  `ignoreUnknownKeys = true`, so a new column cannot break an installed copy. Renaming or
+  dropping a column that the app models **will** break every installed copy, and unlike the
+  website there is no way to fix it by redeploying - users have to update.
+- **Sign-up metadata keys are a contract.** The app writes `role`, `full_name`, `phone`, `city`,
+  `org_name`, `business_name`, `category`, `gstin` into `raw_user_meta_data`, because that is
+  exactly what `handle_new_user()` (migration `0025`) reads. Changing that trigger's expected
+  keys silently discards data from the app.
+- **Business rules in §11 are enforced in the app too** - Phase 1 categories only, weddings
+  "Coming Soon" and non-clickable, no birthdays, Udaipur only, role separation, and the §11
+  B20-B27 copy rules.
+- **Password strength is a line-for-line port of `Auth.passwordScore()`** in
+  `auth-supabase.js`, with unit tests pinning the scores. If that function changes here, change
+  it there - otherwise an account can be created on one surface and rejected on the other.
+
+### 22.3 Status
+
+**Phase 1 (foundation) and Phase 2 (authentication) are complete, build and pass their tests.**
+Sign-up for both roles, email verification with resend, sign-in, forgot/reset password,
+signed-in password change, persistent and auto login, session management and logout all run
+against real Supabase Auth. Splash, onboarding and a Home landing exist; the two dashboards are
+deliberate **milestone shells** that prove the auth path end to end and say plainly what is
+still to come.
+
+Verified: debug and release (R8) APKs build, 21/21 unit tests pass, lint reports zero errors.
+**Not yet verified: nothing has run on a device or emulator.**
+
+Remaining phases (core screens, full backend binding, customer and supplier workflows, polish,
+performance, security review, QA) are tracked in `android/ANDROID_HANDOUT.md` §11.
+
+---
+
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.23 - 2026-08-09
+**Homepage navbar becomes frosted glass while it floats over the hero.**
+
+Requested: make the navbar transparent/frosted like the Sign In dialog. Same
+glass recipe as that card (§5.9) - `blur(22px) saturate(150%)`, white hairline,
+inset top highlight - but tinted with the **hero's navy** rather than the card's
+violet, so the bar extends the hero scrim instead of adding a second tint.
+
+**The measurement that shaped the change.** On the strip the navbar covers, the
+hero scrim is already at α 0.72, so white text scores **9.05:1 with no tint at
+all** - the glass tint is aesthetic. What the same measurement showed is the part
+that matters: the navbar's default ink `#222` scores **1.22:1** there. So the
+real work is flipping *every* navbar element to white - links, Sign In, the List
+Your Business button, hamburger bars, and the signed-in account chip. Restyling
+only the background would have left the navigation unreadable on a dark hero.
+
+**Reverts past the hero.** Beyond the hero the page is white and the same failure
+runs inverted, so a scroll handler drops the class and the bar returns to the
+**existing solid navbar, unchanged**. The switch point uses `nav.offsetHeight`
+rather than a constant, because the bar is 80px on desktop and **64px below
+768px** - a hardcoded 80 would have switched at the wrong point on every phone.
+
+**Two details worth keeping.** The logo ships as **two `<img>` tags with CSS
+choosing one** (no `src` swap, so no second fetch mid-scroll and no flash of the
+wrong mark) - the blue wordmark measures 1.4:1 on dark glass, the same finding
+that put `logo-light.svg` on the Sign In card. And the class is only ever *added*
+by script, so with JavaScript off the navbar simply stays solid: the safe
+direction to fail.
+
+**A harness limitation worth recording, because it will mislead the next person.**
+This renderer **freezes CSS transitions at frame 0**, and `getComputedStyle`
+then reports the frozen *starting* value for any transitioned property. The
+navbar link colours appeared not to change at all - even an inline
+`style.color` read back as the old value - while untransitioned properties
+(background, display) reported correctly. Proven with a controlled probe: an
+element with no transition reports the new colour, the same element with a
+colour transition reports the old one, and the real link reports correctly once
+`transition: none` is set. **Verify transitioned properties with transitions
+disabled, or the harness will report a bug that does not exist.** `requestAnimationFrame`
+also never fires here (it does not composite), so the rAF-throttled scroll
+handler could not be exercised end to end - the predicate was tested directly
+instead.
+
+**Verified** with transitions disabled so computed styles are truthful:
+over-hero gives navy glass + blur, links `rgba(255,255,255,.88)`, Sign In `.92`,
+a glass List-Your-Business button, white hamburger bars and the light wordmark;
+removing the class restores the original solid navbar exactly (white bg,
+`--ink-muted` links, dark hamburger, blue wordmark). Boundary is exact at both
+breakpoints - desktop 81px→glass / 79px→solid, mobile (65px bar) 66px→glass /
+64px→solid. Signed-in probe: account chip renders with white text, avatar keeps
+`--coral`, both logos survive `Auth.renderNav()`, and signing out restores the
+Sign In button. Zero horizontal overflow at 360px; zero console errors.
+
+**Not verified:** no physical device test; appearance judged from an offline
+composite that reproduces the blur, saturation and tint over the real slides
+(L24 - this harness cannot screenshot).
+
+**Files**: `index.html` only (one `<style>` block, one `<script>`, one extra
+`<img>` in the navbar), both handout copies. No other page's navbar is affected
+and no `?v=` bump was required.
+
+---
+
+### Version 2.22 - 2026-08-09
+**Hero imagery recurated to an Indian / Udaipur context. Images only - no structural, layout or behaviour change.**
+
+The v2.21 carousel shipped with generic international event photography. All five
+slides are replaced with imagery that reads as an Indian corporate and
+institutional event marketplace operating in Udaipur:
+
+| # | Slide | Why it is there |
+|---|---|---|
+| 1 | Lake Pichola at dusk, heritage hotel façade, Aravalli hills | The Udaipur anchor and the strongest frame, so it leads and is the LCP |
+| 2 | Indian speaker addressing a seated audience | Corporate conference / seminar - the #1 live category |
+| 3 | Indian convocation, graduates on a campus lawn | Institutional Events & Fests |
+| 4 | Indian professionals at an event hospitality counter | Corporate networking, Indian hospitality |
+| 5 | Rajasthani heritage courtyard with jharokhas | Premium palace-inspired venue, Rajasthani architecture |
+
+Ordered so no two consecutive slides look alike: blue dusk exterior → warm
+interior → bright daylight campus → dark warm interior → warm daylight
+architecture.
+
+**The carousel itself is untouched** - same markup structure, animation, timing,
+positioning, scrim, text placement, dots, fallback chain and responsive rules.
+`index.html` changed in exactly two places: the five image paths and the preload
+target. No CSS or JavaScript was modified.
+
+**Three things worth recording:**
+
+- **Source moved from Unsplash to Pexels.** Unsplash's Indian corporate-event
+  coverage is genuinely thin - repeated searches returned flags, monuments,
+  parades and wedding photography. Both licences are free for commercial use with
+  no attribution, so this costs nothing.
+- **The grading curve changed, out of necessity.** A flat linear multiply was fine
+  for the old set. Several new frames carry a *small* very bright region - a
+  projection screen, an open sky - putting p95 at 0.82-0.96 while the rest is
+  mid-toned; cutting the whole image by the ~1.4 stops that needed crushed
+  everything else. The encoder now uses a **soft-knee highlight compression**
+  (tones below the frame median untouched, highlights compressed on a straight
+  line so p95 lands on 0.36). Same contrast guarantee, far more image preserved.
+- **Two sources are portrait (2400x3600)**, so per-image **crop focal points** were
+  added at encode time rather than per-image `object-position` in CSS - the page
+  keeps one rule for all five slides. Focal values are recorded in the §5.1 table.
+
+**Deliberately not included: college-fest imagery.** It is on the brief's wanted
+list, but every free-stock option reviewed was folk-cultural (Kathakali,
+Yakshagana, folk dance), a student selfie, or a street crowd - none of which read
+as a premium marketplace, and several of which would have pushed the page toward
+the "tourism website" feel the brief explicitly warns against. The convocation
+slide carries the institutional segment instead. Flagged rather than forced.
+
+> **Known weak link, stated plainly: slide 2.** It is unambiguously Indian and
+> unambiguously a conference, which is why it was chosen - but the room is plain
+> (wood panelling, a visible fire-alarm box, water bottles) and it is the least
+> premium frame of the five. Every better-composed conference photograph found
+> read as Latin American or European, which the brief rules out. **The right fix is
+> a real photograph from a partner venue** - a Paandora Grand or Sterling Balicha
+> corporate event would beat any stock image here, and would also be genuinely
+> Udaipur.
+
+**Verified:** all five load HTTP 200 with the correct DOM order and the preload
+pointing at slide 1; carousel auto-advances; zero slides failed; **zero horizontal
+overflow at 360x740, 768x1024, 1280x720 and 1440x900**, hero heights unchanged
+from v2.21 (1034 / 801 / 715 / 792px), confirming the layout was not touched; a
+fresh 1440 load picks the 1920w LCP variant (204KB) and 360px picks the 1200w
+variants; zero console errors. Contrast re-measured across all ten files - worst
+case white **5.81:1**, gold **4.00:1**, subtitle **4.93:1**, all above AA.
+
+**Not verified:** no physical device test, and this harness still cannot composite,
+so appearance was judged from offline composites of the real scrim over the real
+graded assets rather than screenshots (L24).
+
+**Files**: `index.html` (5 image paths + preload target), `images/hero/` (10 files
+replaced), both handout copies.
+
+---
+
+### Version 2.21 - 2026-08-09
+**Homepage hero became a photographic carousel, and supplier cover images now resolve from the database instead of being frozen in `search.html`'s markup.**
+
+**1. Hero carousel (`index.html`).** The landing view was a white canvas with black
+type. It now sits on five tonally matched event photographs - corporate
+conference, institutional audience, conference stage, offsite networking, a venue
+in use - crossfading every 6s while drifting left to right. Full detail in §5.1.
+**No hero copy, field or control was reworded, added or removed**; the same
+elements were recoloured for a dark backdrop, and the navbar, search bar and every
+other section are untouched.
+
+Three things are worth knowing before editing it:
+
+- **The photographs were graded before encoding, not just overlaid.** Their p95
+  luminance spanned 0.11-0.65; the brightest needed α≈0.77 of scrim to reach AA,
+  which would have flattened it to a grey rectangle. Grading every slide to a
+  common p95 of 0.36 lets **one** scrim hold for all five - which is also why the
+  sequence does not pulse bright/dark as it rotates. A new slide dropped in
+  ungraded will break both properties.
+- **The brand colours are unusable on it, measured.** Gold `#CBA135` scores
+  2.38:1 and royal blue `#1E40AF` scores 1.52:1 against the composited backdrop.
+  The hero uses lightened tints of the same hues, scoped to `.hero`. Do not
+  "restore" the brand values here.
+- **Slide 1 is real markup, slides 2-5 are `data-src`.** The hero is a correct
+  still image with JavaScript off, and the other four cannot compete with the LCP
+  image for bandwidth. Total 845KB of imagery, **115KB of it on the critical
+  path.**
+
+**2. Supplier cover images (`search.html`).** Reported as three cards showing
+"HA"/"BS"/"IC" initials instead of photographs. **The database had held cover
+images for all seven suppliers since `0010`/`0012`** - only this page's static
+markup had never been updated, so the listing and each supplier's own detail page
+disagreed about what that supplier looked like.
+
+Fixed at the architecture rather than by pasting seven more URLs into the markup:
+every card is now an `<img>` (a CSS `background-image` has no `onerror` and no
+lazy-loading) whose source is re-resolved on load from
+`v_supplier_public` via the new `EventaraAPI.supplierCovers()`, using the **same**
+`hero_image_url → supplier_media → venue_images → cover_image` chain as the
+supplier detail page and the Similar Suppliers rail. The static `src` remains a
+build-time snapshot of the same value, so the page is still correct with
+JavaScript off or offline. A supplier changing their photo in their dashboard now
+reaches the listing with no markup edit.
+
+**Two seeded photos were wrong for their supplier**, and that is a product problem
+rather than a display one: Hotel Aloka (a boutique hotel) carried a pastel banquet
+table dressed for a **wedding** - a category the platform explicitly does not sell
+yet (B2) - and Indicraft Communications (corporate promotions) carried a casual
+outdoor party crowd. Both are replaced by curated, locally hosted assets in
+migration `0026`. Bluspring's plated-dining photo is a correct match for a Food &
+Hospitality firm and was **deliberately left alone**, as were the four suppliers
+with genuine photographs of their own property.
+
+> ⚠️ **`0026_supplier_cover_images.sql` has NOT been applied** - the browser holds
+> only the anon key, and RLS correctly refuses it write access (the `PATCH`
+> returns `200` with an empty result set, the silent-denial pattern this project
+> has hit before). Until it is run in the SQL editor, those two cards show their
+> **previous** stock photos: they load, they are simply less apt. The delivered
+> code path was verified against a simulated post-migration response - both
+> curated assets resolve and load at 1200x800.
+
+**Verified** - measured, not eyeballed, and no screenshot was possible (L24):
+
+- Carousel auto-advances, dots stay in sync, exactly one slide active at a time,
+  clicking a dot selects it and restarts the timer; 44x44 hit areas.
+- All five hero images HTTP 200 with correct byte counts; forcing every slide
+  visible changes `scrollHeight` by **0px** (the media layer is absolutely
+  positioned, so zero CLS by construction).
+- Zero horizontal overflow at 360x740, 390x844, 768x1024, 1440x900 and
+  740x360 landscape. Hero heights 1030 / 966 / 797 / 792 / 789px.
+- All 7 supplier cards render an image; identical 327x220 boxes at 360px, no
+  text/image overlap, 44px CTAs.
+- Filters and sort still work off the live DOM: All=7, Event Managers=3,
+  1000+ guests=3, counts update.
+- Fallback proven by forcing every candidate to 404 - the illustrated
+  `.card-fallback` renders and the broken `<img>` is removed.
+- Each supplier still opens its own page: 7 distinct `/venue/<slug>` hrefs;
+  `?slug=hotel-aloka` and `?slug=blossom-events` render different titles and
+  different Similar Suppliers.
+- `node --check` clean on every inline `<script>` in the touched pages and on
+  `data-api.js`; all 37 local `src`/`href` references resolve 200; zero console
+  messages on a fresh tab.
+
+**Not verified:** no physical device test, and this harness cannot composite, so
+the hero's *appearance* was confirmed by compositing the scrim over the graded
+images offline rather than by screenshotting the rendered page (L24, as
+throughout this log). `/venue/<slug>` server rendering was not re-tested locally -
+it needs the Vercel function, and nothing in this change touches it.
+
+**Files**: `index.html`, `search.html`, `data-api.js` (`?v=10`, bumped in
+`brief.html`, `customer-dashboard.html`, `supplier-dashboard.html`,
+`supplier.html`), new `supabase/migrations/0026_supplier_cover_images.sql`, new
+`images/hero/` (10 files) and `images/suppliers/` (2 files), both handout copies.
+
+---
+
+### Version 2.20 - 2026-08-08
+**A native Android app was started in a new `android/` folder. This platform is unchanged.**
+
+Documentation-only change here: the new **§22** records that the app exists, where it lives, and
+- the part that matters for anyone editing this repository - **what the two products share and
+what can break the other.**
+
+The short version: they share the Supabase project and nothing else. The app adds no migration
+and no schema change. Additive columns are safe for it; **renaming or dropping a column the app
+models breaks every installed copy, and cannot be fixed by redeploying.** The sign-up metadata
+keys `handle_new_user()` reads are now a contract with a second client, and
+`Auth.passwordScore()` in `auth-supabase.js` has a line-for-line Kotlin port with tests pinned
+to it.
+
+Phases 1 and 2 (foundation, authentication) are complete, **built and run on an Android 15
+emulator**: 36 tests pass (29 unit + 7 instrumented), lint reports zero errors, and the
+sign-in path was exercised end to end against live Supabase. Four defects that only a real
+device could reveal were found and fixed. The email confirmation deep link has not yet been
+clicked - that needs a real account and a Brevo send, so it was not done unasked. Full detail
+lives in **`android/ANDROID_HANDOUT.md`**, which is authoritative for the app.
+
+**Files**: `android/**` (new, not deployed), both handout copies (§22 + TOC + this entry).
 
 ---
 
