@@ -201,7 +201,7 @@
 
     { id: 'quote', aud: 'customer', k: ['quote'], p: ['request a quote', 'how do i request', 'get a quote', 'ask for pricing'],
       flow: 'event_type_quote',
-      a: "Use " + L.brief + " - tell us your event type, date, guest count and budget. Your request goes to a few matched venues and planners, and their quotes arrive within 48 hours.",
+      a: "Use " + L.brief + " - tell us your event type, date, guest count and budget. You'll be asked to sign in (or register) when you send it, so your quotes land in your account and you can compare them in one place. Your request then goes to a few matched venues and planners, and their quotes arrive within 48 hours.",
       chips: ['What happens after I request?', 'How are prices decided?'] },
 
     { id: 'after', aud: 'customer', k: [], p: ['what happens after', 'after i request', 'after i submit', 'after i send'],

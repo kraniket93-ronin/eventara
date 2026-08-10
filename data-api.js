@@ -103,10 +103,54 @@
     async revenue(supplierId)        { const g=guard(); if(g)return g; return sb.from("v_revenue_summary").select("*").eq("supplier_id", supplierId).single(); },
 
     // ---------- Briefs / requests / quotes ----------
-    async createRequest(payload) {   // the "Get Quotes" brief form
+    async createRequest(payload) {   // raw insert - see submitEventRequest()
       const g = guard(); if (g) return g;
       const { data: s } = await sb.auth.getSession();
+      // Used to read s.session.user.id unguarded, which threw a TypeError for
+      // a signed-out caller instead of returning the {data,error} shape every
+      // other method promises.
+      if (!s || !s.session) return { data: null, error: { message: "not signed in" } };
       return sb.from("event_requests").insert({ customer_id: s.session.user.id, ...payload }).select().single();
+    },
+
+    // The "Get Quotes" brief. Prefers the submit_event_request RPC (0027),
+    // which also opens a draft quote + notification for each matched supplier
+    // - the part a customer cannot do themselves, because quotes are
+    // supplier-write-only by RLS.
+    //
+    // If that migration has not been applied yet, PostgREST answers PGRST202
+    // ("function not found"). Rather than fail the customer's submission for a
+    // deployment reason, it falls back to inserting the request alone: the
+    // customer still gets a real row and a real reference, and `routed:false`
+    // tells the caller not to promise that suppliers have been notified.
+    async submitEventRequest(fields) {
+      const g = guard(); if (g) return g;
+      const rpc = await sb.rpc("submit_event_request", {
+        p_event_type:    fields.event_type,
+        p_event_date:    fields.event_date || null,
+        p_guests:        fields.guests == null ? null : fields.guests,
+        p_budget_band:   fields.budget_band || null,
+        p_details:       fields.details || {},
+        p_supplier_pref: fields.supplier_pref || "both",
+        p_max_matches:   fields.max_matches || 3
+      });
+      if (!rpc.error) return { data: Object.assign({ routed: true }, rpc.data), error: null };
+
+      const missing = rpc.error.code === "PGRST202" ||
+                      /could not find the function|does not exist/i.test(rpc.error.message || "");
+      if (!missing) return { data: null, error: rpc.error };
+
+      const ins = await this.createRequest({
+        event_type:  fields.event_type,
+        event_date:  fields.event_date || null,
+        guests:      fields.guests == null ? null : fields.guests,
+        budget_band: fields.budget_band || null,
+        city:        "Udaipur",
+        details:     fields.details || {}
+      });
+      if (ins.error) return ins;
+      return { data: { id: ins.data.id, ref: ins.data.ref, status: ins.data.status,
+                       matched: [], routed: false }, error: null };
     },
     async myRequests()   { const g=guard(); if(g)return g; return sb.from("event_requests").select("*, quotes(*)").order("created_at",{ascending:false}); },
     async enquiries()    { const g=guard(); if(g)return g; return sb.from("quotes").select("*, event_requests(*)").order("created_at",{ascending:false}); },

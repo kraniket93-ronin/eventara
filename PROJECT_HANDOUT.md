@@ -11,7 +11,7 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.23 (see §18 Change Log) |
+| **Doc version** | 2.24 (see §18 Change Log) |
 | **Last verified against code** | 2026-08-09 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
@@ -729,27 +729,75 @@ supplier card now points directly at `supplier.html?slug=...` (see §5.13).
 
 | Field | Detail |
 |---|---|
-| **Purpose** | Capture a structured event request and send it to matched suppliers |
-| **URL** | `/brief.html` |
-| **Auth** | Public (no sign-in required to request quotes) |
-| **Connected pages** | `compare.html` (after submit) |
+| **Purpose** | Capture a structured event request, persist it, and route it to matched suppliers |
+| **URL** | `/brief.html` (params: `?supplier=<slug>&package=<name>`, `?resume=1`) |
+| **Auth** | **Open to fill; a customer account is required to SEND** (changed v2.24 - see below) |
+| **Connected pages** | `signin.html` (send gate), `customer-dashboard.html#requests` (after submit) |
 
-**Multi-step form** (driven by `initMultiStepForm()` in `app.js`):
+**Multi-step form** (steps driven by `initMultiStepForm()` in `app.js`; **submit is owned by
+this page**):
 
-1. **Event basics** - type, date, city (Udaipur, locked), guest count
-2. **Requirements** - venue/catering/décor/AV needs, style preferences
-3. **Budget** - band selection (incl. "Under ₹3L")
-4. **Your details** - name/organisation, contact person, email, phone, GSTIN (optional),
-   reference/PO (optional), consent
+1. **Event basics** - type, specific event, date, city (Udaipur, locked)
+2. **Guest & budget** - guest band, budget band
+3. **Preferences** - venue/catering/décor/AV/rooms/transport, supplier preference, notes
+4. **Your details** - name/organisation, email, phone, GSTIN (optional), PO (optional), consent
 
-**Sidebar:** "Your Request Goes To" - shows the 3 matched suppliers (Paandora Grand, Sterling
-Balicha, Blossom Events) + how-it-works mini steps + trust badges.
+> **The submit button deliberately does NOT carry `data-step-submit`.** That attribute is what
+> `app.js`'s delegated handler matches to show a canned "Request Sent!" panel that writes
+> nothing. Opting out by dropping the attribute lets this page own submit without touching
+> `app.js` - and therefore without a `?v=` bump across the other 14 pages. If you re-add the
+> attribute, the old fake confirmation comes back **and wins**.
 
-**On submit:** `showSubmitConfirmation()` in `app.js` replaces the final step with a success
-panel: *"Request Sent!"* → names the 3 suppliers → "quotes within 48 hours" → CTA to `compare.html`.
+#### Sending a request (v2.24 - this is the front door)
 
-**Data flow:** ⚠️ **Nothing is persisted.** The form does not POST anywhere; submission is a
-UI simulation. See §15.
+```
+brief.html  ──validate──►  signed in as a customer?
+                                │
+                    no ─────────┴──────── yes
+                     │                     │
+      draft ⇒ sessionStorage        EventaraAPI.submitEventRequest()
+      signin.html?next=brief.html?resume=1        │
+                     │                     ├─ RPC submit_event_request (0027)
+              sign in / register           │     → request + draft quote per
+                     │                     │       matched supplier + notify
+      ?resume=1 ⇒ draft restored,          │
+      jumps to the last step               └─ PGRST202 (migration not applied)
+                     │                           → plain insert, routed:false
+                     └────────────────────►  success panel with the real ref
+```
+
+**Why an account is required to send, and why that is not a UX preference.**
+`event_requests.customer_id` is `NOT NULL` and the `req_customer` policy checks
+`customer_id = auth.uid()`, so an anonymous insert is impossible without making the row
+ownerless - and an ownerless request is *worse* than none, because the customer could never read
+their own quotes back, which is the entire promise of the product. The form therefore stays open
+to everyone and only the **send** needs an account; everything typed is preserved across the
+sign-in round trip in `sessionStorage['eventara_brief_draft']` and restored by `?resume=1`.
+
+**What is deliberately NOT stored on the request.** Contact details never go into `details{}`.
+A supplier who has been quoted into a request can read that request (`req_supplier_read`), so
+anything in `details{}` is visible to them - and **B17** says contact stays private until a
+booking is confirmed. Name/phone/org/GSTIN are instead back-filled onto the customer's **own**
+profile rows, and **only where those fields are still empty**, so a brief can never overwrite a
+saved profile. The sign-in email is never touched.
+
+**Field mapping**
+
+| Form | Column | Note |
+|---|---|---|
+| Event Type | `event_type` | **Values are `event_types.code`**, not labels - the FK rejects anything else |
+| Event Date | `event_date` | Must be in the future (client check) |
+| Guest band | `guests` | Band → **upper bound** (`under-50`→50 … `500+`→800); the band itself is kept in `details.guest_band` |
+| Budget | `budget_band` | Stored verbatim |
+| City | `city` | Always `Udaipur` |
+| Requirements, prefs, notes, PO, source supplier/package | `details` jsonb | Event information only |
+| — | `ref` | Auto-generated by `trg_set_request_ref` → **`EVT-YYYY-NNNN`**, shown to the customer |
+
+**Sidebar:** "Your Request Goes To" + how-it-works mini steps + trust badges.
+
+**Success panel** names the real reference and, when routing ran, the suppliers actually matched.
+If the `0027` migration is not applied it says only that the request is saved and being matched -
+**it does not claim suppliers were notified**, because they were not.
 
 ---
 
@@ -1617,12 +1665,12 @@ out - so the next `requireRole` bounces the user to sign-in gracefully.
 
 | | |
 |---|---|
-| **Purpose** | Capture one structured request and fan it out to matched suppliers |
-| **Location** | `brief.html` + `initMultiStepForm()` in `app.js` |
+| **Purpose** | Capture one structured request, persist it, and fan it out to matched suppliers |
+| **Location** | `brief.html` (own submit) + `initMultiStepForm()` in `app.js` (step nav only) + `submit_event_request()` (`0027`) |
 | **Inputs** | Event type, date, guests, requirements, budget band, contact details, optional GSTIN/PO |
-| **Outputs** | Confirmation panel naming the 3 matched suppliers |
-| **Business rules** | No sign-in required; 48-hour quote SLA; Udaipur locked; weddings option `disabled` |
-| **Limitation** | **Not persisted** - no POST, no storage |
+| **Outputs** | An `event_requests` row with a real **`EVT-YYYY-NNNN`** ref, a `draft` quote + notification per matched supplier, and a success panel naming both |
+| **Business rules** | **Filling is open to all; sending requires a customer account** (v2.24, see §5.4); 48-hour quote SLA; Udaipur locked; Phase 1 event types only, weddings `disabled` |
+| **Limitation** | Matching is a documented rule (active Udaipur suppliers → preference → capacity → verified/featured/rating), **not** a matching engine. Supplier fan-out needs migration `0027` applied; without it the request is still created, and the UI says so rather than claiming otherwise. |
 
 ---
 
@@ -1788,6 +1836,7 @@ These encode product decisions. **Do not change them without an explicit instruc
 | B16 | Suppliers are **verified before listing** (identity + GST + licences) and carry a verified badge. |
 | B17 | **Customer contact details stay private** until a booking is confirmed. |
 | B18 | **Only customers who booked through Eventara can review.** |
+| B29 | **A quote request needs a customer account to be SENT** (v2.24, changed from "no sign-in required"). Browsing, and filling the form in, stay open to everyone; only the send is gated, and the draft survives the sign-in round trip. This is not a growth decision to revisit casually - `event_requests.customer_id` is `NOT NULL` under RLS, so an anonymous request would be ownerless and its quotes unreadable by the person who asked for them. Reversing it means a schema + policy change, not a UI change. |
 | B19 | **Anti-leakage:** no outbound links to supplier websites/Instagram/YouTube. Keep users on-platform. |
 
 ### Copy & tone
@@ -2124,7 +2173,7 @@ Be honest about these - especially in a stakeholder demo.
 | # | Limitation |
 |---|---|
 | L6 | ~~`provider.html` is one hard-coded profile~~ **RESOLVED in v2.4** - replaced by dynamic `supplier.html?slug=...`, one real page per supplier. `provider.html` is now a redirect stub kept only for old links. |
-| L7 | **Forms don't submit.** `brief.html` shows a simulated confirmation; no data leaves the browser. |
+| L7 | ~~**Forms don't submit.**~~ **RESOLVED for the quote request in v2.24** - `brief.html` now creates a real `event_requests` row with a real `EVT-` reference and (with `0027` applied) opens a draft quote + notification for each matched supplier. Still true of `help.html` (L20) and of `booking.html`'s payment step (L8). |
 | L8 | **No real payments.** `booking.html` is a UI simulation - no gateway, no UPI mandate. |
 | L9 | **Static demo data** throughout: one booking (₹10,03,000 / ₹3,00,900 deposit), one customer (Secure Meters), fixed quotes. |
 | L10 | **No real search backend** - filtering is client-side over 7 hard-coded cards. |
@@ -2363,6 +2412,14 @@ prototype/
                                     seeded stock photos depicted a wedding and a private party
                                     respectively - see §5.2). Idempotent; no schema change.
                                     ** NOT YET APPLIED - needs to be run in the SQL editor. **
+      0027_submit_event_request.sql       [v2.24] submit_event_request() - creates the
+                                    event_requests row for the signed-in customer AND opens a
+                                    draft quote + notification for each matched supplier, which
+                                    the customer cannot do directly (quotes are supplier-write
+                                    only). SECURITY DEFINER, search_path pinned, anon EXECUTE
+                                    revoked. Without it the front door still creates the request
+                                    (the client falls back on PGRST202) but no supplier is
+                                    routed.  ** NOT YET APPLIED. **
     APPLY_GUIDE.md        apply + connect + env-vars + test checklist
   supabase-config.js      URL + anon key (you fill in; blank = offline demo mode)
   supabase-client.js      creates window.sb only when configured
@@ -2422,7 +2479,8 @@ Upload convention: objects live under a `"<auth.uid()>/..."` folder; object poli
 - **RPCs** (`sb.rpc(...)`) for transactions: `create_booking`, `accept_quote`, `reject_quote`, `release_escrow`, `cancel_booking`, `generate_invoice`, `update_availability`, `search_suppliers`, `supplier_dashboard_stats`, `customer_dashboard_stats`, `notify`.
 - **Views** for read models (dashboards/analytics), all `security_invoker` so RLS still applies. `v_supplier_public` (v2.4: now also exposes `slug`/`tagline`/`featured`/`hero_image_url`; **v2.5:** `cover_image` rewritten to a real hero -> supplier_media -> venue_images(hotel-only) priority chain instead of venue_images-only, plus raw `media_cover_url`/`venue_cover_url`/`availability_state` columns for client-side image retry and no-extra-query availability badges).
 - **RPCs** gain `get_similar_suppliers(p_supplier_id, p_limit)` in v2.5 - ranked recommendation query (same city/category first, then verified/featured/closest-rating/closest-price), replacing a two-query client-side fallback with one round trip.
-- `data-api.js` wraps these as `EventaraAPI.*`; each returns `{data,error}` and degrades gracefully offline. **v2.21:** `supplierCovers()` - one query returning `slug`/`business_name`/`category`/`cover_image` + the raw candidate columns for **every** active supplier, so pages that still render supplier cards as static markup (`search.html`) resolve their photos from the same source as `supplier.html`, instead of carrying a second copy of each URL that drifts. **v2.4 additions:** `getSupplierDetail(idOrSlug)` (single nested-embed query for the whole supplier profile; slug-vs-id chosen client-side via UUID regex). **v2.5:** `getSimilarSuppliers(supplierId, limit)` signature simplified (was `(category, city, excludeId, limit)`) now that ranking lives entirely in `get_similar_suppliers()`.
+- **RPCs** gain `submit_event_request(...)` in v2.24 (`0027`) - the brief's send path. Insert + supplier fan-out + notifications in one transaction, because a customer may write `event_requests` but not `quotes`.
+- `data-api.js` wraps these as `EventaraAPI.*`; each returns `{data,error}` and degrades gracefully offline. **v2.24:** `submitEventRequest(fields)` - calls the RPC and, if it answers `PGRST202` (migration not applied), falls back to a plain `event_requests` insert and reports `routed:false` so the UI does not claim suppliers were notified. `createRequest()` was also hardened: it used to read `session.user.id` unguarded and threw a `TypeError` for a signed-out caller instead of returning the `{data,error}` shape. **v2.21:** `supplierCovers()` - one query returning `slug`/`business_name`/`category`/`cover_image` + the raw candidate columns for **every** active supplier, so pages that still render supplier cards as static markup (`search.html`) resolve their photos from the same source as `supplier.html`, instead of carrying a second copy of each URL that drifts. **v2.4 additions:** `getSupplierDetail(idOrSlug)` (single nested-embed query for the whole supplier profile; slug-vs-id chosen client-side via UUID regex). **v2.5:** `getSimilarSuppliers(supplierId, limit)` signature simplified (was `(category, city, excludeId, limit)`) now that ranking lives entirely in `get_similar_suppliers()`.
 
 ### 19.7 Security & env vars
 Server secrets live only in Vercel env (`SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` [rotate], payment/email/WhatsApp keys). The browser only ever gets the **anon** key, which is safe because RLS enforces access. Passwords are hashed by Supabase (bcrypt); input is validated in RPCs and by DB constraints; audit + login events give a trail. Repo should be made **private**.
@@ -2940,6 +2998,107 @@ performance, security review, QA) are tracked in `android/ANDROID_HANDOUT.md` §
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.24 - 2026-08-09
+**The front door is connected. The quote request now creates a real `event_requests` row - and, with `0027` applied, routes it to matched suppliers.**
+
+v2.19 recorded that the primary customer entry point - linked from every
+navbar, the homepage hero and every package card - showed a success screen and
+wrote nothing. Everything downstream was real; the funnel had a working middle
+and end and no beginning. This closes it.
+
+**What was actually in the way, in order of discovery:**
+
+1. **`app.js` owned submit.** Its delegated `[data-step-submit]` handler shows a
+   canned panel and returns. `brief.html` now opts out by **not carrying that
+   attribute** and owns its own submit - which means no change to `app.js` and
+   no `?v=` bump across 14 other pages. Re-adding the attribute would bring the
+   fake confirmation back, and it would win.
+2. **The form offered event types that cannot exist.** Wedding, Birthday,
+   Festival, Private - none are rows in `event_types`, and `event_requests
+   .event_type` is a FK to it. **Verified against the live database: all three
+   are rejected with `23503`.** So every submission would have failed at the
+   first attempt regardless of the wiring. They also violated B1/B2/B3, which
+   the memory notes had flagged as unaligned since Phase 1. The dropdown is now
+   the five live `event_types` codes with weddings `disabled`.
+3. **A customer cannot create the supplier side of the enquiry.** A supplier's
+   inbox reads `quotes`, and `req_supplier_read` only exposes a request to a
+   supplier already quoted into it - but `quotes` is supplier-write-only. A bare
+   insert therefore produces a request the customer can see and **no supplier
+   ever will**. Hence migration `0027`: `submit_event_request()` does the insert,
+   the matching, a `draft` quote per matched supplier and a notification, in one
+   transaction as the definer.
+
+**The decision that was deferred in v2.19, now taken: sending requires a
+customer account** (new rule **B29**). This is not a growth preference -
+`event_requests.customer_id` is `NOT NULL` under a `customer_id = auth.uid()`
+policy, so an anonymous request would be ownerless, and its quotes unreadable by
+the person who asked for them. That is worse than no request. So the **form
+stays open to everyone** and only the **send** is gated: the draft is saved,
+`signin.html` explains why and promises nothing was lost, and `?resume=1`
+restores every field and drops the customer back on the final step.
+
+**Contact details are deliberately not stored on the request.** A supplier who
+quotes can read the request, so anything in `details{}` is visible to them, and
+B17 says contact stays private until a booking. Name/phone/org/GSTIN are
+back-filled onto the customer's **own** profile instead, and **only into fields
+that are still empty**, so a brief can never overwrite a saved profile.
+
+**`signin.html` learned `?next=`**, which it never had (the parameter was
+documented but unimplemented). It is **allow-listed to a bare same-origin page
+name** - an open redirect on an auth page is a phishing primitive. Verified
+against absolute URLs, protocol-relative `//`, backslash tricks,
+`scheme:host` without slashes, traversal, `javascript:`, path separators and
+fragments: **all refused**, legitimate page names pass.
+
+**Verified against the live database** (as the demo customer, then cleaned up):
+
+- `submit_event_request` currently answers **`PGRST202`** - exactly the code the
+  client's fallback detects, so the fallback path is what runs today.
+- A real insert succeeded and the trigger issued **`EVT-2026-0001`**; the
+  customer could read it back through the `myRequests` path; the test row was
+  **deleted** and the account is back to its original 2 seeded requests.
+- `birthday` / `festival` / `private` all rejected with FK error `23503`.
+
+**Verified in the browser:** empty submit gives one friendly sentence naming
+every missing field and does not navigate; a filled submit while signed out
+saves a 13-field draft and lands on `signin.html?next=brief.html%3Fresume%3D1`
+with an explanatory banner; `?resume=1` restores every field, both checkboxes,
+the radio and the consent box and activates the last step; the success panel
+shows the real ref, names the matched suppliers when routing ran and
+**deliberately does not** when it did not; the draft is cleared on success;
+`app.js` step navigation still works (0→3 forward, 3→2 back). Zero horizontal
+overflow at 360px, submit target 287x46, zero console errors. The nine
+sub-16px controls at 360px are radios and checkboxes, not text inputs, so the
+iOS zoom rule does not apply.
+
+**Not verified:** the `0027` routing path itself - it cannot run until the
+migration is applied, and the browser only holds the anon key. The client
+handles both outcomes and says only what is true in each. No physical device
+test (L24).
+
+**Still open, and now the honest next gap:** `compare.html` remains static. A
+customer who sends a request today tracks it in their dashboard, and a supplier
+(post-`0027`) quotes it from theirs - but the customer-facing comparison screen
+is not yet reading their real quotes.
+
+**Both chatbot brains updated (§14 sync rule).** Neither KB stated anything
+false, but both described getting quotes without mentioning the new account
+step - so the assistant would have told someone to "just fill in the form"
+moments before they hit a sign-in gate. The offline `quote` intent in
+`chatbot.js` and the "How it works" section of the `api/chat.js` KB now both
+say that filling in is open to all and sending needs a free account, with an
+explicit instruction to the model **not** to claim otherwise. `chatbot.js`
+bumped to `?v=10` across the 13 pages that load it.
+
+**Files**: `brief.html` (own submit + Phase 1 event types + draft/resume),
+`signin.html` (`nextUrl()` allow-list + banner + both redirect paths),
+`data-api.js` (`submitEventRequest`, hardened `createRequest`, `?v=11` bumped in
+the 5 pages that load it), `chatbot.js` + `api/chat.js` (KB sync, `?v=10` across
+13 pages), new `supabase/migrations/0027_submit_event_request.sql`, both handout
+copies.
 
 ---
 

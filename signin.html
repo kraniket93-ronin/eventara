@@ -932,6 +932,24 @@
     });
 
     /* ---------- sign in ---------- */
+    /* Where to go after authenticating, when the user was sent here mid-task.
+       Added v2.24 for the brief: a signed-out visitor who fills in a quote
+       request is bounced here to sign in, and must land back on their draft
+       rather than on a dashboard.
+
+       Strictly allow-listed to a bare same-origin page name. An open redirect
+       on an auth page is a real phishing primitive - "sign in to Eventara,
+       get sent to evil.example" - so anything with a scheme, a host, a
+       protocol-relative "//" prefix, a path separator or a backslash is
+       refused and the normal dashboard landing is used instead. */
+    function nextUrl() {
+      var raw = new URLSearchParams(location.search).get('next');
+      if (!raw) return null;
+      try { raw = decodeURIComponent(raw); } catch (e) { return null; }
+      if (!/^[a-z0-9._-]+\.html(\?[a-z0-9._%=&-]*)?$/i.test(raw)) return null;
+      return raw;
+    }
+
     async function handleSignIn(event) {
       event.preventDefault();
       showError('signin-error', '');
@@ -942,7 +960,12 @@
       if (!requireLive('signin-error')) return;
 
       busy('signin-submit', true, 'Signing in…');
-      var r = await Auth.signIn(email, password);
+      // With a `next` target we suppress Auth.signIn's own dashboard redirect
+      // and navigate there instead, so an interrupted task resumes where it
+      // left off.
+      var next = nextUrl();
+      var r = await Auth.signIn(email, password, next ? { noRedirect: true } : undefined);
+      if (next && r && !r.error) { window.location.href = next; return; }
       busy('signin-submit', false);
 
       if (r && r.error) {
@@ -1050,8 +1073,12 @@
       // Called directly rather than through EventaraAPI so the auth page does
       // not have to load the whole data layer.
       try { await sb.rpc('ensure_account_records'); } catch (e) {}
-      // Straight into the panel that completes onboarding, not the overview.
-      window.location.href = (role === 'supplier' ? 'supplier-dashboard.html' : 'customer-dashboard.html') + '#profile';
+      // A customer who registered mid-brief goes back to finish it; otherwise
+      // straight into the panel that completes onboarding, not the overview.
+      var next = nextUrl();
+      window.location.href = (next && role !== 'supplier')
+        ? next
+        : (role === 'supplier' ? 'supplier-dashboard.html' : 'customer-dashboard.html') + '#profile';
     }
 
     async function handleResend(btn) {
@@ -1111,6 +1138,12 @@
       if (q.get('verified')) {
         banner('Email confirmed. Sign in to finish setting up your account.', 'ok');
       }
+      // Arrived mid-task (currently only the quote request). Say why, and say
+      // that nothing was lost - otherwise this looks like the form threw the
+      // request away and demanded an account.
+      if (nextUrl() && /^brief\.html/.test(nextUrl())) {
+        banner('Sign in to send your request - we have kept everything you filled in. New here? Register and you will come straight back.', 'ok');
+      }
 
       // Supabase returns recovery/verification results in the URL fragment.
       // A recovery link puts the browser in a temporary session whose only
@@ -1131,6 +1164,6 @@
       }
     });
   </script>
-  <script src="chatbot.js?v=9"></script>
+  <script src="chatbot.js?v=10"></script>
 </body>
 </html>
