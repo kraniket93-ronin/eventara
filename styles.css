@@ -1638,6 +1638,44 @@ textarea.input-field {
   margin-bottom: var(--space-48);
 }
 
+/* Android app CTA - a FIFTH footer column, opt-in (added v2.25).
+   The extra column is behind a modifier rather than added to the base rule
+   because the footers have drifted: five pages carry the full brand + 3-column
+   layout, the rest are minimal (no columns at all). Widening the base grid
+   would leave those with an empty track. Add `has-app` only where the column
+   is actually present. */
+.footer-grid.has-app {
+  grid-template-columns: 1.7fr repeat(3, 1fr) 1.2fr;
+  gap: var(--space-40);
+}
+
+.footer-app h4 {
+  font-size: var(--text-body);
+  font-weight: 500;
+  margin-bottom: var(--space-20);
+  color: var(--ink);
+}
+.footer-app p {
+  font-size: var(--text-body-sm);
+  color: var(--ink-muted);
+  line-height: 1.7;
+  margin-bottom: var(--space-16);
+}
+/* Sits on the standard .btn/.btn-primary, so it inherits the brand fill,
+   radius, focus ring and the 44px touch floor rather than restating them. */
+.footer-app .btn {
+  width: 100%;
+  max-width: 240px;
+  gap: var(--space-8);
+}
+.footer-app .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.footer-app .app-note {
+  display: block;
+  margin-top: var(--space-8);
+  font-size: var(--text-micro);
+  color: var(--ink-faint);
+}
+
 .footer-brand .navbar-logo {
   color: var(--coral);
   margin-bottom: var(--space-16);
@@ -2466,6 +2504,10 @@ textarea.input-field {
   .steps-grid { grid-template-columns: repeat(3, 1fr); gap: var(--space-24); }
   .steps-grid::before { display: none; }
   .footer-grid { grid-template-columns: repeat(2, 1fr); }
+  /* `.footer-grid.has-app` is more specific than `.footer-grid`, so the
+     collapse has to be restated for it or the 5-column desktop track would
+     survive into tablet and overflow. */
+  .footer-grid.has-app { grid-template-columns: repeat(2, 1fr); gap: var(--space-40); }
   .metrics-grid { grid-template-columns: repeat(2, 1fr); }
   /* min-width:0 lets the flex main shrink below its content's intrinsic width,
      so wide tables scroll inside their own box instead of stretching the page */
@@ -2490,6 +2532,8 @@ textarea.input-field {
   .trust-grid { grid-template-columns: 1fr; }
   .steps-grid { grid-template-columns: 1fr; gap: var(--space-32); }
   .footer-grid { grid-template-columns: 1fr; gap: var(--space-32); }
+  .footer-grid.has-app { grid-template-columns: 1fr; gap: var(--space-32); }
+  .footer-app .btn { max-width: none; }
   .metrics-grid { grid-template-columns: 1fr; }
 
   .navbar { padding: 0 var(--space-16); }
@@ -2713,6 +2757,8 @@ img, svg, video { max-width: 100%; }
   .two-col-row { grid-template-columns: 1fr; }
   .stats-row { grid-template-columns: repeat(2, 1fr); }
   .footer-grid { grid-template-columns: 1fr; gap: var(--space-32); }
+  .footer-grid.has-app { grid-template-columns: 1fr; gap: var(--space-32); }
+  .footer-app .btn { max-width: none; }
 
   /* Section rhythm tightens up on small screens. */
   .section { padding-top: var(--space-48); padding-bottom: var(--space-48); }

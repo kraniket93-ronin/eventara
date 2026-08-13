@@ -11,8 +11,8 @@
 | **Type** | Academic prototype (IIM Udaipur, PSM course, Group 10) |
 | **Live URL** | https://the-eventara.vercel.app |
 | **Repository** | https://github.com/kraniket93-ronin/eventara |
-| **Doc version** | 2.24 (see §18 Change Log) |
-| **Last verified against code** | 2026-08-09 |
+| **Doc version** | 2.26 (see §18 Change Log) |
+| **Last verified against code** | 2026-08-13 |
 
 > ⚠️ **CRITICAL REPO LAYOUT NOTE - read before pushing anything.**
 > The **GitHub repo root == the contents of the local `prototype/` folder.**
@@ -1800,6 +1800,102 @@ down, it silently degrades to the scripted engine rather than erroring.
 
 ---
 
+### 10.11 Android App Promotion  [added v2.25]
+
+| | |
+|---|---|
+| **Purpose** | Promote the native Android app (§22) without behaving like an ad |
+| **Location** | `index.html` (popup + ribbon, page-scoped) · `styles.css` `.footer-app` (footer CTA, shared) |
+| **APK URL** | `https://github.com/kraniket93-ronin/eventara/releases/latest/download/eventara.apk` |
+| **Surfaces** | Mobile popup → mobile/desktop ribbon → footer CTA on 5 pages |
+| **State** | `sessionStorage['eventara_app_promo']` + `localStorage['eventara_app_got_it']` |
+
+**Three surfaces, one rule: never twice in a session.**
+
+```
+Home page, ANY device                            Every full footer
+      │                                           (5 pages)
+      ▼ after 1.4s                                     │
+  glass popup  ──── × / Esc / backdrop ────►  slim top ribbon  ──── × ────►  (silence)
+      │                                            │                          │
+      └──────────── Download ──────────────────────┴──────────────────────────┴──► APK
+```
+
+| Surface | Behaviour |
+|---|---|
+| **Popup** | **Every device** (v2.26 - it was mobile-only in v2.25). 1.4s after load so it never competes with the hero LCP. Same card, two presentations: a **bottom sheet** ≤768px (within thumb reach) and a **centred dialog** ≥769px (a sheet glued to the bottom of a 1440px window reads as a cookie banner). Sign-In glass recipe. Dismiss via ×, backdrop click or Escape; focus moves to the close button and returns on close; page scroll locked while open. |
+| **Ribbon** | The **post-dismissal state on every device** - it is never the first thing shown. Fixed top bar with icon + "Download the Android App" + compact Download + circular ×. Dismissing it ends the promotion for the session. |
+| **Footer CTA** | Permanent, never dismissible, on the five pages with the full footer. The quiet baseline that does not depend on any state. |
+
+**Measured card size** - it fits without scrolling almost everywhere, and
+degrades to internal scroll rather than overflow when it cannot:
+
+| Viewport | Card | % of viewport | Internal scroll |
+|---|---|---|---|
+| 1440x900 desktop | 440x348, centred | 39% | no |
+| 1366x700 laptop | 440x348, centred | 50% | no |
+| 768x1024 tablet | 420x348, sheet | 34% | no |
+| 390x844 phone | 358x399, sheet | 47% | no |
+| 360x640 short phone | 328x399, sheet | 62% | no |
+| 740x360 landscape phone | 420x**281**, capped at 78dvh | 78% | **yes** |
+
+**State machine** - session-scoped by design, because "do not nag again" is a
+session concern:
+
+| Key | Store | Values | Effect |
+|---|---|---|---|
+| `eventara_app_promo` | `sessionStorage` | `''` / `popup-dismissed` / `ribbon-dismissed` | `popup-dismissed` ⇒ ribbon only; `ribbon-dismissed` ⇒ nothing |
+| `eventara_app_got_it` | `localStorage` | `'1'` | Set on **any** download click. Retires popup **and** ribbon permanently on that device - someone who already pulled the APK should not be asked again next visit either |
+
+> **The ribbon's visibility is decided in an inline `<head>` script, not by the
+> controller at the end of the body.** It shifts the navbar and hero down, so
+> deciding it after first paint would be a guaranteed layout shift. Since v2.26
+> there is exactly one case to settle there - "the popup was dismissed earlier
+> this session" - because the ribbon is never the first thing shown on any
+> device. A ribbon that appears mid-session, from a dismissal the user just
+> performed, is a user-initiated change rather than an unrequested shift.
+
+> **Scroll-locking the page costs a sideways jump on desktop, and it is paid
+> back explicitly.** `overflow: hidden` removes the scrollbar, which widens the
+> viewport and shunts everything ~15px across. `openPopup()` measures the
+> gutter (`innerWidth - documentElement.clientWidth`) into `--app-sbw` before
+> locking, and the body gets it back as `padding-right`. **Fixed layers do not
+> inherit that padding**, so the navbar and the ribbon are compensated
+> separately - without it they visibly widen the moment the dialog opens.
+> Verified: navbar width and hero title position both shift **0px**.
+
+> **Two sizing traps, both fixed by construction.** The ribbon uses `height`,
+> not `min-height`: a 44px touch target inside a 48px bar with padding pushed
+> the real height to 50px while the navbar was still offset by 48, overlapping
+> by 2px. And both × buttons draw their visible circle on `::before` (36px
+> popup / 30px ribbon) inside a **44px** button, so the tap target meets §13
+> rule 2 without the control looking chunky.
+
+**Layering** - this page already had two floating layers, so the order is
+explicit: navbar `300` → ribbon `350` → chatbot FAB `9998` → chatbot panel
+`9999` → **app popup `10000`**. The popup is deliberately above the chat
+widget: a modal backdrop that the FAB floated over would look broken.
+
+**Contrast** (measured, worst case = the sheet over white page content):
+white heading **7.82:1**, body at 86% **6.31:1**, footnote at 72% **5.00:1** -
+all above AA.
+
+**Responsive**: popup 328px wide inside 16px gutters at 360px and capped at
+`min(78dvh, 560px)` with internal scroll; ribbon 48px desktop / 56px mobile,
+with `env(safe-area-inset-top)` added to both the bar and the offsets; footer
+grid `1.7fr repeat(3,1fr) 1.2fr` → 2 columns ≤1024px → 1 column ≤768px.
+Verified zero horizontal overflow at 360, 390, 768, 1024 and 1440.
+
+> **The APK link is not a B19 violation.** B19 forbids click-outs to a
+> *supplier's* marketing presence. This is Eventara's own release artefact, the
+> same category as the `tel:`/`mailto:` supplier-contact links already allowed
+> in §5.13. It is a plain `<a>` with no `download` attribute - GitHub serves the
+> asset with `Content-Disposition: attachment` (verified: HTTP 200,
+> `application/vnd.android.package-archive`), and `download` is ignored
+> cross-origin anyway, so adding it would be cargo cult.
+
+---
+
 ## 11. BUSINESS RULES
 
 These encode product decisions. **Do not change them without an explicit instruction.**
@@ -1874,6 +1970,9 @@ component framework and no partial/include system - **markup is duplicated acros
 | **Supplier card** | `.provider-card`, `.card-image`, `.card-content`, `.provider-name`, `.provider-meta`, `.price-row` | `search.html`, `index.html`, `supplier.html` (Similar Suppliers) | Listing tile. Needs `data-capacity` + `data-ptype` on search |
 | **Verified badge** | `.badge-verified` | Supplier cards & profile | Blue tick + "Verified" |
 | **Hero carousel** | `.hero-media`, `.hero-slide` (`.is-active` / `.is-leaving`), `.hero-scrim`, `.hero-dots`, `.hero-dot` | `index.html` only (page-scoped) | 5-slide crossfade + horizontal drift behind the hero copy (§5.1) |
+| **App popup** | `.app-modal`, `.app-modal-backdrop`, `.app-card`, `.app-glass`, `.app-close` | `index.html` only (page-scoped) | Mobile bottom sheet promoting the Android app. `.app-glass` is the Sign-In card recipe extracted so the popup and any future glass surface share one definition (§10.11) |
+| **App ribbon** | `.app-ribbon`, `.rib-icon`, `.rib-text`, `.rib-btn`, `.rib-close`, `html.app-ribbon-on` | `index.html` only (page-scoped) | Slim top bar; visibility is class-driven from `<head>` so it costs no layout shift |
+| **Footer app CTA** | `.footer-grid.has-app`, `.footer-app`, `.app-note` | `index`, `brief`, `faq`, `help`, `supplier` | Fifth footer column. **Opt-in modifier**: the other footers have drifted (some have no columns at all), so widening the base grid would leave them an empty track |
 | **Illustrated card fallback** | `.card-fallback` | `supplier.html`, `search.html` | Category icon + initials on a soft gradient. Reached only when **every** image candidate for a card fails - never a blank grey box. Replaces the old initials cover as the no-photo treatment |
 | ~~**Initials cover**~~ | ~~`.card-image` with flex-centred text~~ | — | **Retired v2.21.** Every supplier now has a real cover image resolved from Supabase; `.card-fallback` covers the load-failure case |
 | **Category card** | `.category-card`, `.category-icon`, `.is-soon`, `.cat-badge`, `.cat-soon-label` | `index.html` | Phase 1 categories; `.is-soon` = non-clickable "Coming Soon" |
@@ -2980,24 +3079,201 @@ Consequences worth knowing before changing either side:
 
 ### 22.3 Status
 
-**Phase 1 (foundation) and Phase 2 (authentication) are complete, build and pass their tests.**
-Sign-up for both roles, email verification with resend, sign-in, forgot/reset password,
-signed-in password change, persistent and auto login, session management and logout all run
-against real Supabase Auth. Splash, onboarding and a Home landing exist; the two dashboards are
-deliberate **milestone shells** that prove the auth path end to end and say plainly what is
-still to come.
+**Feature complete (v2.0, 2026-08-13).** All seven phases are built: foundation, authentication,
+core screens, full backend binding, and both the customer and business workflows.
 
-Verified: debug and release (R8) APKs build, 21/21 unit tests pass, lint reports zero errors.
-**Not yet verified: nothing has run on a device or emulator.**
+- **Customer** - Home with live listings, supplier search with filters, the generic supplier
+  page, the four-step quote request (draft survives the sign-in round trip, B29), a five-panel
+  account, quote comparison with itemised line items, booking detail with timeline / invoices /
+  cancellation terms / review, payments, saved businesses, profile and preferences.
+- **Business** - overview with the real performance metrics, enquiry inbox, quotation composer,
+  bookings with legal-only status moves, a month availability calendar, business profile with
+  portfolio upload and the publish gate, compliance and payout details.
+- **Both** - notifications, complaints and disputes, and a Help Centre whose "contact us" files a
+  real `support_tickets` row with a reference that can actually be looked up.
 
-Remaining phases (core screens, full backend binding, customer and supplier workflows, polish,
-performance, security review, QA) are tracked in `android/ANDROID_HANDOUT.md` §11.
+Verified: debug and release (R8) APKs build (22.5 MB → 3.1 MB), **69 unit tests pass**, lint
+reports **zero errors**, and the app was driven on an API 35 emulator signed out and signed in
+against live Supabase data. What was *not* verified - chiefly the business portal on a device,
+and any write made from the app - is listed in `android/ANDROID_HANDOUT.md` §9 rather than
+implied.
+
+**Two things this surfaced that belong to this platform, not to the app:**
+
+1. **`suppliers.starting_price` carries no unit**, and in the seeded data it is a *per-plate*
+   catering rate (Sterling Balicha 1200, Hotel Aloka 900) - while `search.html`'s static cards
+   present the same suppliers as "from ₹12,00,000". The app therefore quotes
+   `supplier_packages` (which is unit-labelled) and shows no price on a card at all. A column
+   comment or a `starting_price_unit` would settle it for both surfaces.
+2. **Blossom Events' cover photo is a wedding couple**, which is the same problem §5.2 records
+   for Hotel Aloka and fixed in migration `0026` - wedding imagery on a live listing implies a
+   category the platform does not sell (B2). It was missed for this supplier. The fix is a data
+   change here, not a client-side exception in the app.
+
+Remaining Android work is verification and hardening rather than features, and is tracked in
+`android/ANDROID_HANDOUT.md` §11.
 
 ---
 
 ## 18. CHANGE LOG
 
 Append a new entry for **every** change. Newest first. Bump the version at the top of this file.
+
+---
+
+### Version 2.25 - 2026-08-13
+
+**The Android app is feature complete. §22.3 rewritten. No web file changed.**
+
+Nothing under `prototype/` was created, edited or deleted except this documentation section, so
+the deployed site at www.eventara.co.in is untouched. The app added **no migration, no column and
+no server-side change** - it binds to the same tables, views and RPCs this platform already has.
+
+Phases 3 to 7 of the Android brief were built: core screens, full backend binding, and both the
+customer and business workflows. 54 Kotlin files became 85, ~6,400 lines became ~16,200, and the
+unit suite went from 29 tests to 69. Detail lives in `android/ANDROID_HANDOUT.md` v2.0.
+
+**Two findings that belong to this platform**, recorded in §22.3 and repeated here so they are
+not lost in a sibling document:
+
+1. **`suppliers.starting_price` has no unit.** In the seeded data it is a *per-plate* rate
+   (Sterling Balicha 1200, Hotel Aloka 900), while `search.html`'s static cards present those
+   same suppliers as "from ₹12,00,000" and "from ₹4,00,000". Both cannot be right. Rendering the
+   column with the platform's own "Typically from …" phrasing produced "Typically from ₹1.4K" for
+   a whole event - which is how it was noticed. Worth a column comment or a
+   `starting_price_unit`; until then the app quotes `supplier_packages`, which states its unit.
+2. **Blossom Events' cover photo is a wedding couple** (`supplier_media`, seeded in `0010`). This
+   is the same problem §5.2 records for Hotel Aloka and fixes in `0026`: wedding imagery on a live
+   listing implies a category the platform does not sell (**B2**). Blossom Events was missed. The
+   fix is a data change in a migration here - deliberately *not* a client-side exception in the
+   app, which would be the supplier-specific logic §5.13 exists to avoid.
+
+Neither has been changed. Both need a decision from whoever owns the seed data.
+
+---
+
+### Version 2.26 - 2026-08-13
+**The app popup now shows on desktop and laptop too, not just mobile.**
+
+v2.25 deliberately withheld the popup from desktop and used the ribbon as the
+"subtle CTA" there. Requested change: show the glass popup on web/desktop as
+well. It now runs on **every device**, with the ribbon demoted to what it
+always should have been - the quieter step *after* a dismissal, everywhere.
+
+**Same card, two presentations.** Nothing about the content, glass, copy, state
+or flow differs by device; only the alignment does. Below 769px it stays a
+bottom sheet within thumb reach; at 769px and above it becomes a centred dialog
+capped at 440px. A sheet glued to the bottom edge of a 1440px window reads as a
+cookie banner, not a product moment.
+
+**Two consequences that had to be handled, not assumed:**
+
+- **The head script stopped pre-showing the ribbon.** It previously ran a media
+  query so desktop got the ribbon before first paint. With the popup now
+  universal, the ribbon is only ever a post-dismissal state, so that branch is
+  gone and the media query disappeared from both scripts. Simpler, and the
+  remaining pre-paint case is the only one that could have caused a shift.
+- **Scroll-locking costs a sideways jump on desktop.** `overflow: hidden`
+  removes the scrollbar, widening the viewport and shunting the page ~15px
+  across - invisible on mobile (overlay scrollbars), obvious on Windows. The
+  gutter is now measured into `--app-sbw` before locking and handed back as
+  `padding-right`; because fixed layers do not inherit it, the navbar and
+  ribbon are compensated separately. **Verified: navbar width and hero title
+  position both move 0px** when the dialog opens.
+
+**Verified across the range.** Popup opens on desktop 1440x900 (440x348,
+horizontally centred, 39% of the viewport), laptop 1366x700 (50%), tablet
+768x1024 (34%), phone 390x844 (47%) and short phone 360x640 (62%) - all fit
+without internal scrolling. At a 740x360 landscape phone it correctly caps at
+`78dvh` (420x281) and **scrolls inside the card instead of overflowing**. All
+three dismissal paths tested on desktop - ×, Escape and backdrop click - each
+closes, writes `popup-dismissed`, releases the lock, clears `--app-sbw` and
+reveals the 48px ribbon with the navbar exactly below it. After a reload the
+ribbon is present at first paint and the popup does not return. Zero horizontal
+overflow at 360 / 390 / 740 / 768 / 1366 / 1440, zero console errors.
+
+**Not verified:** no physical device test; no screenshot (L24). One cosmetic
+note: the centred card measures ~16px below true vertical centre in this
+harness despite correct `align-items: center` and symmetric 32px padding - a
+sub-2% discrepancy consistent with the renderer's other layout quirks, not a
+CSS fault.
+
+**Files**: `index.html` only (head state script, popup controller, desktop
+centring + scrollbar compensation). No other page, and no shared asset, was
+touched - so **no `?v=` bump was needed for this change**.
+
+---
+
+### Version 2.25 - 2026-08-13
+**Android app promotion: a mobile popup, a top ribbon, and a footer CTA - all pointing at the GitHub release APK.**
+
+The native app (§22) had no route from the website. It now has three, escalating
+downwards in intrusiveness, and none of them fires twice in a session. Full
+behaviour, state machine and measurements in the new **§10.11**.
+
+| Surface | Where | When |
+|---|---|---|
+| Glass popup | Home, mobile only *(changed in v2.26 - now every device)* | 1.4s after load, once per session |
+| Top ribbon | Home, mobile + desktop | After the popup is dismissed; on desktop it *was* the whole treatment until v2.26 |
+| Footer CTA | 5 pages with the full footer | Always. The quiet baseline, no state involved |
+
+**Decisions worth keeping:**
+
+- **The ribbon's visibility is decided in an inline `<head>` script**, not by the
+  controller at the end of the body. It offsets the navbar and hero, so deciding
+  it after first paint would be a guaranteed layout shift. The head script runs
+  the same media query the controller does, so both ribbon cases - "popup
+  already dismissed" and "desktop, which never gets a popup" - are settled
+  before anything paints.
+- **`height`, not `min-height`, on the ribbon.** Caught in testing: a 44px touch
+  target inside a 48px bar with padding rendered 50px while the navbar was still
+  offset by 48 - a 2px overlap. Fixing the height makes the bar and the offset
+  the same number by construction.
+- **Both × buttons draw their circle on `::before`** (36px popup, 30px ribbon)
+  inside a 44px button, so the tap target meets §13 rule 2 without the control
+  looking chunky. Also fixed a positioning bug found in review: `.rib-close`
+  had no `position: relative`, so its circle was anchoring to the ribbon rather
+  than the button.
+- **The footer column is an opt-in `has-app` modifier**, not a change to the
+  base `.footer-grid`. The footers have drifted (L4): five pages carry the full
+  brand + 3-column layout, the rest are minimal or have no columns at all.
+  Widening the base grid would have left those with an empty track.
+- **The popup sits at z-index 10000, above the chatbot** (FAB 9998, panel 9999).
+  A modal backdrop that the chat button floated over would look broken.
+- **`.app-glass` extracts the Sign-In card recipe** rather than restating it, so
+  the frosted language has one definition to change.
+
+**Contrast measured, worst case being the sheet over white page content:**
+white heading **7.82:1**, body at 86% **6.31:1**, footnote at 72% **5.00:1** -
+all above AA.
+
+**Verified end to end in the browser.** Mobile: popup opens after the delay,
+44x44 close, scroll locked, sheet covers 47% of a 390px viewport and 62% of a
+short 360x640 one (fits, 16px gutters, no internal scroll needed); × closes it,
+writes `popup-dismissed`, restores scroll and reveals the ribbon; the ribbon is
+56px with the navbar pushed exactly below it, 92x44 button, 44x44 close, both
+inside the bar; × hides it, writes `ribbon-dismissed`, navbar returns to top 0
+and neither surface returns. A download click sets `eventara_app_got_it` and,
+with the session cleared, **neither popup nor ribbon comes back**. Desktop
+1440: ribbon only, no popup, 48px bar, navbar at 48. Footer renders **5 columns
+in a single row** on index/brief/faq/help/supplier (2 columns at 1024, 1 at
+768); `search.html`'s minimal footer is untouched and its 7 supplier cards still
+render. Zero horizontal overflow at 360/390/768/1024/1440, zero console errors,
+chatbot FAB clear of the ribbon and correctly behind the popup backdrop.
+
+**APK URL verified live**: HTTP 200, `application/vnd.android.package-archive`,
+`Content-Disposition: attachment; filename=eventara.apk`. Used verbatim in all
+three surfaces; a plain `<a>` with no `download` attribute, which is ignored
+cross-origin anyway.
+
+**Not verified:** no physical device test, and this harness cannot screenshot
+(L24) - appearance was judged from measurement plus an offline composite. The
+APK was not actually downloaded and installed.
+
+**Files**: `styles.css` (`.footer-grid.has-app` + `.footer-app`, `?v=23` across
+all 15 pages), `index.html` (popup + ribbon + head state script + controller +
+footer column), `brief.html` / `faq.html` / `help.html` / `supplier.html`
+(footer column), both handout copies.
 
 ---
 

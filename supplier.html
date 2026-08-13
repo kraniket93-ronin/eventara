@@ -27,7 +27,7 @@
   <meta name="twitter:image" content="https://www.eventara.co.in/images/login-bg.jpg">
   <!-- /EVENTARA-SEO -->
 
-  <link rel="stylesheet" href="styles.css?v=22" />
+  <link rel="stylesheet" href="styles.css?v=23" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
@@ -406,7 +406,7 @@
   <!-- FOOTER -->
   <footer class="footer">
     <div class="container">
-      <div class="footer-grid">
+      <div class="footer-grid has-app">
         <div class="footer-brand">
           <a href="index.html" class="navbar-logo"><img src="logo.svg?v=1" alt="Eventara" class="logo-img" /></a>
           <p class="footer-tagline">Every Occasion, One Platform</p>
@@ -439,6 +439,21 @@
             <li><a href="#">Terms of Service</a></li>
           </ul>
         </div>
+
+        <!-- Android app CTA (added v2.25). A fifth footer column, switched on by
+             the `has-app` modifier on .footer-grid. The link is a plain anchor:
+             GitHub serves the asset with Content-Disposition: attachment, and the
+             `download` attribute is ignored cross-origin anyway. -->
+        <div class="footer-app">
+          <h4>Get the Eventara Android App</h4>
+          <p>Plan, discover and manage your events on the go.</p>
+          <a class="btn btn-primary" href="https://github.com/kraniket93-ronin/eventara/releases/latest/download/eventara.apk" rel="noopener" data-app-download="footer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M12 7v7"/><path d="m9 11 3 3 3-3"/><line x1="11" y1="18.5" x2="13" y2="18.5"/></svg>
+            Download Android App
+          </a>
+          <span class="app-note">Free &middot; Android APK</span>
+        </div>
+
       </div>
       <div class="footer-bottom">
         <span>© 2026 Eventara. All rights reserved.</span>
