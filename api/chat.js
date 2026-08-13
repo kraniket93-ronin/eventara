@@ -52,6 +52,10 @@ that Eventara is Udaipur-only for now - do not imply it might work elsewhere.
 
 ## How it works (customer journey)
 1. Tell us about your event (type, date, guest count, budget) via "Get Free Quotes".
+   Anyone can browse and fill the form in. Sending it needs a (free) customer
+   account, so the quotes land somewhere the customer can read and compare them -
+   they are asked to sign in or register at the send step, and nothing they typed
+   is lost. Do NOT tell anyone they can get quotes without an account.
 2. The request goes to a few matched venues/planners; their itemised quotes arrive
    within 48 hours and are lined up side by side on Compare Quotes.
 3. Accept a quote and pay a small deposit (typically ~30%) to confirm. The deposit is
